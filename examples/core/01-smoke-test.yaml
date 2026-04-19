@@ -1,0 +1,38 @@
+name: smoke-test
+description: |
+  Minimal pipeline to verify aiorch is healthy after a fresh
+  install. No LLM, no connectors, no secrets, no schedule —
+  just three shell steps that prove:
+
+    1. Pipeline upload + validation works (parser → JSON Schema
+       → Pydantic → DAG check)
+    2. Run creation hits POST /api/runs and a row lands in the
+       runs table with status=pending
+    3. The executor process picks up the pending run, claims
+       it, and runs each step
+    4. The shell-safe Jinja resolver substitutes step outputs
+       into downstream commands (the {{ now }} and
+       {{ ping_msg }} interpolations below)
+    5. The DAG layer correctly orders steps with depends:
+    6. Run finishes in the completed state, output flows back
+       through the Trace page
+
+  Expected total runtime: < 1 second. If this hangs, the
+  executor process isn't running. If validation fails on
+  upload, the parser is broken. If the Jinja interpolation
+  produces a literal '{{ now }}' in the third step's output,
+  the resolver isn't wired.
+
+steps:
+  ping:
+    run: echo aiorch smoke test starting
+    output: ping_msg
+
+  timestamp:
+    run: date '+%Y-%m-%d %H:%M:%S'
+    output: now
+
+  summary:
+    run: echo SMOKE TEST PASSED at {{now}} — {{ping_msg}}
+    depends: [ping, timestamp]
+    output: summary

@@ -1,0 +1,139 @@
+name: stale-branches
+description: |
+  Find git branches that haven't moved in a while by
+  parsing a `git for-each-ref` fixture. Reads branch rows,
+  computes age in days off wall clock, flags anything
+  older than `stale_days`, and prints a sorted list.
+
+  Why this matters:
+    Long-lived unmerged branches are a smell — either
+    dead work that should be deleted, or live work that
+    should have a PR open. Running this monthly gives you
+    a list of "branches to rebase, merge, or delete" so
+    cleanups are based on data, not guesses.
+
+  Why a fixture instead of shelling out to git?
+    Pipelines should be hermetic: zero local-repo
+    assumptions, runnable by anyone, anywhere. The fixture
+    ships with the catalog so the default run works on a
+    fresh clone with no setup.
+
+  Use real branch output:
+    1. Dump the branches to a file:
+         git for-each-ref \
+           --format='%(refname:short)|%(committerdate:unix)|%(authorname)|%(subject)' \
+           refs/heads/ > my-branches.txt
+    2. Run the pipeline pointing at it:
+         aiorch run 41-stale-branches.yaml -i branches_path=my-branches.txt
+
+  DAG shape:
+    read_branches → compute_ages → filter_stale → show
+
+input:
+  branches_path:
+    type: string
+    default: inputs/sample-branches.txt
+    description: Path to a branches fixture (one line per branch, fields `name|unix_ts|author|subject`). Default ships with the catalog.
+
+  stale_days:
+    type: integer
+    default: 30
+    minimum: 1
+    maximum: 3650
+    description: Days since last commit before a branch is flagged stale.
+
+steps:
+  read_branches:
+    # Parse the fixture: one line per branch, fields
+    # `name|committer_unix_ts|author|subject`. Skip blank
+    # lines and anything that doesn't have all four fields.
+    python: |
+      from pathlib import Path
+
+      p = Path(inputs["branches_path"])
+      text = p.read_text()
+
+      branches = []
+      for line in text.splitlines():
+          line = line.strip()
+          if not line:
+              continue
+          parts = line.split("|", 3)
+          if len(parts) == 4:
+              try:
+                  ts = int(parts[1])
+              except ValueError:
+                  continue
+              branches.append({
+                  "name": parts[0],
+                  "last_commit_ts": ts,
+                  "author": parts[2],
+                  "subject": parts[3][:80],
+              })
+
+      result = {
+          "source": str(p.resolve()),
+          "count": len(branches),
+          "branches": branches,
+      }
+    output: listed
+
+  compute_ages:
+    # Compute age in days for each branch off wall clock.
+    # Keep every branch — flag later in filter_stale so
+    # this step stays a pure enrichment pass.
+    python: |
+      import time
+
+      now = int(time.time())
+      stale_days = inputs["stale_days"]
+      branches = inputs["listed"]["branches"]
+
+      enriched = []
+      for b in branches:
+          age_sec = max(0, now - b["last_commit_ts"])
+          age_days = age_sec // 86400
+          enriched.append({
+              **b,
+              "age_days": age_days,
+              "is_stale": age_days >= stale_days,
+          })
+
+      enriched.sort(key=lambda r: r["age_days"], reverse=True)
+
+      result = {
+          "threshold_days": stale_days,
+          "branches": enriched,
+      }
+    depends: [read_branches]
+    output: aged
+
+  filter_stale:
+    # Pull out just the stale ones into a dedicated list
+    # the `show` step can summarize.
+    python: |
+      stale = [b for b in inputs["aged"]["branches"] if b["is_stale"]]
+      fresh = [b for b in inputs["aged"]["branches"] if not b["is_stale"]]
+
+      result = {
+          "total_branches": len(inputs["aged"]["branches"]),
+          "stale_count": len(stale),
+          "fresh_count": len(fresh),
+          "oldest_days": stale[0]["age_days"] if stale else 0,
+          "oldest_name":  stale[0]["name"]     if stale else None,
+          "stale": stale,
+      }
+    depends: [compute_ages]
+    output: stale_report
+
+  show:
+    run: |
+      echo === STALE BRANCHES ===
+      echo Source:         {{listed.source}}
+      echo Threshold:      {{aged.threshold_days}} days
+      echo Total branches: {{stale_report.total_branches}}
+      echo Stale count:    {{stale_report.stale_count}}
+      echo Fresh count:    {{stale_report.fresh_count}}
+      echo Oldest:         {{stale_report.oldest_name}} [{{stale_report.oldest_days}} days]
+    depends: [filter_stale]
+    output: report_text

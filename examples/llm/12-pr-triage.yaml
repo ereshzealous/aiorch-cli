@@ -1,0 +1,107 @@
+name: pr-triage
+description: |
+  Read a JSON fixture shaped like the GitHub /repos/<owner>/<repo>/pulls
+  response, run an LLM triage per PR (severity, area, suggested reviewer),
+  aggregate into a digest, and write the digest to disk.
+
+  Real usage: pipe `gh api '/repos/<owner>/<repo>/pulls'` into the fixture
+  path. The default runs against a hermetic sample so it works offline.
+
+  Usage:
+    aiorch run 12-pr-triage.yaml
+    aiorch run 12-pr-triage.yaml -i prs_path=./my-prs.json
+
+input:
+  prs_path:
+    type: string
+    default: ./inputs/sample-prs.json
+
+steps:
+  load:
+    python: |
+      import json, pathlib
+      prs = json.loads(pathlib.Path(inputs["prs_path"]).read_text())
+      print(f"Loaded {len(prs)} PRs from {inputs['prs_path']}")
+      # Flatten to the fields the LLM needs — keep prompts small + cheap.
+      slim = [{
+          "number": p.get("number"),
+          "title":  p.get("title") or "",
+          "author": (p.get("user") or {}).get("login") or "unknown",
+          "body":   (p.get("body") or "")[:1200],
+      } for p in prs]
+      result = slim
+    output: pr_slim
+
+  triage_each:
+    prompt: |
+      Triage this pull request. Reply with a compact JSON object with
+      three keys:
+        severity : exactly one of "low", "medium", "high"
+        area     : one short label like "auth", "ui", "docs", "infra",
+                   "runtime", "tests", "scheduler", "connectors",
+                   "mcp", "observability", or "other"
+        reason   : one sentence explaining the severity choice
+
+      PR #{{item.number}} by {{item.author}}
+      Title: {{item.title}}
+      Body:
+      {{item.body}}
+    format: json
+    schema:
+      type: object
+      required: [severity, area, reason]
+      properties:
+        severity: { type: string, enum: [low, medium, high] }
+        area:     { type: string }
+        reason:   { type: string }
+    retry_on_invalid: 2
+    foreach: "{{pr_slim}}"
+    depends: [load]
+    output: triage
+
+  digest:
+    python: |
+      import json, pathlib
+      from collections import Counter
+
+      prs = inputs["pr_slim"]
+      triage = inputs["triage"]
+
+      by_severity = Counter(t.get("severity", "unknown") for t in triage)
+      by_area     = Counter(t.get("area", "unknown") for t in triage)
+
+      merged = []
+      for pr, t in zip(prs, triage):
+          merged.append({
+              "number":   pr["number"],
+              "title":    pr["title"],
+              "author":   pr["author"],
+              "severity": t.get("severity"),
+              "area":     t.get("area"),
+              "reason":   t.get("reason"),
+          })
+
+      # Sort high-severity first for scannability
+      rank = {"high": 0, "medium": 1, "low": 2}
+      merged.sort(key=lambda m: rank.get(m["severity"], 99))
+
+      out_path = pathlib.Path("./inputs/pr-triage.json")
+      out_path.write_text(json.dumps({
+          "total": len(prs),
+          "by_severity": dict(by_severity),
+          "by_area":     dict(by_area),
+          "prs":         merged,
+      }, indent=2))
+
+      print(f"==== PR triage ({len(prs)} PRs) ====")
+      print(f"  Severity: {dict(by_severity)}")
+      print(f"  Areas:    {dict(by_area)}")
+      print()
+      print("Highest-severity first:")
+      for m in merged[:8]:
+          print(f"  #{m['number']:4}  [{m['severity']:6}] {m['area']:12}  {m['title'][:60]}")
+      print()
+      print(f"Wrote {out_path.resolve()}")
+      result = {"digest_path": str(out_path), "count": len(prs)}
+    depends: [triage_each]
+    output: report

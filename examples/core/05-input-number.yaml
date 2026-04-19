@@ -1,0 +1,59 @@
+name: input-number-test
+description: |
+  Input-type test #3: number (float)
+
+  One float input with fractional bounds, three shell steps.
+  This is the LLM temperature use case — the most common
+  real-world `number` input — so the test mirrors it.
+
+  What to verify:
+    1. Run dialog renders a number spinner for `temperature`
+       with step="any" so you can type 0.3, 0.55, 0.71 etc.
+       (the integer test had step=1 which blocks decimals —
+       make sure you can actually type a decimal here)
+    2. Range hint "Range: 0 to 1" shows under the field
+    3. Default 0.7 is pre-filled
+    4. Submitting 1.5 is rejected at run start with
+       "must be <= 1.0, got 1.5"
+    5. Submitting -0.1 is rejected with "must be >= 0.0"
+    6. Submitting an integer (e.g. 1) is accepted — JSON
+       Schema treats integers as valid for `number` fields,
+       and validate_inputs() matches that convention
+    7. Trace input panel shows the float value exactly as
+       typed — 0.7, not "0.7" and not 0.7000000001
+    8. `awk` confirms the value round-trips through the shell
+       as a real number (the mul step would produce 0 if
+       the value came through as empty or a non-numeric
+       string)
+
+  Expected runtime: < 1 second.
+
+input:
+  temperature:
+    type: number
+    default: 0.7
+    minimum: 0.0
+    maximum: 1.0
+    description: LLM sampling temperature. 0 = deterministic, 1 = maximum diversity.
+
+steps:
+  banner:
+    run: echo === number input test, temperature={{temperature}} ===
+    output: banner
+
+  classify:
+    # Shell-level branching on the float value. Two breakpoints:
+    #   temperature < 0.3  → deterministic
+    #   temperature < 0.8  → balanced
+    #   otherwise          → creative
+    # awk handles float comparison cleanly. The test uses `exit` to
+    # set the process exit code so `&&` / `||` can pick the branch —
+    # but since we have three branches we just let awk print directly.
+    run: awk -v t={{temperature}} 'BEGIN{if(t<0.3)print "deterministic zone (t<0.3)"; else if(t<0.8)print "balanced zone (0.3<=t<0.8)"; else print "creative zone (t>=0.8)"}'
+    depends: [banner]
+    output: zone
+
+  summary:
+    run: echo NUMBER INPUT TEST PASSED - temperature was {{temperature}}
+    depends: [classify]
+    output: summary

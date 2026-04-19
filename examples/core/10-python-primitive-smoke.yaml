@@ -1,0 +1,119 @@
+name: python-primitive-smoke
+description: |
+  Zero-dependency sanity check for the new `python:` step
+  primitive. No artifact upload, no external deps, takes
+  three text inputs and exercises every behavior the
+  handler promises.
+
+  What this tests:
+    1. `python:` body runs in the executor's own interpreter
+       (no subprocess, no quoting hell)
+    2. `inputs["key"]` reads the Jinja context exactly the
+       same way `{{key}}` would in a `run:` step
+    3. Assigning a dict to `result` makes it the step output
+    4. A downstream `run:` step can read fields of that dict
+       via Jinja: `{{report.chars}}`, `{{report.top[0]}}`
+    5. A second python step with only `print(...)` (no
+       `result`) falls through to stdout-as-output, matching
+       the shell contract
+    6. Running two python steps in parallel produces
+       independent stdout captures (the thread-local proxy
+       doesn't cross-contaminate)
+    7. A python step with no inputs just runs and computes
+
+  Expected runtime: < 50ms for the whole pipeline. Python
+  startup is amortized because the body runs in the
+  executor's own interpreter — no `python3 -c` fork.
+
+  What should be in the Trace:
+    - analyze:      result is a dict, Trace shows the dict
+    - print_only:   result is the printed string "hello..."
+    - parallel_a:   only its own number (no leakage from b)
+    - parallel_b:   only its own number (no leakage from a)
+    - summary:      human report composed from all four
+
+input:
+  name:
+    type: string
+    default: aiorch
+    description: Name to greet. String input, read via inputs["name"].
+  count:
+    type: integer
+    default: 7
+    minimum: 1
+    maximum: 100
+    description: Integer input, used for a small computation in the analyze step.
+  phrase:
+    type: string
+    default: The quick brown fox jumps over the lazy dog
+    description: Sample text for word/char counting inside the analyze step.
+
+steps:
+  analyze:
+    python: |
+      import re
+      from collections import Counter
+
+      name = inputs["name"]
+      count = inputs["count"]
+      phrase = inputs["phrase"]
+
+      words = re.findall(r"\w+", phrase)
+      freq = Counter(w.lower() for w in words).most_common(3)
+
+      result = {
+          "greeting": f"hello {name}",
+          "count_squared": count * count,
+          "chars": len(phrase),
+          "words": len(words),
+          "top_word": freq[0][0] if freq else None,
+          "top3": [w for w, _ in freq],
+      }
+    output: report
+
+  print_only:
+    # No `result` assignment — the printed line IS the output.
+    python: |
+      name = inputs["name"]
+      print(f"hello from python stdout, {name}")
+    depends: [analyze]
+    output: printed_line
+
+  parallel_a:
+    # Runs in parallel with parallel_b. The thread-local stdout
+    # proxy guarantees each step's print output goes to its own
+    # buffer, not the other's.
+    python: |
+      import time
+      time.sleep(0.05)
+      print("parallel_a speaking")
+      result = {"branch": "a", "value": inputs["count"] + 100}
+    depends: [analyze]
+    output: branch_a
+
+  parallel_b:
+    python: |
+      import time
+      time.sleep(0.05)
+      print("parallel_b speaking")
+      result = {"branch": "b", "value": inputs["count"] + 200}
+    depends: [analyze]
+    output: branch_b
+
+  summary:
+    # Compose a human report from all four upstream outputs via
+    # regular Jinja. This proves the dict outputs from python:
+    # steps are real dicts in the Jinja context (not JSON strings),
+    # so field access works the same as any other step output.
+    run: |
+      echo === python primitive smoke report ===
+      echo greeting = {{report.greeting}}
+      echo count_squared = {{report.count_squared}}
+      echo chars = {{report.chars}}  words = {{report.words}}
+      echo top word = {{report.top_word}}
+      echo top3 = {{report.top3}}
+      echo print_only fall-through = {{printed_line}}
+      echo parallel_a = branch={{branch_a.branch}} value={{branch_a.value}}
+      echo parallel_b = branch={{branch_b.branch}} value={{branch_b.value}}
+    depends: [print_only, parallel_a, parallel_b]
+    output: summary

@@ -1,0 +1,69 @@
+name: classify-then-branch
+description: |
+  The LLM classifies the input message into one of three categories,
+  then exactly ONE downstream branch runs based on that classification.
+  The other two branches appear as SKIPPED in the trace — not failed.
+
+  Useful pattern for "route a support ticket / PR comment / customer
+  email to the right template."
+
+  Usage:
+    aiorch run 08-classify-then-branch.yaml
+    aiorch run 08-classify-then-branch.yaml -i message="Is there a way to run a pipeline without MinIO?"
+    aiorch run 08-classify-then-branch.yaml -i message="The colors on the new dashboard look great!"
+
+input:
+  message:
+    type: string
+    default: "Hey team, staging CI has been failing since Tuesday morning on the auth tests."
+
+steps:
+  classify:
+    prompt: |
+      Classify the message as exactly ONE of: BUG, QUESTION, FEEDBACK.
+      Reply with ONLY that word in uppercase — nothing else.
+
+      Message: {{message}}
+    output: category
+
+  handle_bug:
+    prompt: |
+      A user reported this bug:
+
+      {{message}}
+
+      Draft a brief response that (a) acknowledges it, (b) asks the
+      single most useful clarifying question, (c) estimates a rough
+      triage window. 3 sentences total, no preamble.
+    condition: "'BUG' in '{{category}}'"
+    depends: [classify]
+    output: bug_response
+
+  handle_question:
+    prompt: |
+      A user asked:
+
+      {{message}}
+
+      Draft a brief, friendly answer in 3 sentences, no preamble.
+    condition: "'QUESTION' in '{{category}}'"
+    depends: [classify]
+    output: question_response
+
+  handle_feedback:
+    prompt: |
+      A user sent feedback:
+
+      {{message}}
+
+      Draft a brief thank-you plus one follow-up question.
+      3 sentences total, no preamble.
+    condition: "'FEEDBACK' in '{{category}}'"
+    depends: [classify]
+    output: feedback_response
+
+  show:
+    run: |
+      echo ==== Classification: {{category}} ====
+      echo {{bug_response or question_response or feedback_response or '(no branch ran)'}}
+    depends: [handle_bug, handle_question, handle_feedback]

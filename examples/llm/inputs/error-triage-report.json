@@ -1,0 +1,56 @@
+[
+  {
+    "pattern": "[error] <num>#<num>: *<num> upstream timed out (<num>: Connection timed out) while reading response header from upstream, client: <ip>, request: \"POST <path> HTTP<path> upstream: \"http:<path>",
+    "count": 5,
+    "example": "2345#2345: *13 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 203.0.113.5, request: \"POST /api/runs HTTP/1.1\", upstream: \"http://127.0.0.1:7842/api/runs\"",
+    "pattern_index": 2,
+    "root_cause": "Backend service is slow or unresponsive, causing NGINX to time out.",
+    "severity": "high",
+    "next_action": "Check the health and load of the backend service (127.0.0.1:7842) by reviewing its logs and metrics."
+  },
+  {
+    "pattern": "[error] <num>#<num>: *<num> connect() failed (<num>: Connection refused) while connecting to upstream, client: <ip>, request: \"GET <path> HTTP<path> upstream: \"http:<path>",
+    "count": 3,
+    "example": "2345#2345: *18 connect() failed (111: Connection refused) while connecting to upstream, client: 192.168.1.100, request: \"GET /api/health HTTP/1.1\", upstream: \"http://127.0.0.1:7842/api/health\"",
+    "pattern_index": 3,
+    "root_cause": "Backend service is not running or not accessible by NGINX.",
+    "severity": "high",
+    "next_action": "Verify that the backend service (127.0.0.1:7842) is running and listening on the expected port."
+  },
+  {
+    "pattern": "[crit] <num>#<num>: *<num> SSL_do_handshake() failed (SSL: error:<hex>:SSL routines:ssl3_read_bytes:tlsv1 alert unknown ca) while SSL handshaking, client: <ip>, server: <ip>:<num>",
+    "count": 2,
+    "example": "2345#2345: *21 SSL_do_handshake() failed (SSL: error:14094418:SSL routines:ssl3_read_bytes:tlsv1 alert unknown ca) while SSL handshaking, client: 203.0.113.200, server: 0.0.0.0:443",
+    "pattern_index": 4,
+    "root_cause": "SSL handshake failure due to an unknown or untrusted client certificate.",
+    "severity": "medium",
+    "next_action": "Investigate the client making the SSL request (203.0.113.200) and ensure they are presenting a valid and trusted certificate, or update the server's trusted CA list if necessary."
+  },
+  {
+    "pattern": "[error] <num>#<num>: *<num> upstream prematurely closed connection while reading response header from upstream, client: <ip>, request: \"GET <path> HTTP<path> upstream: \"http:<path>",
+    "count": 1,
+    "example": "2345#2345: *29 upstream prematurely closed connection while reading response header from upstream, client: 198.51.100.14, request: \"GET /api/runs HTTP/1.1\", upstream: \"http://127.0.0.1:7842/api/runs\"",
+    "pattern_index": 6,
+    "root_cause": "Upstream service closed the connection before sending a full response.",
+    "severity": "medium",
+    "next_action": "Check the backend service (127.0.0.1:7842) logs for errors or crashes when handling requests for /api/runs."
+  },
+  {
+    "pattern": "[error] <num>#<num>: *<num> open() \"<path> failed (2: No such file or directory), client: <ip>, server: _, request: \"GET <path> HTTP<path>",
+    "count": 8,
+    "example": "2345#2345: *12 open() \"/var/www/html/favicon.ico\" failed (2: No such file or directory), client: 192.168.1.42, server: _, request: \"GET /favicon.ico HTTP/1.1\"",
+    "pattern_index": 1,
+    "root_cause": "Requested files do not exist on the server, often favicon.ico or other static assets.",
+    "severity": "low",
+    "next_action": "Verify if the missing files are legitimate assets and either add them or configure NGINX to silently handle these requests if they are benign."
+  },
+  {
+    "pattern": "[warn] <num>#<num>: *<num> an upstream response is buffered to a temporary file <path> while reading upstream, client: <ip>, request: \"GET <path> HTTP<path>",
+    "count": 1,
+    "example": "2345#2345: *15 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/1/02/0000000001 while reading upstream, client: 198.51.100.9, request: \"GET /api/pipelines HTTP/1.1\"",
+    "pattern_index": 5,
+    "root_cause": "Upstream response is too large to fit in memory, causing NGINX to buffer to disk.",
+    "severity": "low",
+    "next_action": "Review the configuration of proxy buffering (proxy_buffering, proxy_buffer_size) and consider if the large response is expected or if the backend should return smaller responses."
+  }
+]

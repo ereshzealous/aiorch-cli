@@ -1,0 +1,63 @@
+name: code-port
+description: |
+  Read a Python source snippet, ask the LLM to port it to a target
+  language (default: Go). The LLM MUST return a single code block
+  with the ported code plus a short "notes" section explaining any
+  idiomatic differences.
+
+  Useful for: standing up a quick reference implementation in a
+  second language, or understanding what a snippet would look like
+  in Rust / TypeScript / Go.
+
+  Usage:
+    aiorch run 23-code-port.yaml -i source=@./inputs/sample-code.py
+    aiorch run 23-code-port.yaml -i source=@./inputs/sample-code.py -i target_lang=Rust
+
+input:
+  source:
+    type: artifact
+    format: text
+    description: Source code file to port (Python assumed)
+  target_lang:
+    type: string
+    default: Go
+
+steps:
+  port:
+    prompt: |
+      Port the following Python code to {{target_lang}}. Keep the same
+      behavior (including error semantics where possible) and use
+      idiomatic {{target_lang}} — don't just transliterate line-by-line.
+
+      Return JSON with these fields:
+        ported_code : the {{target_lang}} source as one string
+        notes       : 2-4 bullets about any idiom changes, missing
+                      stdlib equivalents, or places the behavior
+                      differs from the Python
+
+      Python source:
+      ---
+      {{source}}
+      ---
+    format: json
+    schema:
+      type: object
+      required: [ported_code, notes]
+      properties:
+        ported_code: { type: string }
+        notes:       { type: array, items: { type: string } }
+    retry_on_invalid: 2
+    output: result
+
+  show:
+    python: |
+      r = inputs["result"]
+      lang = inputs["target_lang"]
+      print(f"==== Ported to {lang} ====")
+      print(r["ported_code"])
+      print()
+      print("==== Notes ====")
+      for n in r["notes"]:
+          print(f"  - {n}")
+      result = {"target_lang": lang}
+    depends: [port]

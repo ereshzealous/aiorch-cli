@@ -1,0 +1,83 @@
+name: openapi-from-routes
+description: |
+  Read a Python/Flask routes file, ask the LLM to generate an
+  OpenAPI 3.0 snippet describing each route (path, method, summary,
+  parameters, request body, responses). Writes the result to disk.
+
+  Pattern for: "I have a framework-declared API but no OpenAPI spec."
+  Works for Flask, FastAPI, Django REST, or any language where routes
+  are grep-able. The LLM infers shapes from decorator hints + function
+  signatures — imperfect but dramatically better than writing the
+  spec from scratch.
+
+  Usage:
+    aiorch run 26-openapi-from-routes.yaml -i source=@./inputs/sample-routes.py
+
+input:
+  source:
+    type: artifact
+    format: text
+    description: Python file containing @app.route / @router.get decorators
+
+steps:
+  generate:
+    prompt: |
+      Read the Python source below (Flask or FastAPI style routing).
+      For each route, produce an OpenAPI 3.0 path object with:
+        - path
+        - method (get/post/put/patch/delete)
+        - summary (≤ 10 words)
+        - parameters (path + query; infer types from annotations)
+        - requestBody (when the method is POST/PUT/PATCH)
+        - responses (200 at minimum, with a short description)
+
+      Make REASONABLE inferences for missing details; prefer omitting
+      fields you can't determine over hallucinating them.
+
+      Reply with JSON:
+        paths : array of path objects, each shaped like:
+                { path, method, summary, parameters, requestBody, responses }
+
+      Source:
+      ---
+      {{source}}
+      ---
+    format: json
+    schema:
+      type: object
+      required: [paths]
+      properties:
+        paths:
+          type: array
+          items:
+            type: object
+            required: [path, method, summary, responses]
+            properties:
+              path:        { type: string }
+              method:      { type: string }
+              summary:     { type: string }
+              parameters:  { type: array }
+              requestBody: { type: object }
+              responses:   { type: object }
+    retry_on_invalid: 2
+    output: spec
+
+  write_yaml:
+    python: |
+      import json, pathlib
+      paths = inputs["spec"]["paths"]
+
+      print(f"==== OpenAPI snippet ({len(paths)} routes) ====")
+      for p in paths:
+          params = p.get("parameters") or []
+          print(f"  {p['method'].upper():6} {p['path']:40}  {p['summary']}")
+          if params:
+              print(f"         params: {len(params)}")
+
+      # Write the full spec as JSON for easy grep/machine-read
+      out = pathlib.Path("./inputs/openapi-draft.json")
+      out.write_text(json.dumps(inputs["spec"], indent=2))
+      print(f"\nWrote {out.resolve()}")
+      result = {"output_path": str(out), "routes_documented": len(paths)}
+    depends: [generate]
+    output: report

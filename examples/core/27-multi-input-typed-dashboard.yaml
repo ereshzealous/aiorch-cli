@@ -1,0 +1,152 @@
+name: multi-input-typed-dashboard
+description: |
+  Reference pipeline that uses every user-facing scalar
+  input type (string, integer, number, boolean, list)
+  in a single workflow. Useful as a copy-paste reference
+  card for what each input renders as in the Run dialog
+  and what each lands as in the python step's context.
+
+  Use case framing: a fake budget dashboard. Each input
+  drives a different aspect of the report:
+    - report_title    (string)  → shown at the top
+    - fiscal_year     (integer) → year stamp + bounded
+    - tax_rate        (number)  → applied to subtotal
+    - show_details    (boolean) → toggle verbose output
+    - categories      (list)    → which line items to show
+
+  No LLM, no connectors, no webhooks. Pure local + user
+  inputs. The Run dialog should show all five form
+  controls — text input, number spinner with bounds,
+  decimal spinner, checkbox, comma-separated textarea.
+
+  What to verify:
+    1. Run dialog shows all five form controls in the
+       correct shapes (text / number / decimal /
+       checkbox / textarea)
+    2. integer bounds (min=2020, max=2030) are enforced
+       at form level AND at run start (try year=1999)
+    3. number bounds (min=0.0, max=1.0) similarly
+    4. List comma-separation parses into a real array
+       on submit (the textarea fix from earlier)
+    5. The compute step receives every input as the
+       correct Python type
+    6. The report references all five inputs in the
+       output
+
+input:
+  report_title:
+    type: string
+    default: Q1 2026 Budget Dashboard
+    description: Display title shown at the top of the report.
+
+  fiscal_year:
+    type: integer
+    default: 2026
+    minimum: 2020
+    maximum: 2030
+    description: Fiscal year for the report. Must be 2020-2030.
+
+  tax_rate:
+    type: number
+    default: 0.08
+    minimum: 0.0
+    maximum: 1.0
+    description: Sales tax as a decimal fraction (0.08 = 8%).
+
+  show_details:
+    type: boolean
+    default: true
+    description: When on, prints per-category line items in addition to totals.
+
+  categories:
+    type: list
+    default: [Hardware, Software, Cloud]
+    description: Which budget categories to include. Comma-separated in the form.
+
+steps:
+  compute:
+    python: |
+      # Type assertions — these confirm the type each input
+      # actually arrives as. Useful when debugging "why is
+      # my int a string" issues.
+      assert isinstance(inputs["report_title"], str), f"title is {type(inputs['report_title']).__name__}"
+      assert isinstance(inputs["fiscal_year"], int) and not isinstance(inputs["fiscal_year"], bool)
+      assert isinstance(inputs["tax_rate"], (int, float))
+      assert isinstance(inputs["show_details"], bool)
+      assert isinstance(inputs["categories"], list)
+
+      title = inputs["report_title"]
+      year = inputs["fiscal_year"]
+      tax_rate = float(inputs["tax_rate"])
+      show_details = inputs["show_details"]
+      categories = inputs["categories"]
+
+      # Made-up budget figures keyed by category name.
+      # Real workflows would read these from a database,
+      # API, or CSV — this is just to give us numbers
+      # to compute on.
+      BUDGETS = {
+          "Hardware":  120000.00,
+          "Software":   85000.00,
+          "Cloud":     210000.00,
+          "Travel":     45000.00,
+          "Marketing": 175000.00,
+          "Salaries": 1200000.00,
+      }
+
+      line_items = []
+      subtotal = 0.0
+      missing = []
+      for cat in categories:
+          if cat in BUDGETS:
+              amount = BUDGETS[cat]
+              line_items.append({"category": cat, "amount": amount})
+              subtotal += amount
+          else:
+              missing.append(cat)
+
+      tax = round(subtotal * tax_rate, 2)
+      total = round(subtotal + tax, 2)
+
+      result = {
+          "title": title,
+          "year": year,
+          "category_count": len(line_items),
+          "line_items": line_items,
+          "missing_categories": missing,
+          "subtotal": round(subtotal, 2),
+          "tax_rate_pct": round(tax_rate * 100, 2),
+          "tax": tax,
+          "total": total,
+          "show_details": show_details,
+      }
+    output: report
+
+  show:
+    run: |
+      echo === {{report.title}} ===
+      echo Fiscal year:    {{report.year}}
+      echo Categories:     {{report.category_count}}
+      echo Subtotal:       {{report.subtotal}}
+      echo Tax [{{report.tax_rate_pct}}%]: {{report.tax}}
+      echo Total:          {{report.total}}
+    depends: [compute]
+    output: report_text
+
+  show_details:
+    # Conditional second step — only runs if show_details
+    # was true. Shows the per-category line items.
+    python: |
+      r = inputs["report"]
+      lines = [
+          f"{i['category']:>12}  ${i['amount']:>12,.2f}"
+          for i in r["line_items"]
+      ]
+      if r["missing_categories"]:
+          lines.append("")
+          lines.append(f"  ⚠ Skipped (not in budget table): {r['missing_categories']}")
+      print("\n".join(["", "  Line items:"] + lines))
+      result = {"detail_lines": len(lines)}
+    condition: "{{report.show_details}} == True"
+    depends: [show]
+    output: details

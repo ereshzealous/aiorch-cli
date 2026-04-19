@@ -1,0 +1,172 @@
+name: log-triage
+description: |
+  Triage an nginx-style access log: bucket responses by
+  status class, compute error rate, and rank the top
+  paths and top client IPs by traffic. Writes a JSON
+  report for downstream dashboards or alerting.
+
+  Use case:
+    "Something is weird with the web tier." Point this at
+    the most recent /var/log/nginx/access.log, get an
+    immediate answer to: what's the 5xx rate? which paths
+    are hot? which IPs are generating the most traffic?
+    No Kibana, no Splunk, no paid tooling — just the log
+    file and this pipeline.
+
+  DAG shape:
+    parse_log → bucket_status → [top_paths || top_ips] → build_report → show
+
+  The top_paths and top_ips steps run in parallel in the
+  same DAG layer — independent reducers over the same
+  parsed dataset.
+
+  Input format:
+    Standard nginx "combined" log format:
+      <ip> - - [<ts>] "<method> <path> HTTP/1.1" <code> <size> "<ref>" "<ua>"
+
+  The default sample log lives at inputs/sample-access.log
+  and ships with the catalog so you can run this with no
+  flags.
+
+  Run it:
+    aiorch run 42-log-triage.yaml
+    aiorch run 42-log-triage.yaml -i log_path=/var/log/nginx/access.log
+
+input:
+  log_path:
+    type: string
+    default: inputs/sample-access.log
+    description: Path (absolute or relative to cwd) to an nginx-style access log file. Default ships in the catalog.
+
+steps:
+  parse_log:
+    # Regex-parse the combined log format into dicts. We
+    # use a permissive regex that tolerates minor format
+    # drift (extra spaces, quoted fields) rather than a
+    # strict grammar — log parsers in the real world have
+    # to be forgiving.
+    python: |
+      import re
+      from pathlib import Path
+
+      text = Path(inputs["log_path"]).read_text()
+      pattern = re.compile(
+          r'^(?P<ip>\S+)\s+\S+\s+\S+\s+'
+          r'\[(?P<ts>[^\]]+)\]\s+'
+          r'"(?P<method>\S+)\s+(?P<path>\S+)\s+[^"]+"\s+'
+          r'(?P<status>\d+)\s+(?P<size>\S+)'
+      )
+
+      records = []
+      for line in text.splitlines():
+          m = pattern.match(line)
+          if not m:
+              continue
+          d = m.groupdict()
+          d["status"] = int(d["status"])
+          try:
+              d["size"] = int(d["size"])
+          except ValueError:
+              d["size"] = 0
+          records.append(d)
+
+      result = {
+          "total_lines": len(text.splitlines()),
+          "parsed_count": len(records),
+          "records": records,
+      }
+    output: parsed
+
+  bucket_status:
+    # Group by status class (2xx/3xx/4xx/5xx) and compute
+    # overall error rate. Plain counters are faster than
+    # collections.Counter at this scale and the shape is
+    # clearer.
+    python: |
+      records = inputs["parsed"]["records"]
+      buckets = {"2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0, "other": 0}
+      for r in records:
+          c = r["status"]
+          if   200 <= c < 300: buckets["2xx"] += 1
+          elif 300 <= c < 400: buckets["3xx"] += 1
+          elif 400 <= c < 500: buckets["4xx"] += 1
+          elif 500 <= c < 600: buckets["5xx"] += 1
+          else:                buckets["other"] += 1
+
+      total = sum(buckets.values()) or 1
+      error_rate = round(100 * (buckets["4xx"] + buckets["5xx"]) / total, 2)
+
+      result = {
+          "total": total,
+          "buckets": buckets,
+          "error_rate_pct": error_rate,
+      }
+    depends: [parse_log]
+    output: by_status
+
+  top_paths:
+    # Top 10 paths by hit count. Parallel with top_ips.
+    python: |
+      from collections import Counter
+      records = inputs["parsed"]["records"]
+      counts = Counter(r["path"] for r in records)
+      result = {
+          "top_paths": [
+              {"path": p, "hits": c} for p, c in counts.most_common(10)
+          ],
+      }
+    depends: [parse_log]
+    output: paths
+
+  top_ips:
+    # Top 10 client IPs by request count. Parallel with
+    # top_paths.
+    python: |
+      from collections import Counter
+      records = inputs["parsed"]["records"]
+      counts = Counter(r["ip"] for r in records)
+      result = {
+          "top_ips": [
+              {"ip": ip, "requests": c} for ip, c in counts.most_common(10)
+          ],
+      }
+    depends: [parse_log]
+    output: ips
+
+  build_report:
+    # Fan-in the three independent reducers into one
+    # report dict and persist to JSON.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "total_lines": inputs["parsed"]["total_lines"],
+          "parsed_count": inputs["parsed"]["parsed_count"],
+          "status_buckets": inputs["by_status"]["buckets"],
+          "error_rate_pct": inputs["by_status"]["error_rate_pct"],
+          "top_paths": inputs["paths"]["top_paths"],
+          "top_ips": inputs["ips"]["top_ips"],
+      }
+
+      out = Path("inputs/log-triage-report.json").resolve()
+      out.write_text(json.dumps(report, indent=2))
+      result = {**report, "path": str(out)}
+    depends: [bucket_status, top_paths, top_ips]
+    output: report
+
+  show:
+    run: |
+      echo === LOG TRIAGE ===
+      echo Parsed lines:    {{report.parsed_count}}
+      echo Error rate pct:  {{report.error_rate_pct}}
+      echo 2xx count:       {{report.status_buckets["2xx"]}}
+      echo 4xx count:       {{report.status_buckets["4xx"]}}
+      echo 5xx count:       {{report.status_buckets["5xx"]}}
+      echo Top path:        {{report.top_paths[0].path}} [{{report.top_paths[0].hits}} hits]
+      echo Top IP:          {{report.top_ips[0].ip}} [{{report.top_ips[0].requests}} req]
+      echo Report:          {{report.path}}
+    depends: [build_report]
+    output: report_text

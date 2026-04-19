@@ -1,0 +1,108 @@
+name: input-http-test
+description: |
+  Input type: http — auto-resolved at run start, never
+  shown in the Run dialog. The runtime fetches the URL via
+  HttpInputLoader and injects the response body into the
+  Jinja context.
+
+  Two interesting properties this test exercises:
+
+  1. Lazy fetch via LazyHttpInput
+     The runtime wraps every http: input in a LazyHttpInput
+     proxy. The actual network call doesn't fire until a
+     step touches the value (via __str__, __getitem__,
+     __len__, etc.). If you declare an http input but no
+     step references it, the URL is never fetched. Dead
+     http inputs cost zero — pipeline start isn't blocked
+     on a slow remote API.
+
+  2. SSRF + CRLF gates
+     Before httpx makes any request, the URL goes through
+     aiorch.core.http_safety.safe_http_url() which rejects
+     private/loopback/link-local hosts. AIORCH_ALLOW_PRIVATE_HOSTS=1
+     is the operator opt-out for legitimate internal
+     services. We use a public endpoint (api.github.com)
+     here so the gate doesn't trip.
+
+  Why GitHub /zen:
+    - Public, no auth needed
+    - Returns a single short text line — easy to show in
+      the trace, no parsing complexity
+    - Stable URL that's been around for a decade
+    - Doesn't rate-limit anonymous reads at low volume
+      (60 reqs/hour per IP is plenty for testing)
+
+  What to verify:
+    1. The Run dialog does NOT show a `zen` field — http
+       inputs are filtered out by parse_input_schema
+       because they auto-resolve, and the new
+       AUTO_RESOLVED_INPUT_TYPES set in the UI also
+       excludes them
+    2. Click Run with an empty form. The pipeline starts.
+    3. At dispatch time, the runtime sees `type: http`
+       and creates a LazyHttpInput wrapper for `zen`
+    4. The analyze step calls `str(inputs["zen"])` which
+       triggers LazyHttpInput.__str__ → _resolve() →
+       HttpInputLoader().load() → real httpx GET. The
+       fetch happens HERE, not at run start.
+    5. `result` is a dict with the quote text, char
+       length, and word count
+    6. The report step navigates the dict via Jinja
+    7. Trace input panel shows the http config (url,
+       method, format) — NOT the fetched body, because
+       at the moment context is captured for display,
+       the lazy wrapper hasn't resolved yet
+
+  Expected runtime: < 500ms (mostly the network round-trip).
+
+  Caveats:
+    - Requires outbound HTTPS access to api.github.com
+      from the executor host. Air-gapped deployments
+      will fail this test.
+    - GitHub Zen sometimes returns the same line for
+      consecutive requests. Don't rely on output
+      uniqueness for the assertion.
+    - LazyHttpInput supports __str__, __getitem__,
+      __iter__, __len__, __contains__, but NOT .get(),
+      .keys(), .items(), or attribute access. Use
+      bracket syntax (for json) or str() (for text).
+
+input:
+  zen:
+    type: http
+    url: https://api.github.com/zen
+    method: GET
+    format: text
+    description: GitHub Zen API. Returns a single random one-line dev-wisdom quote as plain text. Public, no auth.
+
+steps:
+  analyze:
+    python: |
+      # str() forces LazyHttpInput.__str__ → _resolve() →
+      # HttpInputLoader().load() → real httpx GET. After this
+      # call, `quote` is a plain str and the rest of the step
+      # can use ordinary string operations on it.
+      quote = str(inputs["zen"]).strip()
+
+      result = {
+          "quote": quote,
+          "length_chars": len(quote),
+          "word_count": len(quote.split()),
+          "first_word": quote.split()[0] if quote else None,
+          "last_word": quote.split()[-1] if quote else None,
+      }
+    output: zen_data
+
+  report:
+    # Bare-Jinja navigation. Every {{ }} reference is in
+    # bare position so the shell-safe resolver passes them
+    # through shlex.quote automatically.
+    run: |
+      echo === GitHub Zen Quote ===
+      echo Quote:      {{zen_data.quote}}
+      echo Length:     {{zen_data.length_chars}} chars
+      echo Word count: {{zen_data.word_count}}
+      echo First word: {{zen_data.first_word}}
+      echo Last word:  {{zen_data.last_word}}
+    depends: [analyze]
+    output: report

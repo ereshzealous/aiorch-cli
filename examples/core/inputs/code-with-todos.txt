@@ -1,0 +1,9 @@
+def foo():
+    # TODO: refactor this
+    return 1
+
+# FIXME: remove this
+def bar(): pass
+
+# HACK: temporary workaround
+def baz(): return 2

@@ -1,0 +1,8 @@
+[
+  {"full_name": "Dana Chen", "email_address": "dana@example.com", "phone_number": "+1-555-0101", "location": "San Francisco"},
+  {"name": "Rohan Patel", "e_mail": "rohan@example.com", "tel": "555-222-3344", "city": "Austin"},
+  {"fullName": "Sam Park", "email": "sam@example.com", "phone": "(555) 345-6789", "town": "Seattle"},
+  {"full_name": "Mei Wu", "email_addr": "mei@example.com", "phoneNumber": "+1 555 456 7890", "City": "New York"},
+  {"Name": "Luca Bianchi", "Email": "luca@example.com", "Phone": "555.987.6543", "location": "Chicago"},
+  {"display_name": "Priya Shah", "emailAddress": "priya@example.com", "mobile": "555-111-2222", "city_name": "Boston"}
+]

@@ -1,0 +1,51 @@
+name: inputs-smoke-test
+description: |
+  Second non-LLM pipeline. Same shape as 01-smoke-test, but
+  this one exercises the `input:` block so we can verify:
+
+    1. The "Run" dialog on the Runs page renders a form from
+       the `input:` schema (string field with default, integer
+       field with min/max, required string with no default)
+    2. Form values flow into the run as template variables
+    3. The Jinja resolver substitutes `{{ greeting }}`,
+       `{{ repeat }}`, `{{ name }}` into downstream shell
+       commands with the exact values the user typed
+    4. Integer inputs arrive as integers (the seq step would
+       fail if repeat came through as the string "3")
+    5. Required-without-default inputs block the run until
+       the user fills them in — try clicking Run without
+       setting `name` and the form should refuse to submit
+
+  No LLM, no connectors, no secrets. Just input form →
+  shell → output.
+
+  Expected runtime: < 1 second.
+
+input:
+  greeting:
+    type: string
+    default: Hello
+    description: Word to print before the name. Defaults to "Hello".
+  repeat:
+    type: integer
+    default: 3
+    description: How many times to repeat the line.
+  name:
+    type: string
+    required: true
+    description: Who to greet. Required — form will block submit without it.
+
+steps:
+  banner:
+    run: echo "=== inputs-smoke-test starting ==="
+    output: banner
+
+  greet:
+    run: seq 1 {{repeat}} | xargs -I NUM echo {{greeting}}, {{name}} - line NUM
+    depends: [banner]
+    output: greet_lines
+
+  summary:
+    run: echo INPUTS SMOKE TEST PASSED - greeted {{name}} {{repeat}}x
+    depends: [greet]
+    output: summary

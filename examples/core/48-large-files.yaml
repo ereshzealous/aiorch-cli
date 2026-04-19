@@ -1,0 +1,118 @@
+name: large-files
+description: |
+  Walk a directory tree and report the top N files over a
+  byte threshold, sorted descending by size. Skips the
+  `.git` directory and the catalog's `inputs/` subdir (so
+  generated artifacts don't dominate the list).
+
+  Use case:
+    "What's eating my disk?" on a specific project tree.
+    Or: "which checked-in assets are huge and should move
+    to LFS?" One-step inventory with no external tooling.
+    Runs in under a second on the aiorch CLI catalog.
+
+  DAG shape:
+    walk_tree → filter_and_sort → show
+
+  Walker:
+    os.walk + os.path.getsize. Skips `.git` via the
+    in-place `dirs[:]` filter (standard python idiom
+    for pruning os.walk). Broken symlinks are tolerated
+    via try/except.
+
+  Run it:
+    aiorch run 48-large-files.yaml
+    aiorch run 48-large-files.yaml -i root_path=/Users/ereshg/Documents -i min_bytes=1000000 -i top_n=20
+
+input:
+  root_path:
+    type: string
+    default: "."
+    description: Directory to walk. Defaults to the current working directory so the run is hermetic — point it at any tree with `-i root_path=/path/to/dir`.
+
+  min_bytes:
+    type: integer
+    default: 10000
+    minimum: 1
+    description: Ignore files smaller than this threshold.
+
+  top_n:
+    type: integer
+    default: 10
+    minimum: 1
+    maximum: 1000
+    description: How many of the largest files to report.
+
+steps:
+  walk_tree:
+    # Recursive walk, pruning `.git` and `inputs` dirs
+    # in-place. Broken symlinks or transient files that
+    # disappear between walk() and getsize() are tolerated
+    # via try/except — this is a "best effort snapshot"
+    # not a transactional crawl.
+    python: |
+      import os
+
+      root = inputs["root_path"]
+      skip_dirs = {".git", "inputs", "__pycache__", "node_modules", ".venv"}
+
+      found = []
+      for dirpath, dirnames, filenames in os.walk(root):
+          # Prune in place — the standard os.walk idiom for
+          # skipping subtrees.
+          dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+          for fn in filenames:
+              path = os.path.join(dirpath, fn)
+              try:
+                  size = os.path.getsize(path)
+              except OSError:
+                  continue
+              found.append({"path": path, "size_bytes": size})
+
+      result = {
+          "root": root,
+          "total_files_seen": len(found),
+          "total_bytes_seen": sum(f["size_bytes"] for f in found),
+          "files": found,
+      }
+    output: walked
+
+  filter_and_sort:
+    # Threshold filter + top-N slice. Kept separate from
+    # walk_tree so a user who wants the full file list can
+    # run `aiorch run ... --step walk_tree` and get it.
+    python: |
+      threshold = inputs["min_bytes"]
+      top_n = inputs["top_n"]
+
+      files = inputs["walked"]["files"]
+      above = [f for f in files if f["size_bytes"] >= threshold]
+      above.sort(key=lambda f: f["size_bytes"], reverse=True)
+      top = above[:top_n]
+
+      for f in top:
+          kb = f["size_bytes"] / 1024
+          f["size_kb"] = round(kb, 1)
+
+      result = {
+          "root": inputs["walked"]["root"],
+          "threshold_bytes": threshold,
+          "top_n": top_n,
+          "total_files_seen": inputs["walked"]["total_files_seen"],
+          "above_threshold": len(above),
+          "biggest": top[0] if top else None,
+          "top_files": top,
+      }
+    depends: [walk_tree]
+    output: report
+
+  show:
+    run: |
+      echo === LARGE FILES ===
+      echo Root:          {{report.root}}
+      echo Files scanned: {{report.total_files_seen}}
+      echo Above thresh:  {{report.above_threshold}}
+      echo Biggest path:  {{report.biggest.path}}
+      echo Biggest size:  {{report.biggest.size_kb}} KB
+    depends: [filter_and_sort]
+    output: report_text

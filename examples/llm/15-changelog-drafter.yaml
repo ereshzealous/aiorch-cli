@@ -1,0 +1,119 @@
+name: changelog-drafter
+description: |
+  Read a file of commit subjects (one per line), ask the LLM to
+  group them into conventional-commit categories + draft human-
+  readable release-note bullets per category, write a markdown
+  changelog to disk.
+
+  Pattern for "auto-generate the changelog draft from the raw git
+  log, then polish by hand." Deterministic ingestion (Python),
+  semantic grouping + narrative (LLM), deterministic output
+  (Python writes the file).
+
+  Usage:
+    aiorch run 15-changelog-drafter.yaml
+    aiorch run 15-changelog-drafter.yaml -i commits_path=./my-commits.txt
+
+  To process real commits:
+    git log v0.3.0..HEAD --no-merges --pretty=format:'%s' > my-commits.txt
+    aiorch run 15-changelog-drafter.yaml -i commits_path=my-commits.txt
+
+input:
+  commits_path:
+    type: string
+    default: ./inputs/sample-commits.txt
+  release_tag:
+    type: string
+    default: "v0.5.0"
+
+steps:
+  load:
+    python: |
+      import pathlib
+      lines = pathlib.Path(inputs["commits_path"]).read_text().splitlines()
+      commits = [ln.strip() for ln in lines if ln.strip()]
+      print(f"Loaded {len(commits)} commit subjects from {inputs['commits_path']}")
+      result = commits
+    output: commits
+
+  draft:
+    prompt: |
+      You are writing a changelog draft for release {{release_tag}}.
+      Below are the commit subjects landed in this release.
+
+      Commits:
+      {% for c in commits %}
+      - {{c}}
+      {% endfor %}
+
+      Group them into these categories (skip any that are empty):
+        Features      — user-facing new capability
+        Fixes         — user-visible bug fixes
+        Performance   — measurable perf improvements
+        Security      — vulnerabilities patched
+        Refactoring   — internal cleanup with no user effect
+        Docs          — documentation-only changes
+        Breaking      — anything requiring user action to upgrade
+
+      For each group, write 2-6 bullet points in plain English
+      (not conventional-commit syntax). Each bullet ≤ 25 words.
+      Call out breaking changes prominently if present.
+
+      Reply as JSON: { "groups": [ { "category": "...", "bullets": [...] }, ... ] }
+    format: json
+    schema:
+      type: object
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          items:
+            type: object
+            required: [category, bullets]
+            properties:
+              category: { type: string }
+              bullets:  { type: array, items: { type: string } }
+    retry_on_invalid: 2
+    depends: [load]
+    output: drafted
+
+  write_md:
+    python: |
+      import pathlib
+      from datetime import date
+
+      tag = inputs["release_tag"]
+      groups = inputs["drafted"]["groups"]
+
+      lines = [f"# {tag} — {date.today().isoformat()}", ""]
+      # Stable order — break first, then features, fixes, perf, sec, refactor, docs
+      order = ["Breaking", "Features", "Fixes", "Performance",
+               "Security", "Refactoring", "Docs"]
+      by_cat = {g["category"]: g["bullets"] for g in groups}
+      for cat in order:
+          bullets = by_cat.get(cat)
+          if not bullets:
+              continue
+          lines.append(f"## {cat}")
+          lines.append("")
+          for b in bullets:
+              lines.append(f"- {b}")
+          lines.append("")
+      # Append any unexpected categories so no LLM output is silently dropped
+      for cat, bullets in by_cat.items():
+          if cat in order or not bullets:
+              continue
+          lines.append(f"## {cat}")
+          lines.append("")
+          for b in bullets:
+              lines.append(f"- {b}")
+          lines.append("")
+
+      out = pathlib.Path("./inputs/CHANGELOG-draft.md")
+      out.write_text("\n".join(lines))
+      print(f"==== Changelog draft ({tag}) ====")
+      print("\n".join(lines))
+      print(f"\nWrote {out.resolve()}")
+      result = {"output_path": str(out), "categories": list(by_cat.keys())}
+    depends: [draft]
+    output: report

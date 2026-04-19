@@ -1,0 +1,60 @@
+name: input-boolean-test
+description: |
+  Input-type test #2: boolean
+
+  One boolean input, three shell steps that branch on it
+  via `test` + `&&` / `||` so we can actually see the value
+  take effect.
+
+  Why shell-level branching instead of Jinja `{% if %}`:
+  aiorch's `resolve_for_shell` short-circuits and returns
+  the template unchanged when it contains no `{{ }}`
+  expression, so a pure-statement Jinja template like
+  `{% if verbose %}A{% else %}B{% endif %}` would be handed
+  to `/bin/sh` literally and fail with `{%: command not
+  found`. The test branches at shell level instead — Jinja
+  renders Python `True` / `False` as the literal strings
+  "True" / "False", and `test X = Y && A || B` picks the
+  branch.
+
+  What to verify:
+    1. Run dialog renders a checkbox (not a text box, not a
+       dropdown) for `verbose`
+    2. Default value `false` is pre-checked off on first open
+    3. Toggling the checkbox sends JSON `true` / `false` on
+       the wire — NOT the string "true" / "false". The
+       validator now rejects `bool` masquerading as `int` and
+       vice versa, so string-shaped booleans would fail the
+       type check at run start with a clear error.
+    4. The `maybe_debug` step prints the DEBUG line when
+       verbose=true and the quiet line when verbose=false
+    5. The Trace page shows `true` or `false` in the input
+       panel, not `"true"` or `1`
+
+  Expected runtime: < 1 second.
+
+input:
+  verbose:
+    type: boolean
+    default: false
+    description: When on, print an extra debug line before the summary.
+
+steps:
+  banner:
+    run: echo === boolean input test, verbose={{verbose}} ===
+    output: banner
+
+  maybe_debug:
+    # Shell-level branching: `test X = Y` string-compares. Jinja renders
+    # Python booleans as the strings "True" / "False". We can't use
+    # Jinja `{% if %}` blocks here because resolve_for_shell short
+    # circuits when the template has no `{{ }}`, so statement-only
+    # templates never reach the render step.
+    run: test {{verbose}} = True && echo DEBUG extra line because verbose is on || echo quiet mode no debug line
+    depends: [banner]
+    output: debug_line
+
+  summary:
+    run: echo BOOLEAN INPUT TEST PASSED - verbose was {{verbose}}
+    depends: [maybe_debug]
+    output: summary

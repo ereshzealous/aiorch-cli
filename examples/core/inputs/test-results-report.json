@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-04-19T10:39:18.357174+00:00",
+  "junit_path": "inputs/sample-junit.xml",
+  "total": 15,
+  "counts": {
+    "passed": 12,
+    "failed": 2,
+    "error": 0,
+    "skipped": 1
+  },
+  "total_time_sec": 4.327,
+  "failure_count": 2,
+  "failures": [
+    {
+      "classname": "tests.test_billing",
+      "name": "test_charge_card",
+      "outcome": "failed",
+      "message": "AssertionError: expected 200, got 500"
+    },
+    {
+      "classname": "tests.test_search",
+      "name": "test_search_pagination",
+      "outcome": "failed",
+      "message": "TimeoutError: page did not load in 5s"
+    }
+  ],
+  "slowest": [
+    {
+      "classname": "tests.test_billing",
+      "name": "test_charge_card",
+      "time": 1.204
+    },
+    {
+      "classname": "tests.test_reports",
+      "name": "test_generate_pdf",
+      "time": 0.987
+    },
+    {
+      "classname": "tests.test_billing",
+      "name": "test_refund",
+      "time": 0.832
+    },
+    {
+      "classname": "tests.test_reports",
+      "name": "test_generate_csv",
+      "time": 0.412
+    },
+    {
+      "classname": "tests.test_search",
+      "name": "test_search_pagination",
+      "time": 0.218
+    }
+  ]
+}

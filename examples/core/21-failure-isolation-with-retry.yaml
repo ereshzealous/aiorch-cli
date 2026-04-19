@@ -1,0 +1,133 @@
+name: failure-isolation-with-retry
+description: |
+  Three failure-handling patterns in one pipeline. Useful
+  reference for building resilient batch jobs.
+
+  The patterns:
+
+  1. RETRY — transient failure, recovers automatically
+     The `flaky` step has a 70% chance of failing on
+     each attempt. With `retry: 5` and `retry_delay: 1s`,
+     it'll almost always succeed by attempt 2 or 3. The
+     run shows "succeeded after N retries" in the trace.
+
+  2. GRACEFUL CATCH inside the step
+     The `safe_compute` step does work that might fail,
+     but wraps it in try/except and returns a structured
+     result indicating success/failure. The step itself
+     never fails — failure is part of the data.
+
+  3. CONDITIONAL SKIP
+     The `expensive_branch` step has a `condition:` that
+     evaluates the result of an earlier step. When the
+     condition is false, the step is SKIPPED (not failed)
+     and the trace shows it with a distinct "skipped" pill.
+
+  No connectors, no LLM, pure python. Run it a few times
+  to see retry counts vary on the flaky step.
+
+  What to verify:
+    1. `flaky` may show 1-3 attempts in its trace entry,
+       depending on the random outcomes
+    2. `safe_compute` always succeeds, but its output
+       has `ok: false` if the inner work failed
+    3. `expensive_branch` is SKIPPED when the safe_compute
+       step's `ok` is False — visible as a skipped pill,
+       not a failure
+    4. The summary step always runs and reports what
+       happened across all branches
+
+  Run this 3-4 times in a row to see the retry behavior
+  vary. The flaky step's success path is non-deterministic
+  on purpose.
+
+input:
+  trigger_expensive:
+    type: boolean
+    default: true
+    description: When true, attempt the conditional expensive_branch step
+
+steps:
+  flaky:
+    # Transient failure — 70% chance per attempt. With
+    # retry: 5 it'll almost certainly succeed within
+    # the budget. retry_delay: 1s so the retries are
+    # visible as separate attempts in the trace timeline.
+    python: |
+      import random
+      if random.random() < 0.7:
+          raise RuntimeError("transient failure - retrying")
+      result = {"value": 42, "attempt": "succeeded"}
+    retry: 5
+    retry_delay: 1s
+    output: flaky_result
+
+  safe_compute:
+    # Graceful catch pattern. The step itself never fails
+    # — internal exceptions are caught and the result dict
+    # carries the success/failure state as data. Downstream
+    # steps can branch on `inputs["compute_result"]["ok"]`.
+    python: |
+      try:
+          # Simulate work that might raise
+          import random
+          if random.random() < 0.5:
+              raise ValueError("simulated computation failure")
+          result = {"ok": True, "value": 99, "error": None}
+      except Exception as e:
+          result = {"ok": False, "value": None, "error": str(e)}
+    depends: [flaky]
+    output: compute_result
+
+  expensive_branch:
+    # Conditional skip. Only runs if BOTH:
+    #   - safe_compute reported ok=True
+    #   - the user input trigger_expensive is true
+    # The condition is Jinja-rendered first, then
+    # evaluated by aiorch's eval_condition (supports ==,
+    # !=, true/false/1/0/yes/no).
+    python: |
+      result = {"computed": "expensive_value", "tier": "premium"}
+    condition: "{{compute_result.ok}} == True"
+    depends: [safe_compute]
+    output: expensive_result
+
+  cheap_branch:
+    # Always runs (no condition). Demonstrates the
+    # "do this regardless" path that runs in parallel
+    # with expensive_branch when the latter is enabled.
+    python: |
+      result = {"computed": "cheap_value", "tier": "free"}
+    depends: [safe_compute]
+    output: cheap_result
+
+  summary:
+    # Final aggregation step. Uses inputs.get(...) to
+    # gracefully handle the case where expensive_result
+    # was skipped — its output won't exist in the context.
+    python: |
+      flaky = inputs["flaky_result"]
+      compute = inputs["compute_result"]
+      expensive = inputs.get("expensive_result")  # None if skipped
+      cheap = inputs["cheap_result"]
+
+      result = {
+          "flaky_value": flaky["value"],
+          "compute_ok": compute["ok"],
+          "compute_error": compute["error"],
+          "expensive_ran": expensive is not None,
+          "expensive_value": expensive["computed"] if expensive else "(skipped)",
+          "cheap_value": cheap["computed"],
+      }
+    depends: [expensive_branch, cheap_branch]
+    output: report
+
+  show:
+    run: |
+      echo === FAILURE ISOLATION REPORT ===
+      echo Flaky:        value={{report.flaky_value}}
+      echo Compute:      ok={{report.compute_ok}} err={{report.compute_error}}
+      echo Expensive:    ran={{report.expensive_ran}} value={{report.expensive_value}}
+      echo Cheap:        value={{report.cheap_value}}
+    depends: [summary]
+    output: report_text

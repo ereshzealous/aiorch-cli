@@ -1,0 +1,7 @@
+{
+  "report_title": "Q2 2026 Dashboard",
+  "fiscal_year": 2026,
+  "tax_rate": 0.075,
+  "show_details": true,
+  "categories": ["Hardware", "Cloud", "Travel"]
+}

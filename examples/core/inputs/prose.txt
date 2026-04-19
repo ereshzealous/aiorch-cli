@@ -1,0 +1,5 @@
+The quick brown fox jumps over the lazy dog.
+The dog was not amused by the fox's antics.
+Lorem ipsum dolor sit amet consectetur adipiscing elit.
+The quick brown fox is a common English pangram.
+The lazy dog continues to ignore the fox.

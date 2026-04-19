@@ -1,0 +1,192 @@
+name: multi-source-fanout
+description: |
+  Pulls data from FIVE different sources in parallel,
+  joins them in one merge step, prints a unified
+  dashboard. Reference card for "how do I read from X
+  in a CLI pipeline."
+
+  The five sources:
+    1. type: http     — auto-resolved at run start
+    2. SQLite query   — python: + sqlite3 stdlib
+    3. Local file     — python: + pathlib
+    4. Environment    — python: + os.environ
+    5. Computed       — python: with no external IO
+
+  All five run in PARALLEL because they share no
+  dependencies — they form one DAG layer that the
+  runtime dispatches via asyncio.gather. Open the
+  trace timeline and you'll see all 5 source steps
+  overlap visibly.
+
+  Why this is useful as a reference:
+    Every aiorch pipeline you build will need to pull
+    data from somewhere. This pipeline shows the five
+    most common somewheres in one place. Copy the step
+    you need into your own pipeline and adjust.
+
+  Prerequisites:
+    - Run inputs/setup-sample-db.sh once (for source 2)
+    - inputs/sample.txt exists (already in this dir for
+      source 3)
+    - $HOME is set in your environment (always true on
+      macOS/Linux — for source 4)
+
+  Run it:
+    aiorch run 37-multi-source-fanout.yaml
+
+# Source 1: type: http auto-resolves the URL at run start.
+# The fetched body lands in inputs["zen"] via LazyHttpInput.
+input:
+  zen:
+    type: http
+    url: https://api.github.com/zen
+    method: GET
+    format: text
+    description: GitHub Zen — random one-line dev wisdom (text).
+
+steps:
+  source_http:
+    # Source 1: http input was already resolved at start.
+    # Just unwrap and forward.
+    python: |
+      quote = str(inputs["zen"]).strip()
+      result = {
+          "source": "http",
+          "value": quote,
+          "length": len(quote),
+      }
+    output: src_http
+
+  source_sqlite:
+    # Source 2: query the sample SQLite DB. Pulls the
+    # current customer count.
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      db_path = Path("inputs/sample.db").resolve()
+      if not db_path.exists():
+          raise FileNotFoundError(
+              f"sample.db not found at {db_path}. "
+              f"Run inputs/setup-sample-db.sh first."
+          )
+
+      conn = sqlite3.connect(str(db_path))
+      cursor = conn.execute("SELECT COUNT(*) FROM customers")
+      customer_count = cursor.fetchone()[0]
+      cursor = conn.execute("SELECT COUNT(*) FROM orders")
+      order_count = cursor.fetchone()[0]
+      conn.close()
+
+      result = {
+          "source": "sqlite",
+          "customers": customer_count,
+          "orders": order_count,
+      }
+    output: src_sqlite
+
+  source_file:
+    # Source 3: read a local file via pathlib. No
+    # type: artifact needed — pathlib works in any
+    # python: step.
+    python: |
+      from pathlib import Path
+
+      path = Path("inputs/sample.txt").resolve()
+      if not path.exists():
+          raise FileNotFoundError(f"sample.txt not found at {path}")
+
+      content = path.read_text()
+      result = {
+          "source": "file",
+          "path": str(path),
+          "size_bytes": len(content),
+          "lines": content.count("\n"),
+          "first_line": content.splitlines()[0] if content else "",
+      }
+    output: src_file
+
+  source_env:
+    # Source 4: read environment variables. Useful for
+    # config that lives outside the pipeline (deploy
+    # target, region, version stamp, etc.).
+    python: |
+      import os
+      import platform
+
+      result = {
+          "source": "env",
+          "home": os.environ.get("HOME", "(not set)"),
+          "user": os.environ.get("USER") or os.environ.get("USERNAME", "(not set)"),
+          "shell": os.environ.get("SHELL", "(not set)"),
+          "system": platform.system(),
+          "python_version": platform.python_version(),
+      }
+    output: src_env
+
+  source_computed:
+    # Source 5: pure computation, no external IO. Useful
+    # for synthetic data, run identifiers, deterministic
+    # test fixtures, or any value derived from inputs +
+    # current time.
+    python: |
+      import random
+      import hashlib
+      from datetime import datetime, timezone
+
+      random.seed(42)
+      now = datetime.now(timezone.utc)
+      run_id = hashlib.sha256(now.isoformat().encode()).hexdigest()[:8]
+
+      result = {
+          "source": "computed",
+          "now": now.isoformat(),
+          "run_id": run_id,
+          "random_sample": [random.randint(1, 100) for _ in range(5)],
+          "magic_number": 42,
+      }
+    output: src_computed
+
+  merge:
+    # Fan-in. Reads all five source outputs and assembles
+    # a unified dashboard structure. The runtime won't
+    # dispatch this step until all five sources complete,
+    # so by the time this runs every source is in the
+    # context.
+    python: |
+      result = {
+          "sources_count": 5,
+          "http":     inputs["src_http"],
+          "sqlite":   inputs["src_sqlite"],
+          "file":     inputs["src_file"],
+          "env":      inputs["src_env"],
+          "computed": inputs["src_computed"],
+      }
+    depends: [source_http, source_sqlite, source_file, source_env, source_computed]
+    output: report
+
+  show:
+    run: |
+      echo === MULTI-SOURCE DASHBOARD ===
+      echo Sources joined: {{report.sources_count}}
+      echo
+      echo [http]      zen quote: {{report.http.value}}
+      echo                length: {{report.http.length}} chars
+      echo
+      echo [sqlite]    customers: {{report.sqlite.customers}}
+      echo                orders: {{report.sqlite.orders}}
+      echo
+      echo [file]           path: {{report.file.path}}
+      echo                  size: {{report.file.size_bytes}} bytes
+      echo            first line: {{report.file.first_line}}
+      echo
+      echo [env]            user: {{report.env.user}}
+      echo                  home: {{report.env.home}}
+      echo                system: {{report.env.system}}
+      echo            python_ver: {{report.env.python_version}}
+      echo
+      echo [computed]    run_id: {{report.computed.run_id}}
+      echo                   ts: {{report.computed.now}}
+      echo         magic_number: {{report.computed.magic_number}}
+    depends: [merge]
+    output: report_text

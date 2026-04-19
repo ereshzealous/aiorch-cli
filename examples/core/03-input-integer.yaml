@@ -1,0 +1,47 @@
+name: input-integer-test
+description: |
+  Input-type test #1: integer
+
+  Narrow, focused test that only exercises one input type so
+  we can confirm the form control, the wire encoding, and
+  the template substitution are all correct for integers.
+
+  What to verify:
+    1. Run dialog renders a number spinner (not a text box)
+       for `count`, with browser-enforced min=1 / max=10
+    2. Range hint "Range: 1 to 10" appears under the field
+    3. Default value 5 is pre-filled on first open
+    4. Description shows as helper text next to the label
+    5. Submitting 0 or 11 is rejected server-side at run
+       start with a clear "must be >= 1 / <= 10" error
+    6. Value arrives as a real integer — `seq 1 {{count}}`
+       would fail with "seq: invalid floating point argument"
+       if the value came through as the string "5\n" or the
+       float 5.0
+    7. Trace page shows the integer value in the input panel
+       as `5` (not `"5"`)
+
+  Expected runtime: < 1 second.
+
+input:
+  count:
+    type: integer
+    default: 5
+    minimum: 1
+    maximum: 10
+    description: How many iterations to run. Must be between 1 and 10 inclusive.
+
+steps:
+  banner:
+    run: echo === integer input test, count={{count}} ===
+    output: banner
+
+  loop:
+    run: seq 1 {{count}} | xargs -I N echo iteration N of {{count}}
+    depends: [banner]
+    output: iterations
+
+  summary:
+    run: echo INTEGER INPUT TEST PASSED - ran {{count}} iterations
+    depends: [loop]
+    output: summary

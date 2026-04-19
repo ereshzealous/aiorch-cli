@@ -1,0 +1,191 @@
+name: input-artifact-binary-test
+description: |
+  Artifact format: binary — fourth and last artifact format
+  variant. Tests the raw-bytes path of the artifact loader,
+  which is what you use for any file that is NOT UTF-8
+  decodable (images, PDFs, ZIPs, executables, archives,
+  encrypted blobs, anything with a magic number).
+
+  What the artifact loader does for format: binary:
+    1. Fetches bytes from MinIO
+    2. Returns them as a Python `bytes` object — NO decode,
+       NO parsing, NO interpretation. Just the file contents
+       byte-for-byte.
+
+  This is the only format where the Python step receives
+  bytes instead of str / dict / list. Calling .decode("utf-8")
+  on a non-UTF-8 binary file (e.g. a PNG header starting
+  with \x89) would crash with UnicodeDecodeError. The
+  loader correctly skips the decode step for binary inputs
+  so your pipeline can do whatever it wants with the raw
+  bytes — hash, base64, parse magic numbers, ship to
+  another system.
+
+  Trust model (read this once, internalize it):
+    Binary inputs go directly to your Python code as raw
+    bytes. If you parse them with third-party libraries
+    (zipfile, Pillow, pypdf, ffmpeg subprocess, etc.),
+    those libraries are running in the executor's process
+    on attacker-supplied bytes. Keep them current — every
+    parser library has a CVE history — and validate the
+    output (e.g. zipfile members for path traversal,
+    image dimensions for decompression bombs). NEVER
+    pickle.loads() an artifact: pickle is arbitrary code
+    execution by design.
+
+    The bytes from artifacts are untrusted input. The
+    libraries you use to parse them are trusted. The
+    executor process runs both. Stay aware.
+
+  What this pipeline does:
+    - Receives the uploaded file as raw bytes
+    - Computes byte length (should match the file size)
+    - Computes SHA-256 hash (proves bytes arrived intact)
+    - Detects file type from the first few "magic number"
+      bytes — recognizes PNG, JPEG, GIF, PDF, ZIP, gzip,
+      ELF, plain text, falls through to "unknown"
+    - Emits a hex dump of the first 16 bytes for visual
+      inspection
+    - Reports everything via Jinja in a downstream shell
+      step
+
+  What to verify:
+    1. File picker accepts any file (no content_type filter
+       declared, so the OS picker is unrestricted)
+    2. Uploading a binary file (e.g. /tmp/img.png), the
+       analyze step receives `inputs["file"]` as bytes,
+       NOT str. type(inputs["file"]) is bytes.
+    3. The reported byte length matches `wc -c < /tmp/img.png`
+       on your shell
+    4. The reported SHA-256 hash matches
+       `shasum -a 256 /tmp/img.png` on your shell —
+       byte-for-byte integrity proof
+    5. The detected type matches the file's magic number
+       (PNG file → "PNG image", PDF → "PDF document", etc.)
+    6. Trace input panel shows the artifact metadata
+       (id, name, size_bytes, content_type), NOT the raw
+       bytes — the bytes stay in MinIO, the run only
+       references them by id
+
+  Expected runtime: < 50ms even for files up to a few MB.
+
+  Sample files to try (any of these work):
+
+    # PNG screenshot — the obvious binary case
+    cp ~/Desktop/some-screenshot.png /tmp/img.png
+
+    # PDF — different magic number
+    cp ~/Documents/some-doc.pdf /tmp/doc.pdf
+
+    # ZIP archive
+    zip -r /tmp/test.zip ~/Documents/Dev/oss/aiorch/README.md
+
+    # gzip — yet another magic number
+    gzip -k -c /etc/hosts > /tmp/hosts.gz
+
+    # Plain text — proves the loader doesn't try to decode
+    # even text-shaped bytes when format: binary is declared
+    echo "hello world" > /tmp/note.txt
+
+  For any of these, you can verify the SHA-256 with:
+      shasum -a 256 /tmp/img.png
+  and compare to the hash in the Trace report.
+
+input:
+  file:
+    type: artifact
+    format: binary
+    # max_size_mb cap is about MEMORY PRESSURE, not security.
+    # The artifact loader reads the entire file into memory and
+    # returns it as a single bytes object. Multi-GB binaries would
+    # blow up the executor's RAM, especially under concurrent runs.
+    # Keep this conservative until aiorch grows a streaming /
+    # tempfile-path-based binary loader.
+    max_size_mb: 10
+    description: Any file. Loaded as raw bytes — no decoding, no parsing. Used for hashing, magic-number detection, base64 encoding, or anything that needs the file contents byte-for-byte. Bytes are untrusted; library calls run in the executor.
+
+steps:
+  analyze:
+    python: |
+      import hashlib
+
+      data = inputs["file"]
+
+      # Defensive type check. The artifact loader for format: binary
+      # returns bytes; if we somehow received str, the schema or
+      # loader is broken. Fail loud rather than papering over it.
+      if not isinstance(data, bytes):
+          raise TypeError(
+              f"Expected bytes from format: binary artifact, "
+              f"got {type(data).__name__}. The artifact loader "
+              f"may not have honored the declared format."
+          )
+
+      size = len(data)
+      sha256 = hashlib.sha256(data).hexdigest()
+
+      # Magic number detection — recognizes the most common file
+      # types from their first few bytes. Each entry is
+      # (prefix_bytes, label). Order matters where prefixes overlap.
+      magic_table = [
+          (b"\x89PNG\r\n\x1a\n",       "PNG image"),
+          (b"\xff\xd8\xff",             "JPEG image"),
+          (b"GIF87a",                   "GIF image (87a)"),
+          (b"GIF89a",                   "GIF image (89a)"),
+          (b"%PDF-",                    "PDF document"),
+          (b"PK\x03\x04",               "ZIP archive"),
+          (b"PK\x05\x06",               "ZIP archive (empty)"),
+          (b"\x1f\x8b",                 "gzip compressed"),
+          (b"BZh",                      "bzip2 compressed"),
+          (b"\x7fELF",                  "ELF executable"),
+          (b"MZ",                       "Windows PE executable"),
+          (b"\x00\x00\x01\x00",         "ICO icon"),
+          (b"<?xml",                    "XML document"),
+          (b"<!DOCTYPE",                "HTML document"),
+          (b"#!/",                      "Shell script"),
+      ]
+      detected_type = "unknown"
+      for prefix, label in magic_table:
+          if data.startswith(prefix):
+              detected_type = label
+              break
+
+      # If nothing matched, sniff for plain text vs binary.
+      # Plain text bytes are mostly printable ASCII or common
+      # whitespace; if more than 95% of the first 1KB is
+      # printable, call it text.
+      if detected_type == "unknown":
+          sample = data[:1024]
+          if sample:
+              printable = sum(
+                  1 for b in sample
+                  if 32 <= b < 127 or b in (9, 10, 13)
+              )
+              if printable / len(sample) > 0.95:
+                  detected_type = "plain text"
+
+      # Hex dump of the first 16 bytes for visual inspection.
+      # Two-character hex per byte, separated by spaces.
+      hex_preview = " ".join(f"{b:02x}" for b in data[:16])
+
+      result = {
+          "size_bytes": size,
+          "sha256": sha256,
+          "detected_type": detected_type,
+          "hex_preview_first_16_bytes": hex_preview,
+      }
+    output: report
+
+  show:
+    # Bare-Jinja navigation of the dict. Note: even though the
+    # `file` value is bytes (~MB potentially), only the structured
+    # `report` flows through the shell step. The bytes themselves
+    # never leave the analyze step.
+    run: |
+      echo === BINARY FILE INSPECTION ===
+      echo Size:           {{report.size_bytes}} bytes
+      echo SHA-256:        {{report.sha256}}
+      echo Detected type:  {{report.detected_type}}
+      echo First 16 bytes: {{report.hex_preview_first_16_bytes}}
+    depends: [analyze]
+    output: report_text

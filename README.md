@@ -128,20 +128,27 @@ steps:
 
 ## 📚 Examples
 
-The [`examples/`](examples) directory has runnable pipelines covering:
+**72 runnable pipelines** shipped under [`examples/`](examples), organized into two tracks:
 
-| File | What it demonstrates |
-|---|---|
-| `01-hello-llm.yaml` | Single-prompt "hello world" |
-| `02-summarize-text.yaml` | Input → prompt → output |
-| `05-chain-refine.yaml` | Multi-step refinement |
-| `06-parallel-perspectives.yaml` | Fan-out + merge |
-| `07-foreach-tagger.yaml` | Foreach over a list |
-| `09-sentiment-scoring.yaml` | Classification + branching |
-| `20-csv-to-markdown-report.yaml` | File input → LLM → report |
-| `30-diff-explainer.yaml` | Shell + LLM hybrid |
+| Directory | Count | What's inside |
+|---|---|---|
+| [`examples/llm/`](examples/llm) | 30 | LLM pipelines — prompts, extraction, chains, fan-out, agents, hybrid LLM + Python |
+| [`examples/core/`](examples/core) | 42 | Zero-LLM pipelines — every primitive, every DAG shape, input types, DB access, developer utilities |
 
-Each YAML is annotated at the top with its purpose and expected inputs.
+Each track has its own README with per-pipeline walkthroughs:
+
+- [`examples/README.md`](examples/README.md) — **start here** for the full guide on secrets, model selection, and passing inputs
+- [`examples/llm/README.md`](examples/llm/README.md) — LLM pipelines by tier (basic → DAG shapes → hybrid → developer workflows)
+- [`examples/core/README.md`](examples/core/README.md) — core pipelines by group (primitives → DAG shapes → DB access → production patterns → utilities)
+
+```bash
+# Core pipelines — no API key required
+aiorch run examples/core/01-smoke-test.yaml
+
+# LLM pipelines — provider config lives at examples/llm/aiorch.yaml
+export OPENROUTER_API_KEY=sk-or-v1-...
+cd examples/llm && aiorch run 01-hello-llm.yaml
+```
 
 ---
 

@@ -1,0 +1,163 @@
+name: changelog-from-git
+description: |
+  Build a markdown changelog from a file of commit
+  subjects (one per line), grouped by Conventional Commit
+  prefix (feat/fix/chore/docs/refactor/test/perf/ci/build/
+  style). Writes the draft to `inputs/CHANGELOG-draft.md`.
+
+  Typical use:
+    Pre-release chore. Dump the subjects of the commits
+    you're about to ship, run this pipeline, edit the
+    generated markdown by hand, commit it, then push the
+    tag. The pipeline handles the mechanical grouping so
+    the human can focus on wording.
+
+  Why a fixture instead of shelling out to git?
+    Pipelines should be hermetic: runnable by anyone,
+    anywhere, with zero local-repo assumptions. The
+    fixture ships with the catalog so the default run
+    works on a fresh clone with no setup.
+
+  Use real git output:
+    1. Dump commit subjects for the range you care about:
+         git log v0.3.0..HEAD --no-merges \
+           --pretty=format:'%s' > my-commits.txt
+    2. Run the pipeline pointing at it:
+         aiorch run 50-changelog-from-git.yaml -i commits_path=my-commits.txt
+
+  Conventional Commit parser:
+    Matches `^<type>(\(<scope>\))?!?: <subject>`. Anything
+    that doesn't match goes in an `other` bucket so no
+    commit is silently dropped.
+
+  DAG shape:
+    read_commits → parse_and_group → render_markdown → write_file → show
+
+input:
+  commits_path:
+    type: string
+    default: inputs/sample-commits.txt
+    description: Path to a plaintext file of commit subjects (one per line). Default ships with the catalog.
+
+steps:
+  read_commits:
+    # Read the fixture, strip blank lines, and hand the
+    # subject list downstream. One subject per line is a
+    # simple contract — anything more structured belongs
+    # in a JSON fixture.
+    python: |
+      from pathlib import Path
+
+      p = Path(inputs["commits_path"])
+      text = p.read_text()
+
+      commits = []
+      for line in text.splitlines():
+          s = line.strip()
+          if s:
+              commits.append({"subject": s})
+
+      result = {
+          "source": str(p.resolve()),
+          "count": len(commits),
+          "commits": commits,
+      }
+    output: collected
+
+  parse_and_group:
+    # Match Conventional Commit prefixes and bucket each
+    # commit into the appropriate group. Anything that
+    # doesn't match goes in `other` so nothing is dropped.
+    python: |
+      import re
+      from collections import defaultdict
+
+      pattern = re.compile(
+          r"^(?P<type>feat|fix|chore|docs|refactor|test|perf|ci|build|style)"
+          r"(?:\([^)]+\))?!?:\s*(?P<subject>.+)$"
+      )
+
+      commits = inputs["collected"]["commits"]
+      groups = defaultdict(list)
+
+      for c in commits:
+          m = pattern.match(c["subject"])
+          if m:
+              groups[m.group("type")].append({
+                  "subject": m.group("subject"),
+              })
+          else:
+              groups["other"].append({
+                  "subject": c["subject"],
+              })
+
+      result = {
+          "total": len(commits),
+          "group_counts": {k: len(v) for k, v in groups.items()},
+          "groups": dict(groups),
+      }
+    depends: [read_commits]
+    output: grouped
+
+  render_markdown:
+    # Turn the grouped dict into markdown. Group order is
+    # fixed (feat first, fix second, ...) so the output is
+    # deterministic.
+    python: |
+      order = ["feat", "fix", "perf", "refactor", "docs", "test", "build", "ci", "chore", "style", "other"]
+      headers = {
+          "feat": "Features",
+          "fix": "Bug fixes",
+          "perf": "Performance",
+          "refactor": "Refactors",
+          "docs": "Docs",
+          "test": "Tests",
+          "build": "Build",
+          "ci": "CI",
+          "chore": "Chores",
+          "style": "Style",
+          "other": "Other",
+      }
+      groups = inputs["grouped"]["groups"]
+      total = inputs["grouped"]["total"]
+      source = inputs["collected"]["source"]
+
+      lines = [f"# Changelog", "", f"Generated from `{source}` ({total} commits)", ""]
+      for k in order:
+          entries = groups.get(k) or []
+          if not entries:
+              continue
+          lines.append(f"## {headers[k]}")
+          lines.append("")
+          for e in entries:
+              lines.append(f"- {e['subject']}")
+          lines.append("")
+
+      result = {"markdown": "\n".join(lines), "line_count": len(lines)}
+    depends: [parse_and_group]
+    output: rendered
+
+  write_file:
+    # Persist to inputs/CHANGELOG-draft.md so it lives
+    # alongside the other catalog artifacts. Operators
+    # edit this file by hand before tagging a release.
+    python: |
+      from pathlib import Path
+      out = Path("inputs/CHANGELOG-draft.md").resolve()
+      out.write_text(inputs["rendered"]["markdown"])
+      result = {"path": str(out), "size_bytes": out.stat().st_size}
+    depends: [render_markdown]
+    output: written
+
+  show:
+    run: |
+      echo === CHANGELOG DRAFT ===
+      echo Source:        {{collected.source}}
+      echo Commits:       {{collected.count}}
+      echo Feat count:    {{grouped.group_counts.get("feat", 0)}}
+      echo Fix count:     {{grouped.group_counts.get("fix", 0)}}
+      echo Other count:   {{grouped.group_counts.get("other", 0)}}
+      echo Lines written: {{rendered.line_count}}
+      echo File:          {{written.path}}
+    depends: [write_file]
+    output: report_text

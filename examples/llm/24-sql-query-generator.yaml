@@ -1,0 +1,88 @@
+name: sql-query-generator
+description: |
+  Natural-language question + database schema → LLM writes the SQL
+  query + a short explanation of what it's doing. Downstream step
+  could pipe this into sqlite3 to actually run it, but this pipeline
+  stops at "generate + explain" so you can review before executing.
+
+  Canonical use for LLMs: translating intent ("who are our top 5
+  customers by order count last month") into a concrete SQL query
+  against a specific schema. Hallucinated column names are the
+  main risk — pass the REAL schema in the prompt and the model
+  is usually honest.
+
+  Usage:
+    aiorch run 24-sql-query-generator.yaml
+    aiorch run 24-sql-query-generator.yaml -i question="Which products have the lowest stock and need reordering?"
+
+input:
+  question:
+    type: string
+    default: "Who are our top 5 customers by total order value in the last 30 days?"
+  schema:
+    type: string
+    default: |
+      CREATE TABLE customers (
+          customer_id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          signup_date TEXT NOT NULL
+      );
+
+      CREATE TABLE products (
+          product_id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          price_cents INTEGER NOT NULL,
+          stock INTEGER NOT NULL
+      );
+
+      CREATE TABLE orders (
+          order_id INTEGER PRIMARY KEY,
+          customer_id INTEGER REFERENCES customers(customer_id),
+          product_id INTEGER REFERENCES products(product_id),
+          quantity INTEGER NOT NULL,
+          order_date TEXT NOT NULL
+      );
+
+steps:
+  generate:
+    prompt: |
+      You are a SQL analyst. Given the schema below, write a single
+      SQLite-compatible SQL query that answers the question.
+
+      Schema:
+      ---
+      {{schema}}
+      ---
+
+      Question: {{question}}
+
+      Reply with JSON:
+        sql         : the query (single statement, no trailing semicolon needed)
+        explanation : 2-3 sentences on what the query does and why
+
+      Rules:
+        - Use ONLY columns/tables in the schema. No hallucination.
+        - Prefer CTEs over nested subqueries for readability.
+        - Assume SQLite date functions (date(), julianday(), strftime()).
+    format: json
+    schema:
+      type: object
+      required: [sql, explanation]
+      properties:
+        sql:         { type: string }
+        explanation: { type: string }
+    retry_on_invalid: 2
+    output: query
+
+  show:
+    python: |
+      q = inputs["query"]
+      print("==== Generated SQL ====")
+      print(q["sql"])
+      print()
+      print("==== Explanation ====")
+      print(q["explanation"])
+      result = q
+    depends: [generate]

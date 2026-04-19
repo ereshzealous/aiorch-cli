@@ -1,0 +1,188 @@
+name: pr-digest
+description: |
+  Parse a canned pull-request JSON fixture (shaped like the
+  GitHub `GET /repos/{owner}/{repo}/pulls` response) and
+  produce a multi-dimensional digest: grouped by author,
+  by age bucket (fresh/recent/stale), and by review status
+  (has reviews vs awaiting review). Writes a JSON digest
+  and prints a terse summary.
+
+  Why this matters:
+    "What's the state of our open PRs?" is the weekly
+    maintainer question. Grouping them three ways at once
+    surfaces: who needs a nudge, what's rotting, and what's
+    waiting on review. One glance at the JSON tells you
+    where to focus attention.
+
+  Why a fixture instead of hitting the GitHub API?
+    Pipelines should be hermetic: runnable by anyone,
+    anywhere, with no auth and no network gating. The
+    fixture ships with the catalog. To process real PRs,
+    dump the API response to a file and point the pipeline
+    at it.
+
+  Use real GitHub data:
+    1. Dump open PRs to a file:
+         gh api '/repos/<owner>/<repo>/pulls?state=open&per_page=100' \
+           > my-prs.json
+       (or any tool that writes the /pulls JSON response)
+    2. Run the pipeline pointing at it:
+         aiorch run 46-pr-digest.yaml -i prs_path=my-prs.json
+
+  DAG shape:
+    read_prs → [group_by_author || group_by_age || group_by_review_status]
+      → build_digest → show
+
+  The three groupers run in parallel in the same DAG layer
+  — independent reducers over the same parsed PR list.
+
+input:
+  prs_path:
+    type: string
+    default: inputs/sample-prs.json
+    description: Path to a JSON array of PRs shaped like the GitHub `/pulls` endpoint response. Default ships with the catalog.
+
+steps:
+  read_prs:
+    # Load the fixture and trim each PR to the fields we
+    # care about. Tolerates missing `user`, missing
+    # `created_at`, and empty reviewer/assignee lists.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      p = Path(inputs["prs_path"])
+      prs_raw = json.loads(p.read_text())
+      now = datetime.now(timezone.utc)
+
+      trimmed = []
+      for pr in prs_raw:
+          author = (pr.get("user") or {}).get("login") or "unknown"
+          created_at = pr.get("created_at")
+          if created_at:
+              try:
+                  created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                  age_days = max(0, (now - created).days)
+              except ValueError:
+                  age_days = 0
+          else:
+              age_days = 0
+
+          if age_days < 7:
+              bucket = "fresh"
+          elif age_days < 30:
+              bucket = "recent"
+          else:
+              bucket = "stale"
+
+          has_reviews = bool(pr.get("requested_reviewers")) or bool(pr.get("assignees"))
+
+          trimmed.append({
+              "number": pr.get("number"),
+              "title": (pr.get("title") or "")[:80],
+              "author": author,
+              "age_days": age_days,
+              "age_bucket": bucket,
+              "has_reviews": has_reviews,
+              "draft": bool(pr.get("draft")),
+              "url": pr.get("html_url"),
+          })
+
+      result = {
+          "source": str(p.resolve()),
+          "now": now.isoformat(),
+          "count": len(trimmed),
+          "prs": trimmed,
+      }
+    output: fetched
+
+  group_by_author:
+    # Top-5 authors by PR count. Parallel with the other
+    # two groupers.
+    python: |
+      from collections import defaultdict
+
+      by_author = defaultdict(int)
+      for pr in inputs["fetched"]["prs"]:
+          by_author[pr["author"]] += 1
+
+      top = sorted(by_author.items(), key=lambda kv: kv[1], reverse=True)[:5]
+      result = {
+          "author_count": len(by_author),
+          "top5": [{"author": a, "count": c} for a, c in top],
+      }
+    depends: [read_prs]
+    output: authors
+
+  group_by_age:
+    # Bucket counts for fresh/recent/stale. Parallel with
+    # the other two groupers.
+    python: |
+      counts = {"fresh": 0, "recent": 0, "stale": 0}
+      for pr in inputs["fetched"]["prs"]:
+          counts[pr["age_bucket"]] += 1
+      result = counts
+    depends: [read_prs]
+    output: ages
+
+  group_by_review_status:
+    # has_reviews vs awaiting_review. Parallel with the
+    # other two groupers.
+    python: |
+      counts = {"has_reviews": 0, "awaiting_review": 0}
+      drafts = 0
+      for pr in inputs["fetched"]["prs"]:
+          key = "has_reviews" if pr["has_reviews"] else "awaiting_review"
+          counts[key] += 1
+          if pr["draft"]:
+              drafts += 1
+      result = {**counts, "draft_count": drafts}
+    depends: [read_prs]
+    output: reviews
+
+  build_digest:
+    # Fan-in: combine all three groupings into one report
+    # dict and persist as JSON.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      fetched = inputs["fetched"]
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "source": fetched["source"],
+          "total": fetched["count"],
+          "by_author_top5": inputs["authors"]["top5"],
+          "author_count":   inputs["authors"]["author_count"],
+          "by_age":         inputs["ages"],
+          "by_review":      {
+              "has_reviews":     inputs["reviews"]["has_reviews"],
+              "awaiting_review": inputs["reviews"]["awaiting_review"],
+          },
+          "draft_count": inputs["reviews"]["draft_count"],
+          "prs": fetched["prs"],
+      }
+
+      out = Path("inputs/pr-digest.json").resolve()
+      out.write_text(json.dumps(report, indent=2))
+      result = {**report, "path": str(out)}
+    depends: [group_by_author, group_by_age, group_by_review_status]
+    output: report
+
+  show:
+    run: |
+      echo === PR DIGEST ===
+      echo Source:           {{report.source}}
+      echo Total open PRs:   {{report.total}}
+      echo Authors:          {{report.author_count}}
+      echo Fresh under 7d:   {{report.by_age.fresh}}
+      echo Recent under 30d: {{report.by_age.recent}}
+      echo Stale 30d plus:   {{report.by_age.stale}}
+      echo Has reviews:      {{report.by_review.has_reviews}}
+      echo Awaiting review:  {{report.by_review.awaiting_review}}
+      echo Drafts:           {{report.draft_count}}
+      echo Report:           {{report.path}}
+    depends: [build_digest]
+    output: report_text

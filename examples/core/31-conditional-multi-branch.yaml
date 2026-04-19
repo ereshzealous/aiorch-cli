@@ -1,0 +1,152 @@
+name: conditional-multi-branch
+description: |
+  Conditional fan-out by string input. The user picks a
+  `mode` from the Run dialog, and exactly ONE of three
+  handler steps runs based on the mode value. The other
+  two are skipped (visible as "skipped" pills in the
+  Trace, NOT failures).
+
+  This is the local-only equivalent of the webhook-driven
+  routing pipeline (22), but driven by a user input
+  instead of a webhook payload field. Useful for any
+  workflow where you want one pipeline definition to
+  cover multiple modes of operation.
+
+  Three modes:
+    - fast      → quick check, returns immediately
+    - thorough  → simulated long-running analysis (1s sleep)
+    - skip      → no-op, returns a sentinel value
+
+  Why three branches with `condition:` instead of one
+  branch with an if-else inside python:
+    - The branches are independently observable in the
+      trace (each has its own status, duration, output)
+    - Easier to add/remove modes without touching other
+      modes' code
+    - Matches the way real workflows have different
+      retry, timeout, or on_failure semantics per mode
+
+  No connectors, no LLM, no external services. Pure
+  user-input + condition + python steps.
+
+  What to verify:
+    1. Run with mode="fast" → handle_fast runs, the
+       other two are skipped
+    2. Run with mode="thorough" → handle_thorough runs
+       (~1s), the other two are skipped
+    3. Run with mode="skip" → handle_skip runs, the
+       other two are skipped
+    4. The skipped steps show distinct skipped pills
+       in the Trace, NOT failures
+    5. The final summary report names which mode ran
+
+input:
+  mode:
+    type: string
+    default: fast
+    description: One of - fast, thorough, skip. Drives which handler runs.
+
+  payload:
+    type: string
+    default: hello world
+    description: A string that all handlers see (just to show shared input).
+
+steps:
+  prepare:
+    # Sentinel step that runs unconditionally. Validates
+    # the mode is one of the supported values and stores
+    # it in a typed result for the conditions below.
+    python: |
+      VALID_MODES = ("fast", "thorough", "skip")
+      mode = inputs["mode"]
+      if mode not in VALID_MODES:
+          raise ValueError(
+              f"Unknown mode: {mode!r}. Valid: {VALID_MODES}"
+          )
+      result = {
+          "mode": mode,
+          "payload_length": len(inputs["payload"]),
+      }
+    output: prepared
+
+  handle_fast:
+    # Runs only when mode == "fast"
+    python: |
+      result = {
+          "mode": "fast",
+          "duration_simulated": 0,
+          "answer": "quick check passed",
+          "payload_length": inputs["prepared"]["payload_length"],
+      }
+    condition: "{{prepared.mode}} == 'fast'"
+    depends: [prepare]
+    output: fast_result
+
+  handle_thorough:
+    # Runs only when mode == "thorough". Sleeps to
+    # simulate a long-running analysis so you can see
+    # the difference in trace duration vs. the fast mode.
+    python: |
+      import time
+      time.sleep(1.0)
+      result = {
+          "mode": "thorough",
+          "duration_simulated": 1.0,
+          "answer": "deep analysis complete",
+          "payload_length": inputs["prepared"]["payload_length"],
+      }
+    condition: "{{prepared.mode}} == 'thorough'"
+    depends: [prepare]
+    output: thorough_result
+
+  handle_skip:
+    # Runs only when mode == "skip". Acts as a no-op
+    # marker so the rest of the pipeline can still see
+    # that "something ran" with skip-mode semantics.
+    python: |
+      result = {
+          "mode": "skip",
+          "duration_simulated": 0,
+          "answer": "noop sentinel returned",
+          "payload_length": inputs["prepared"]["payload_length"],
+      }
+    condition: "{{prepared.mode}} == 'skip'"
+    depends: [prepare]
+    output: skip_result
+
+  summarize:
+    # Final fan-in. Uses inputs.get(...) for each branch
+    # since exactly one will exist (the others were
+    # skipped, so their output variables don't exist
+    # in the context).
+    python: |
+      fast = inputs.get("fast_result")
+      thorough = inputs.get("thorough_result")
+      skip = inputs.get("skip_result")
+
+      # Find which one actually ran
+      ran = next((r for r in (fast, thorough, skip) if r is not None), None)
+
+      if ran is None:
+          # Should be unreachable — prepare validates the
+          # mode is one of the three. Belt and suspenders.
+          raise RuntimeError("No handler ran. Did the mode validation drift from the conditions?")
+
+      result = {
+          "selected_mode": ran["mode"],
+          "answer": ran["answer"],
+          "duration_simulated": ran["duration_simulated"],
+          "payload_length": ran["payload_length"],
+      }
+    depends: [handle_fast, handle_thorough, handle_skip]
+    output: report
+
+  show:
+    run: |
+      echo === MODE-DRIVEN ROUTING ===
+      echo Selected mode:    {{report.selected_mode}}
+      echo Answer:           {{report.answer}}
+      echo Simulated time:   {{report.duration_simulated}}s
+      echo Payload length:   {{report.payload_length}}
+    depends: [summarize]
+    output: report_text

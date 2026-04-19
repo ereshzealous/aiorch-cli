@@ -1,0 +1,56 @@
+name: input-list-test
+description: |
+  Input-type test #4: list
+
+  Exercises the list input renderer in the Run dialog and
+  aiorch's `foreach:` step primitive in one shot. The dialog
+  shows a textarea where you type comma-separated values,
+  and the UI splits them into a real JSON array on submit.
+
+  What to verify:
+    1. Run dialog renders a multi-line textarea (NOT a one-
+       line text box) for `fruits`, with placeholder hint
+       "item1, item2, item3"
+    2. Default ["apple", "banana", "cherry"] is pre-filled
+       as "apple, banana, cherry" in the textarea
+    3. Typing "kiwi, mango, pear" and submitting sends a
+       real JSON array `["kiwi","mango","pear"]` on the wire,
+       not the string "kiwi, mango, pear". validate_inputs()
+       rejects non-list values with a clear error.
+    4. `{{ fruits | length }}` resolves to the actual count —
+       the banner step prints "3" when you pass three items,
+       "5" when you pass five, etc.
+    5. The `process_each` step has `foreach: fruits` — the
+       Trace page should show it executed N times, once per
+       item, with `{{ item }}` bound to each element in turn
+    6. Trace input panel shows the list as a real array:
+       `["kiwi","mango","pear"]`, not `"kiwi, mango, pear"`
+
+  Expected runtime: < 1 second.
+
+input:
+  fruits:
+    type: list
+    default: [apple, banana, cherry]
+    description: Comma-separated list of fruits to process. The textarea splits on commas into a real array.
+
+steps:
+  banner:
+    run: echo === list input test, received {{ fruits | length }} items ===
+    output: banner
+
+  process_each:
+    # `foreach: "{{fruits}}"` runs this step once per list element
+    # with `item` bound to each value in turn. The explicit
+    # `{{var}}` form is required — a bare word like `foreach: fruits`
+    # is treated as a literal string and comma-split, so the loop
+    # would run once with item="fruits" (the word, not the list).
+    run: echo processing fruit {{ item }}
+    foreach: "{{fruits}}"
+    depends: [banner]
+    output: processed
+
+  summary:
+    run: echo LIST INPUT TEST PASSED - processed {{ fruits | length }} fruits
+    depends: [process_each]
+    output: summary

@@ -1,0 +1,192 @@
+name: db-join-aggregate
+description: |
+  Read three tables from SQLite, do a multi-way join in
+  python (rather than SQL — useful when you need pandas-
+  style transforms after the read), aggregate, and write
+  a JSON summary back to disk.
+
+  Pattern: extract → transform-with-join → load.
+  This is the local equivalent of pipeline 20 (the MinIO
+  ETL example) but using SQLite + a local file output
+  instead of an object store. Demonstrates that you can
+  build full ETL workflows in CLI mode without any
+  external services.
+
+  Steps:
+    1. read_orders     — fetch all orders
+    2. read_customers  — fetch all customers
+    3. read_products   — fetch all products
+       (steps 1-3 run in parallel — same DAG layer)
+    4. join_in_python  — join the three tables in memory
+    5. aggregate       — compute per-region per-category
+                         revenue totals
+    6. write_summary   — dump JSON to inputs/sales-summary.json
+    7. show            — print the report
+
+  Why join in python instead of SQL?
+    - Demonstrates the pattern for cases where you can't
+      do the join in SQL (different DBs, mid-pipeline
+      data not in any DB, or SQL too slow for the join
+      shape and you want pandas/polars/duckdb instead).
+    - Real workflows often need to join "DB rows" with
+      "API responses" or "uploaded artifacts" — python
+      is the only place that can mix all those sources.
+
+  Prerequisites:
+    Run inputs/setup-sample-db.sh once.
+
+  Run it:
+    aiorch run 35-db-join-aggregate.yaml
+
+  Output:
+    Writes inputs/sales-summary.json with the aggregated
+    report. Inspect with:
+      cat ~/Documents/Dev/aiorch/cli/inputs/sales-summary.json | jq
+
+steps:
+  read_orders:
+    python: |
+      import sqlite3
+      from pathlib import Path
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      rows = [dict(r) for r in conn.execute(
+          "SELECT id, customer_id, sku, quantity, order_date FROM orders"
+      ).fetchall()]
+      conn.close()
+      result = rows
+    output: orders
+
+  read_customers:
+    python: |
+      import sqlite3
+      from pathlib import Path
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      rows = [dict(r) for r in conn.execute(
+          "SELECT id, name, region FROM customers"
+      ).fetchall()]
+      conn.close()
+      result = rows
+    output: customers
+
+  read_products:
+    python: |
+      import sqlite3
+      from pathlib import Path
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      rows = [dict(r) for r in conn.execute(
+          "SELECT sku, name, category, price FROM products"
+      ).fetchall()]
+      conn.close()
+      result = rows
+    output: products
+
+  join_in_python:
+    # Hash-join by index lookup. For 15 orders + 8 customers +
+    # 6 products this is trivial; for millions of rows you'd
+    # use polars/duckdb. The shape is the same.
+    python: |
+      orders    = inputs["orders"]
+      customers = {c["id"]: c for c in inputs["customers"]}
+      products  = {p["sku"]: p for p in inputs["products"]}
+
+      enriched = []
+      for o in orders:
+          c = customers.get(o["customer_id"])
+          p = products.get(o["sku"])
+          if c and p:
+              enriched.append({
+                  "order_id": o["id"],
+                  "order_date": o["order_date"],
+                  "customer_name": c["name"],
+                  "region": c["region"],
+                  "product_name": p["name"],
+                  "category": p["category"],
+                  "quantity": o["quantity"],
+                  "unit_price": p["price"],
+                  "line_total": round(o["quantity"] * p["price"], 2),
+              })
+
+      result = {
+          "row_count": len(enriched),
+          "enriched": enriched,
+      }
+    depends: [read_orders, read_customers, read_products]
+    output: joined
+
+  aggregate:
+    # Per-region per-category rollup. Produces a nested
+    # dict that's easy to inspect by hand.
+    python: |
+      from collections import defaultdict
+
+      enriched = inputs["joined"]["enriched"]
+
+      # region → category → {units, revenue}
+      grid = defaultdict(lambda: defaultdict(lambda: {"units": 0, "revenue": 0.0}))
+      for row in enriched:
+          cell = grid[row["region"]][row["category"]]
+          cell["units"] += row["quantity"]
+          cell["revenue"] += row["line_total"]
+
+      # Convert nested defaultdict to plain dicts for JSON serialization
+      grid_plain = {
+          region: {
+              cat: {"units": v["units"], "revenue": round(v["revenue"], 2)}
+              for cat, v in by_cat.items()
+          }
+          for region, by_cat in grid.items()
+      }
+
+      total_units = sum(r["quantity"] for r in enriched)
+      total_revenue = round(sum(r["line_total"] for r in enriched), 2)
+
+      result = {
+          "rows_processed": len(enriched),
+          "regions_seen": sorted(grid_plain.keys()),
+          "categories_seen": sorted({c for by in grid_plain.values() for c in by}),
+          "total_units": total_units,
+          "total_revenue": total_revenue,
+          "by_region_category": grid_plain,
+      }
+    depends: [join_in_python]
+    output: report
+
+  write_summary:
+    # Write the JSON summary to a local file. No connector,
+    # no MinIO — just a python step writing to disk via
+    # pathlib. Works the same in CLI as in Platform mode.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      summary = inputs["report"]
+      summary["generated_at"] = datetime.now(timezone.utc).isoformat()
+
+      out_path = Path("inputs/sales-summary.json").resolve()
+      out_path.write_text(json.dumps(summary, indent=2))
+
+      result = {
+          "path": str(out_path),
+          "size_bytes": out_path.stat().st_size,
+      }
+    depends: [aggregate]
+    output: written
+
+  show:
+    run: |
+      echo === SALES ROLLUP ===
+      echo Rows processed:  {{report.rows_processed}}
+      echo Regions:         {{report.regions_seen}}
+      echo Categories:      {{report.categories_seen}}
+      echo Total units:     {{report.total_units}}
+      echo Total revenue:   {{report.total_revenue}}
+      echo
+      echo Wrote summary:   {{written.path}} [{{written.size_bytes}} bytes]
+      echo
+      echo Inspect with:    cat {{written.path}}
+    depends: [write_summary]
+    output: report_text

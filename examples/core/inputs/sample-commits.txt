@@ -1,0 +1,25 @@
+feat(executor): parallel step dispatch with bounded worker pool
+fix(executor): drain in-flight tasks on shutdown
+feat(scheduler): cron-free schedule table backed by postgres
+refactor(scheduler): drop apscheduler dep
+docs(scheduler): note postgres-coordination model
+feat(ui): webhooks management page skeleton
+fix(ui): webhook header form cleared on save
+feat(ui): connectors pipeline polish pass
+chore(ui): upgrade tailwind to 3.5
+feat(api): inbound webhook triggers with hmac verification
+test(api): webhook integration suite
+fix(api): reject empty hmac secret at registration
+feat(runtime): surface condition-skipped steps in trace
+refactor(runtime): pull status enum into shared module
+docs(runtime): trace semantics for skipped
+chore(deps): bump httpx 0.27 -> 0.28
+test(executor): cancellation racer regression test
+fix(scheduler): avoid double-fire when schedule row updated mid-tick
+chore(ci): pin ruff 0.5.7
+docs(ui): connector auth picker walkthrough
+perf(executor)!: remove per-step asyncio.sleep(0) yield
+build(docker): multi-stage image with uv pip install
+style(api): black + ruff sweep
+Merge pull request #412 from priyan/executor-pool
+Random commit without a conventional prefix

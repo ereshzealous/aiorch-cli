@@ -1,0 +1,32 @@
+{
+  "total_tests": 8,
+  "total_failures": 8,
+  "groups": [
+    {
+      "root_cause": "Authentication service is returning 500s instead of expected client errors",
+      "affected": [
+        "tests/test_auth.py::test_register_duplicate_email",
+        "tests/test_auth.py::test_login_wrong_password",
+        "tests/test_auth.py::test_refresh_token_rotation"
+      ],
+      "next_action": "Check the authentication service logs for 'tests/test_auth.py' to identify the internal server error."
+    },
+    {
+      "root_cause": "PostgreSQL database is unreachable or misconfigured",
+      "affected": [
+        "tests/test_connectors.py::test_postgres_connection_timeout"
+      ],
+      "next_action": "Verify the PostgreSQL container is running and accessible on localhost:5433, and check its logs for connection issues."
+    },
+    {
+      "root_cause": "Unknown errors in various parts of the application, possibly indicating a broader system issue or dependency problem",
+      "affected": [
+        "tests/test_runs.py::test_run_concurrent_admission",
+        "tests/test_pipelines.py::test_yaml_parse_malformed",
+        "tests/test_scheduler.py::test_spend_reconcile_updates_redis",
+        "tests/test_webhooks.py::test_webhook_rate_limit"
+      ],
+      "next_action": "Review the CI runner logs for the 'Unknown' failures, specifically looking for unhandled exceptions or dependency loading errors."
+    }
+  ]
+}

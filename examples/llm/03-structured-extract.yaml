@@ -1,0 +1,42 @@
+name: structured-extract
+description: |
+  Extract structured entities (people, orgs, dates, amounts) from free
+  text with JSON-schema-validated output. If the LLM returns invalid
+  JSON or fails the schema, retry_on_invalid asks it to correct — up
+  to 2 retries before the step hard-fails.
+
+  Usage:
+    aiorch run 03-structured-extract.yaml
+    aiorch run 03-structured-extract.yaml -i text="Dana met Rohan in Tokyo on 2026-02-14 about a $500K seed round."
+
+input:
+  text:
+    type: string
+    default: "On March 5 2026, Alice Chen from Acme Corp closed a $2.4M deal with Globex, pending legal review by April 15."
+
+steps:
+  extract:
+    prompt: |
+      Extract every named entity from this text.
+
+      Text: {{text}}
+    format: json
+    schema:
+      type: object
+      required: [people, organizations, dates, amounts]
+      properties:
+        people:        { type: array, items: { type: string } }
+        organizations: { type: array, items: { type: string } }
+        dates:         { type: array, items: { type: string } }
+        amounts:       { type: array, items: { type: string } }
+    retry_on_invalid: 2
+    output: entities
+
+  show:
+    run: |
+      echo "==== Extracted entities ===="
+      echo People: {{entities.people | join(', ')}}
+      echo Organizations: {{entities.organizations | join(', ')}}
+      echo Dates: {{entities.dates | join(', ')}}
+      echo Amounts: {{entities.amounts | join(', ')}}
+    depends: [extract]

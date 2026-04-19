@@ -1,0 +1,43 @@
+name: multi-model-compare
+description: |
+  Same prompt sent to two different models in parallel. Both outputs
+  shown side-by-side so the operator can eyeball quality / cost
+  tradeoffs on their own prompts. Classic fan-out DAG shape with
+  LLM steps.
+
+  Usage:
+    aiorch run 04-multi-model-compare.yaml
+    aiorch run 04-multi-model-compare.yaml -i question="Explain monads to a backend developer in 3 sentences."
+
+input:
+  question:
+    type: string
+    default: "In 3 sentences, explain when you would pick a process over a thread for a CPU-bound task."
+
+steps:
+  # Two models side-by-side. Pick any two — OpenRouter routes each
+  # to the right upstream via the "provider/model" prefix. Swap the
+  # model: strings below to whatever your provider actually offers:
+  #   openai/gpt-4o-mini  vs  openai/gpt-4o
+  #   anthropic/claude-3-5-haiku vs anthropic/claude-sonnet-4-5
+  #   google/gemini-2.5-flash vs google/gemini-2.5-pro
+  # Or cross-provider:
+  #   google/gemini-2.5-flash vs anthropic/claude-3-5-haiku
+  model_fast:
+    prompt: "{{question}}"
+    model: google/gemini-2.5-flash
+    output: fast_answer
+
+  model_large:
+    prompt: "{{question}}"
+    model: google/gemini-2.5-pro
+    output: large_answer
+
+  show:
+    run: |
+      echo "==== gemini-2.5-flash (fast / cheap) ===="
+      echo {{fast_answer}}
+      echo ""
+      echo "==== gemini-2.5-pro (larger / slower) ===="
+      echo {{large_answer}}
+    depends: [model_fast, model_large]

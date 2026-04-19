@@ -1,0 +1,20 @@
+feat(webhooks): delivery history, test-fire, per-trigger rate limit
+fix(auth): secure-by-default + boot guard + .env.example disclosure
+fix(logging): stop silencing every aiorch logger after boot-time Alembic
+refactor(auth): unify Redis access through shared cache client
+refactor(server): explicit startup task registry with timing
+feat(health): coordination-layer observability — admission metrics, reconcile state
+feat(ui): dirty-form tracker, inline field errors, accessible modals
+fix(api-docs): hide internal routes + document response shapes
+fix(executor): claim_token guard on heartbeat + finish_run
+fix(executor): offload sync store + Redis calls via asyncio.to_thread
+feat(mcp-registry): add opsgenie, mongodb, jira, confluence
+feat(mcp-registry): add sentry, clickhouse, pagerduty, grafana
+perf(api): batch pg_stat_activity reads on health endpoint
+fix(scheduler): rollback_claim on pipeline-resolve failure
+docs: update CLAUDE_HANDOFF with Phase-11 webhook trigger redesign
+refactor(storage): extract admission lease helpers into concurrency module
+test: add smoke coverage for /api/admin/startup-tasks
+feat(cli): support --from <step> for resume after failure
+fix(runs): suppress SSE on runId change to prevent cross-run event bleed
+ci: pin pip version to 24.2 to avoid 26.x regression

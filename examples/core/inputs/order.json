@@ -1,0 +1,15 @@
+{
+  "order_id": "ORD-12345",
+  "customer": {
+    "name": "Jane Doe",
+    "email": "jane@example.com"
+  },
+  "items": [
+    {"sku": "A1", "name": "Widget", "qty": 2, "price": 9.99},
+    {"sku": "B2", "name": "Gadget", "qty": 1, "price": 19.99},
+    {"sku": "A1", "name": "Widget", "qty": 1, "price": 9.99},
+    {"sku": "C3", "name": "Gizmo", "qty": 3, "price": 4.99}
+  ],
+  "tax_rate": 0.08,
+  "shipping": 5.00
+}

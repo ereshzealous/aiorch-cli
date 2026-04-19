@@ -1,0 +1,61 @@
+name: temperature-sweep
+description: |
+  Fire the SAME prompt at 5 different temperatures in parallel.
+  Useful for intuition-building: how much does temperature actually
+  matter for THIS prompt? Sometimes the answer is "not much" (the
+  prompt is constraining enough that the model picks similar words
+  regardless). Sometimes it's dramatic. Running this once on any
+  new prompt before you commit to a temperature value is cheap.
+
+  Usage:
+    aiorch run 17-temperature-sweep.yaml
+    aiorch run 17-temperature-sweep.yaml -i topic="three fictional startup names for a fintech"
+
+input:
+  topic:
+    type: string
+    default: "a single one-sentence tagline for a platform that runs YAML-defined AI workflows"
+
+steps:
+  t_zero:
+    prompt: "{{topic}}"
+    temperature: 0.0
+    output: answer_0
+
+  t_cool:
+    prompt: "{{topic}}"
+    temperature: 0.3
+    output: answer_3
+
+  t_mid:
+    prompt: "{{topic}}"
+    temperature: 0.6
+    output: answer_6
+
+  t_warm:
+    prompt: "{{topic}}"
+    temperature: 0.9
+    output: answer_9
+
+  t_wild:
+    prompt: "{{topic}}"
+    temperature: 1.2
+    output: answer_12
+
+  show:
+    run: |
+      echo ==== T=0.0 deterministic ====
+      echo {{answer_0}}
+      echo
+      echo ==== T=0.3 ====
+      echo {{answer_3}}
+      echo
+      echo ==== T=0.6 ====
+      echo {{answer_6}}
+      echo
+      echo ==== T=0.9 ====
+      echo {{answer_9}}
+      echo
+      echo ==== T=1.2 wild ====
+      echo {{answer_12}}
+    depends: [t_zero, t_cool, t_mid, t_warm, t_wild]

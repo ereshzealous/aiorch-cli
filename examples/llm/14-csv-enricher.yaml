@@ -1,0 +1,79 @@
+name: csv-enricher
+description: |
+  Read a CSV of raw customer feedback rows, add LLM-generated
+  columns (sentiment, category, suggested_response) per row in
+  parallel via foreach, write the enriched CSV back to disk.
+
+  The canonical "LLM as a column function" pattern — think of each
+  LLM call as a cell formula, and foreach as the spreadsheet that
+  applies it to every row. Per-row try/except so one bad row
+  doesn't kill the batch.
+
+  Usage:
+    aiorch run 14-csv-enricher.yaml -i feedback=@./inputs/sample-feedback.csv
+
+input:
+  feedback:
+    type: artifact
+    format: csv
+    description: CSV with a 'comment' column (other columns passed through)
+
+steps:
+  enrich_each:
+    prompt: |
+      Classify this customer comment on three axes. Reply with
+      STRICT JSON (no markdown fences, no commentary).
+
+      Comment: {{item.comment}}
+
+      Required keys:
+        sentiment : exactly one of "positive", "neutral", "negative"
+        category  : one short lowercase word ("billing", "bug",
+                    "praise", "feature_request", "usability", "other")
+        suggested_response : one-sentence, empathetic reply the
+                             support team could send verbatim
+    format: json
+    schema:
+      type: object
+      required: [sentiment, category, suggested_response]
+      properties:
+        sentiment: { type: string, enum: [positive, neutral, negative] }
+        category:  { type: string }
+        suggested_response: { type: string }
+    retry_on_invalid: 2
+    foreach: "{{feedback}}"
+    output: enrichments
+
+  write_csv:
+    python: |
+      import csv, pathlib
+      rows = inputs["feedback"]
+      enriched = inputs["enrichments"]
+
+      # Merge per-row: original columns + the 3 LLM columns.
+      merged = []
+      for row, e in zip(rows, enriched):
+          merged.append({
+              **{k: row.get(k) for k in row},
+              "sentiment": e.get("sentiment"),
+              "category":  e.get("category"),
+              "suggested_response": e.get("suggested_response"),
+          })
+
+      out = pathlib.Path("./inputs/feedback-enriched.csv")
+      if merged:
+          with out.open("w", newline="") as f:
+              w = csv.DictWriter(f, fieldnames=list(merged[0].keys()))
+              w.writeheader()
+              w.writerows(merged)
+
+      print(f"==== Enriched CSV ({len(merged)} rows) ====")
+      for m in merged[:5]:
+          print(f"  [{m.get('sentiment', '?'):9}/{m.get('category', '?'):14}] "
+                f"{str(m.get('comment', ''))[:60]}")
+      if len(merged) > 5:
+          print(f"  ... and {len(merged) - 5} more.")
+      print(f"\nFull CSV: {out.resolve()}")
+      result = {"output_path": str(out), "rows_enriched": len(merged)}
+    depends: [enrich_each]
+    output: report

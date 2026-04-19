@@ -1,0 +1,116 @@
+name: text-document-metrics
+description: |
+  Real-world non-LLM workflow: upload a plaintext document
+  and get back a multi-angle metrics report. Useful for
+  reviewing docs, READMEs, meeting notes, or any plaintext
+  artifact that isn't large enough to justify an LLM pass.
+
+  What it does:
+    - Stages the uploaded document into a temp file so the
+      downstream steps can stream it through standard Unix
+      tools (wc, tr, awk, grep, sort, uniq) instead of
+      juggling multi-line Jinja substitutions.
+    - Four analysis steps run in parallel after the stage:
+        basic_counts  → lines, words, chars (wc -lwc)
+        top_words     → top 10 most frequent words
+        longest_line  → length + text of the longest line
+        todo_scan     → count of TODO/FIXME/HACK/XXX markers
+    - A summary step aggregates all four into a single
+      report.
+
+  Why it's useful:
+    - Zero external dependencies — every tool is in the base
+      image, no LLM spend, no API keys, no network calls.
+    - Deterministic and fast: a 10KB doc takes ~50ms.
+    - Honest template for every downstream doc-analysis
+      pipeline (markdown lints, README checks, compliance
+      scans) — swap the analysis steps for whatever your
+      org actually cares about.
+
+  What to verify:
+    1. Run dialog shows the artifact drop zone for
+       `document` (same as the narrow artifact-text test)
+    2. The stage step writes the file and emits the
+       temp path as `doc_path`
+    3. basic_counts output matches `wc -lwc` on the same
+       file when you run it locally
+    4. top_words lists the 10 most frequent words with
+       their counts, sorted descending
+    5. longest_line prints the correct longest line
+    6. todo_scan returns 0 for a clean file and N for one
+       with N markers
+    7. summary aggregates all four — the full report ends
+       up in the Trace output panel
+
+  Expected runtime: < 500ms for files up to ~100KB.
+
+  Sample files to try:
+      # short, one-liner
+      echo "hello world from aiorch" > /tmp/note.txt
+
+      # multi-line plain prose
+      printf "The quick brown fox jumps over the lazy dog.\nLorem ipsum dolor sit amet.\nThe dog was not amused.\n" > /tmp/prose.txt
+
+      # code-adjacent with TODO markers
+      printf "def foo():\n    # TODO: refactor this\n    return 1\n\n# FIXME: remove\ndef bar(): pass\n" > /tmp/code.txt
+
+input:
+  document:
+    type: artifact
+    format: text
+    content_type: text/plain
+    max_size_mb: 5
+    description: Plaintext document to analyze. Markdown / code / prose all work — the pipeline uses byte-level Unix tools, not structured parsing.
+
+steps:
+  stage:
+    # Write the uploaded text to a temp file. mktemp gives us a
+    # guaranteed-unique path so concurrent runs don't collide.
+    # `printf '%s'` (not `echo`) avoids appending a newline that
+    # isn't in the source — `wc -l` would otherwise miscount.
+    run: f=$(mktemp /tmp/aiorch-doc.XXXXXX) && printf '%s' {{document}} > "$f" && echo "$f"
+    output: doc_path
+
+  basic_counts:
+    # `wc -l -w -c` on the staged file. The output is one line:
+    #   <lines> <words> <chars> <path>
+    # We strip the path so the output variable is just the numbers.
+    run: wc -l -w -c {{doc_path}} | awk '{print "lines="$1, "words="$2, "chars="$3}'
+    depends: [stage]
+    output: counts
+
+  top_words:
+    # Classic pipeline: tokenize on non-letters, lowercase, count,
+    # sort by count desc, take top 10. Outputs one "count word"
+    # pair per line — friendly for the Trace panel.
+    run: tr -cs 'a-zA-Z' '\n' < {{doc_path}} | tr 'A-Z' 'a-z' | grep -v '^$' | sort | uniq -c | sort -rn | head -10
+    depends: [stage]
+    output: top_words
+
+  longest_line:
+    # awk scans once, tracks max-length line, prints it.
+    run: awk '{ if (length($0) > max) { max = length($0); line = $0 } } END { print "length="max" text="line }' {{doc_path}}
+    depends: [stage]
+    output: longest_line
+
+  todo_scan:
+    # grep -c exits 1 on zero matches which would fail the step.
+    # `|| echo 0` turns zero-matches into a clean "0" output.
+    run: grep -cEi 'todo|fixme|hack|xxx' {{doc_path}} || echo 0
+    depends: [stage]
+    output: todo_count
+
+  report:
+    # Aggregate all four branches into one human-readable report.
+    # The `|| true` on rm tolerates the file already being gone,
+    # which it won't be — but belt-and-suspenders for the cleanup
+    # path.
+    run: |
+      printf '=== DOCUMENT METRICS REPORT ===\n'
+      printf 'Counts:        %s\n' {{counts}}
+      printf 'Longest line:  %s\n' {{longest_line}}
+      printf 'TODO markers:  %s\n' {{todo_count}}
+      printf '\nTop 10 words:\n%s\n' {{top_words}}
+      rm -f {{doc_path}} || true
+    depends: [basic_counts, top_words, longest_line, todo_scan]
+    output: report

@@ -1,0 +1,38 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.7, pytest-8.3.3
+collected 34 items
+
+tests/test_auth.py::test_register_valid_email PASSED                      [  3%]
+tests/test_auth.py::test_register_duplicate_email FAILED                  [  6%]
+tests/test_auth.py::test_login_wrong_password FAILED                      [  9%]
+tests/test_auth.py::test_refresh_token_rotation FAILED                    [ 12%]
+tests/test_connectors.py::test_postgres_query PASSED                      [ 15%]
+tests/test_connectors.py::test_postgres_connection_timeout FAILED         [ 18%]
+tests/test_connectors.py::test_s3_upload PASSED                           [ 21%]
+tests/test_connectors.py::test_s3_download PASSED                         [ 24%]
+tests/test_runs.py::test_create_run_happy PASSED                          [ 27%]
+tests/test_runs.py::test_run_retry_on_transient_error PASSED              [ 30%]
+tests/test_runs.py::test_run_concurrent_admission FAILED                  [ 33%]
+tests/test_runs.py::test_run_delete_cascades_artifacts PASSED             [ 36%]
+tests/test_pipelines.py::test_yaml_parse_valid PASSED                     [ 39%]
+tests/test_pipelines.py::test_yaml_parse_malformed FAILED                 [ 42%]
+tests/test_pipelines.py::test_upload_version_increment PASSED             [ 45%]
+tests/test_scheduler.py::test_cron_match_minute PASSED                    [ 48%]
+tests/test_scheduler.py::test_scheduler_reclaim_stale PASSED              [ 51%]
+tests/test_scheduler.py::test_spend_reconcile_updates_redis FAILED        [ 54%]
+tests/test_webhooks.py::test_webhook_hmac_valid PASSED                    [ 57%]
+tests/test_webhooks.py::test_webhook_hmac_wrong_signature PASSED          [ 60%]
+tests/test_webhooks.py::test_webhook_rate_limit FAILED                    [ 63%]
+tests/test_webhooks.py::test_webhook_delivery_history_logged PASSED       [ 66%]
+
+=================================== FAILURES ===================================
+FAILED tests/test_auth.py::test_register_duplicate_email - AssertionError: expected HTTPException 409, got 500
+FAILED tests/test_auth.py::test_login_wrong_password - AssertionError: expected HTTPException 401, got 500
+FAILED tests/test_auth.py::test_refresh_token_rotation - AssertionError: expected HTTPException 401, got 500
+FAILED tests/test_connectors.py::test_postgres_connection_timeout - TimeoutError: connection to localhost:5433 timed out after 5.0s
+FAILED tests/test_runs.py::test_run_concurrent_admission - redis.exceptions.ConnectionError: Error 61 connecting to localhost:6380. Connection refused.
+FAILED tests/test_pipelines.py::test_yaml_parse_malformed - yaml.scanner.ScannerError: mapping values are not allowed here
+FAILED tests/test_scheduler.py::test_spend_reconcile_updates_redis - redis.exceptions.ConnectionError: Error 61 connecting to localhost:6380. Connection refused.
+FAILED tests/test_webhooks.py::test_webhook_rate_limit - redis.exceptions.ConnectionError: Error 61 connecting to localhost:6380. Connection refused.
+
+======================== 8 failed, 14 passed in 12.41s =========================

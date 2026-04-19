@@ -1,0 +1,77 @@
+name: input-artifact-text-test
+description: |
+  Input-type test #5: artifact (format: text)
+
+  Exercises the artifact input renderer in the Run dialog,
+  the MinIO-backed artifact store, and the text decoder path
+  of ArtifactInputLoader in one shot.
+
+  What happens end-to-end:
+    1. User clicks Run → dialog shows a drop zone for
+       `document` with the "Upload file" widget
+    2. User uploads a small .txt file (e.g. a 1-5 line
+       note). The UI POSTs the bytes to the artifacts
+       endpoint which writes them to MinIO under the
+       configured bucket, returns {artifact_id, name,
+       size_bytes, format}
+    3. The Run dialog stores that object as the input
+       value: `{type: "artifact", artifact_id: "...",
+       format: "text"}`
+    4. On submit the run is created. At dispatch time the
+       runtime sees `type: artifact` and calls
+       ArtifactInputLoader.load() which fetches the bytes
+       back from MinIO and decodes as UTF-8 → Python str
+    5. Steps see `document` as a plain string in their
+       Jinja context. `{{document}}` substitutes the whole
+       file content, shlex-quoted so it arrives as a
+       single shell arg regardless of whitespace or
+       special chars
+
+  What to verify:
+    1. Run dialog renders a file drop zone for `document`
+       (NOT a text box). You can drag-drop or click to
+       browse
+    2. Uploading a .txt file shows the file name + size +
+       a green "Uploaded" indicator
+    3. After upload, you can submit the run — the value on
+       the wire is the artifact_id, not the raw bytes
+    4. `banner` prints the character count matching your
+       file's byte count (for pure ASCII) — proves
+       `{{ document | length }}` reads the decoded string
+    5. `show` prints the full file contents verbatim,
+       proves shlex-quoting handles whatever was inside
+       (spaces, quotes, newlines)
+    6. The Trace input panel shows the artifact metadata
+       (artifact_id, name, size), NOT the raw text —
+       that's by design, the bytes stay in MinIO
+    7. Artifacts page lists the uploaded file so you can
+       reuse it in future runs via the picker
+
+  Expected runtime: < 1 second for a small file.
+
+  Prep: create a tiny plaintext file to upload, e.g.:
+      echo "hello world from aiorch" > /tmp/note.txt
+      printf "line one\nline two\nline three\n" > /tmp/multi.txt
+
+input:
+  document:
+    type: artifact
+    format: text
+    content_type: text/plain
+    max_size_mb: 1
+    description: Small plaintext file. Content is loaded as a UTF-8 string and substituted bare into shell commands.
+
+steps:
+  banner:
+    run: echo === artifact text test, {{ document | length }} chars received ===
+    output: banner
+
+  show:
+    run: echo {{document}}
+    depends: [banner]
+    output: contents
+
+  summary:
+    run: echo ARTIFACT TEXT INPUT TEST PASSED - processed {{ document | length }} chars
+    depends: [show]
+    output: summary

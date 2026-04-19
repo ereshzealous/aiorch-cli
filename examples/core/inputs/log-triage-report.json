@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-04-19T10:39:16.888452+00:00",
+  "total_lines": 102,
+  "parsed_count": 102,
+  "status_buckets": {
+    "2xx": 70,
+    "3xx": 6,
+    "4xx": 16,
+    "5xx": 10,
+    "other": 0
+  },
+  "error_rate_pct": 25.49,
+  "top_paths": [
+    {
+      "path": "/metrics",
+      "hits": 11
+    },
+    {
+      "path": "/static/app.js",
+      "hits": 7
+    },
+    {
+      "path": "/healthz",
+      "hits": 7
+    },
+    {
+      "path": "/about",
+      "hits": 7
+    },
+    {
+      "path": "/",
+      "hits": 6
+    },
+    {
+      "path": "/blog/post-1",
+      "hits": 6
+    },
+    {
+      "path": "/api/search",
+      "hits": 6
+    },
+    {
+      "path": "/admin",
+      "hits": 6
+    },
+    {
+      "path": "/api/health",
+      "hits": 5
+    },
+    {
+      "path": "/static/app.css",
+      "hits": 5
+    }
+  ],
+  "top_ips": [
+    {
+      "ip": "10.0.0.5",
+      "requests": 17
+    },
+    {
+      "ip": "192.168.1.10",
+      "requests": 13
+    },
+    {
+      "ip": "203.0.113.45",
+      "requests": 11
+    },
+    {
+      "ip": "8.8.8.8",
+      "requests": 11
+    },
+    {
+      "ip": "172.16.0.1",
+      "requests": 10
+    },
+    {
+      "ip": "192.0.2.33",
+      "requests": 10
+    },
+    {
+      "ip": "203.0.113.100",
+      "requests": 8
+    },
+    {
+      "ip": "1.1.1.1",
+      "requests": 8
+    },
+    {
+      "ip": "198.51.100.22",
+      "requests": 6
+    },
+    {
+      "ip": "10.0.0.42",
+      "requests": 6
+    }
+  ]
+}

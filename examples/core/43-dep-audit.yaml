@@ -1,0 +1,156 @@
+name: dep-audit
+description: |
+  Audit a requirements.txt against PyPI. For every pinned
+  package, hit https://pypi.org/pypi/{pkg}/json in parallel
+  via a foreach, extract the latest version, and report
+  which pins are out of date.
+
+  Why this is useful:
+    "Is this project behind?" is a common Monday-morning
+    question. Running this gives a single JSON answer
+    instead of eyeballing releases one-by-one. Schedule it
+    weekly and you get a rolling dep-drift report.
+
+  DAG shape:
+    parse_requirements → lift_packages → check_each_package (foreach, parallel)
+    → build_report → show
+
+  The foreach dispatches one httpx call per package
+  concurrently. A network flake on one package doesn't
+  kill the run — each check wraps httpx in try/except and
+  marks the entry as "unknown" so the audit still produces
+  a report.
+
+  Foreach gotcha recap:
+    foreach can only iterate TOP-LEVEL context variables,
+    so we publish the parsed package list as its own
+    top-level output (`packages`) via a small lift step
+    before the foreach reads it.
+
+  Run it:
+    aiorch run 43-dep-audit.yaml
+    aiorch run 43-dep-audit.yaml -i requirements_path=./my-reqs.txt
+
+input:
+  requirements_path:
+    type: string
+    default: inputs/sample-requirements.txt
+    description: Path to a requirements.txt file. Only `pkg==X.Y.Z` pins are audited.
+
+steps:
+  parse_requirements:
+    # Read the file and extract (name, pinned_version)
+    # pairs. We only handle the `==` pin style — range
+    # pins like `>=1,<2` are skipped with a note in the
+    # report.
+    python: |
+      from pathlib import Path
+
+      text = Path(inputs["requirements_path"]).read_text()
+      pinned = []
+      skipped = []
+      for line in text.splitlines():
+          s = line.strip()
+          if not s or s.startswith("#"):
+              continue
+          if "==" in s:
+              name, _, version = s.partition("==")
+              pinned.append({"name": name.strip(), "pinned": version.strip()})
+          else:
+              skipped.append(s)
+
+      result = {
+          "pinned_count": len(pinned),
+          "skipped_count": len(skipped),
+          "pinned": pinned,
+          "skipped": skipped,
+      }
+    output: parsed
+
+  lift_packages:
+    # Republish the nested pinned list as a top-level
+    # variable so foreach can iterate it. See the foreach-
+    # nested-path gotcha note in pipelines 36 and 39.
+    python: |
+      result = inputs["parsed"]["pinned"]
+    depends: [parse_requirements]
+    output: packages
+
+  check_each_package:
+    # One httpx call per package, dispatched in parallel
+    # by the foreach runtime. Wraps every call in try/except
+    # so a network flake or a yanked package never blocks
+    # the rest of the audit.
+    python: |
+      import httpx
+
+      pkg = inputs["item"]
+      name = pkg["name"]
+      pinned = pkg["pinned"]
+
+      entry = {"name": name, "pinned": pinned}
+      try:
+          with httpx.Client(timeout=5) as client:
+              r = client.get(f"https://pypi.org/pypi/{name}/json")
+          if r.status_code != 200:
+              entry["latest"] = "unknown"
+              entry["status"] = f"http_{r.status_code}"
+              entry["outdated"] = None
+          else:
+              data = r.json()
+              latest = data.get("info", {}).get("version", "unknown")
+              entry["latest"] = latest
+              entry["status"] = "ok"
+              entry["outdated"] = (latest != pinned) if latest != "unknown" else None
+      except Exception as e:
+          entry["latest"] = "unknown"
+          entry["status"] = f"error:{type(e).__name__}"
+          entry["outdated"] = None
+
+      result = entry
+    foreach: "{{packages}}"
+    depends: [lift_packages]
+    output: audit_results
+
+  build_report:
+    # Aggregate the foreach results into one summary
+    # object + persist to JSON on disk.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      results = inputs["audit_results"]
+      outdated = [r for r in results if r.get("outdated") is True]
+      current  = [r for r in results if r.get("outdated") is False]
+      unknown  = [r for r in results if r.get("outdated") is None]
+
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "requirements_path": inputs["requirements_path"],
+          "total": len(results),
+          "outdated_count": len(outdated),
+          "current_count": len(current),
+          "unknown_count": len(unknown),
+          "outdated": outdated,
+          "current": current,
+          "unknown": unknown,
+      }
+
+      out = Path("inputs/dep-audit-report.json").resolve()
+      out.write_text(json.dumps(report, indent=2))
+      result = {**report, "path": str(out)}
+    depends: [check_each_package]
+    output: report
+
+  show:
+    run: |
+      echo === DEP AUDIT ===
+      echo File:       {{report.requirements_path}}
+      echo Total:      {{report.total}}
+      echo Outdated:   {{report.outdated_count}}
+      echo Current:    {{report.current_count}}
+      echo Unknown:    {{report.unknown_count}}
+      echo Report:     {{report.path}}
+    depends: [build_report]
+    output: report_text

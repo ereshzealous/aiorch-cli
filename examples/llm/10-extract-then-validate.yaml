@@ -1,0 +1,98 @@
+name: extract-then-validate
+description: |
+  LLM extracts structured fields → Python validates them against
+  domain rules the schema can't express → flags bad rows for review.
+
+  The LLM gets you "probably-correct JSON" cheaply. Python-side
+  validation catches domain violations (negative ages, email without
+  @, dates in the wrong century) that a JSON schema can't enforce.
+  Real extraction pipelines need both layers.
+
+  Usage:
+    aiorch run 10-extract-then-validate.yaml
+    aiorch run 10-extract-then-validate.yaml -i text="Contact: alice@acme.com, age 34, joined 2023-06-01. Also: bob@globex (age -5, joined 1899-01-01)."
+
+input:
+  text:
+    type: string
+    default: |
+      Pipeline: Dana Wu, dana.wu@example.com, age 29, joined 2024-03-15.
+      Also: Rohan (rohan at example com), age 200, joined 3024-01-01.
+      Third: Sam Park, sam.park@example.com, age 42, joined 2020-09-30.
+
+steps:
+  extract:
+    prompt: |
+      Extract every person mentioned in this text into a JSON array.
+      One object per person. Use these exact keys: name, email, age,
+      joined. If a value is clearly missing or malformed, put the
+      literal string the text contained (don't invent values).
+
+      Text:
+      {{text}}
+    format: json
+    schema:
+      type: array
+      items:
+        type: object
+        required: [name, email, age, joined]
+        properties:
+          name:   { type: string }
+          email:  { type: string }
+          age:    { type: [integer, string] }
+          joined: { type: string }
+    retry_on_invalid: 2
+    output: raw
+
+  validate:
+    python: |
+      import re
+      from datetime import date
+
+      # Schema declares this step returns a bare array of person objects.
+      people = inputs["raw"]
+      today = date.today()
+      good, bad = [], []
+      EMAIL_RX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+      for p in people:
+          errors = []
+          if not EMAIL_RX.match(str(p.get("email", ""))):
+              errors.append("invalid email")
+          try:
+              age = int(p.get("age", -1))
+              if age < 0 or age > 120:
+                  errors.append(f"age out of range ({age})")
+          except (TypeError, ValueError):
+              errors.append("age not an integer")
+          try:
+              y, m, d = str(p.get("joined", "")).split("-")
+              dt = date(int(y), int(m), int(d))
+              if dt > today:
+                  errors.append("joined is in the future")
+              if dt.year < 1950:
+                  errors.append("joined year < 1950")
+          except Exception:
+              errors.append("joined not a valid date")
+
+          if errors:
+              bad.append({"person": p, "errors": errors})
+          else:
+              good.append(p)
+
+      print("==== Extraction + validation ====")
+      print(f"  Total extracted: {len(people)}")
+      print(f"  Valid:           {len(good)}")
+      print(f"  Bad:             {len(bad)}")
+      if good:
+          print("\nValid rows:")
+          for p in good:
+              print(f"  ✓ {p['name']:15}  {p['email']:25}  age={p['age']}  joined={p['joined']}")
+      if bad:
+          print("\nFlagged for human review:")
+          for b in bad:
+              p = b["person"]
+              print(f"  ✗ {p.get('name', '?'):15}  {', '.join(b['errors'])}")
+      result = {"valid_count": len(good), "invalid_count": len(bad)}
+    depends: [extract]
+    output: report

@@ -1,0 +1,147 @@
+name: input-artifact-json-test
+description: |
+  Artifact format: json — tests the second of four artifact
+  format variants. Pairs naturally with the new `python:`
+  primitive because handling nested JSON in shell is
+  miserable and handling it in Python is one-liners.
+
+  What the artifact loader does for format: json:
+    1. Fetches bytes from MinIO (same as format: text)
+    2. UTF-8 decodes
+    3. Calls json.loads() on the decoded string
+    4. Injects the parsed value into the step context as
+       a real Python dict or list — NOT a string
+
+  So a step with `python:` sees `inputs["order"]` as a
+  fully-navigable dict, not raw JSON text. No parsing, no
+  error handling for malformed input — the loader already
+  validated it at run start. If the JSON is invalid, the
+  run fails at dispatch before any step runs, with a clean
+  JSONDecodeError.
+
+  What to verify:
+    1. Run dialog shows the same artifact drop zone as the
+       text test, with `content_type: application/json`
+       set so the picker hints at .json files
+    2. Uploading a JSON file, submitting, the `analyze`
+       step receives `inputs["order"]` as a dict (not str)
+       — the python step reads nested fields like
+       `order["customer"]["email"]` with no parsing
+    3. The computed aggregates (subtotal, tax, total,
+       cheapest/priciest items, unique SKU list) match
+       what you'd compute by hand from the input file
+    4. Uploading a file that isn't valid JSON (e.g. rename
+       /tmp/note.txt to /tmp/fake.json and upload) makes
+       the run fail fast with JSONDecodeError — the
+       Python step never runs
+    5. The Trace input panel shows the artifact metadata
+       (id, name, size), not the raw JSON content
+    6. Downstream shell `report` step can navigate the
+       Python dict via Jinja: `{{summary.total}}`,
+       `{{summary.line_items}}`
+
+  Expected runtime: < 100ms.
+
+  Sample file to upload — an orders-style JSON payload:
+
+    cat > order.json <<'EOF'
+    {
+      "order_id": "ORD-12345",
+      "customer": {
+        "name": "Jane Doe",
+        "email": "jane@example.com"
+      },
+      "items": [
+        {"sku": "A1", "name": "Widget", "qty": 2, "price": 9.99},
+        {"sku": "B2", "name": "Gadget", "qty": 1, "price": 19.99},
+        {"sku": "A1", "name": "Widget", "qty": 1, "price": 9.99},
+        {"sku": "C3", "name": "Gizmo", "qty": 3, "price": 4.99}
+      ],
+      "tax_rate": 0.08,
+      "shipping": 5.00
+    }
+    EOF
+
+  Expected output for that input:
+    subtotal = 2*9.99 + 1*19.99 + 1*9.99 + 3*4.99 = 64.93
+    tax      = 64.93 * 0.08 = 5.1944
+    total    = 64.93 + 5.19 + 5.00 = 75.12
+    line_items = 4 rows
+    total_qty = 7
+    unique_skus = ["A1", "B2", "C3"]
+    cheapest = Gizmo @ 4.99
+    priciest = Gadget @ 19.99
+
+input:
+  order:
+    type: artifact
+    format: json
+    content_type: application/json
+    max_size_mb: 1
+    description: Order payload with nested customer, items list, tax, and shipping. Parsed by json.loads before the pipeline sees it, so the step receives a real dict.
+
+steps:
+  analyze:
+    python: |
+      # inputs["order"] is ALREADY a dict — the artifact loader
+      # called json.loads on the uploaded bytes before we got
+      # here. No parsing in this step.
+      order = inputs["order"]
+
+      items = order.get("items", [])
+      tax_rate = float(order.get("tax_rate", 0))
+      shipping = float(order.get("shipping", 0))
+
+      subtotal = sum(item["qty"] * item["price"] for item in items)
+      tax = round(subtotal * tax_rate, 2)
+      total = round(subtotal + tax + shipping, 2)
+
+      total_qty = sum(item["qty"] for item in items)
+      unique_skus = sorted({item["sku"] for item in items})
+
+      # Sort a copy by price so we can grab the extremes.
+      by_price = sorted(items, key=lambda i: i["price"])
+      cheapest = by_price[0] if by_price else None
+      priciest = by_price[-1] if by_price else None
+
+      result = {
+          "order_id": order.get("order_id"),
+          "customer_name": order.get("customer", {}).get("name"),
+          "customer_email": order.get("customer", {}).get("email"),
+          "line_items": len(items),
+          "total_qty": total_qty,
+          "unique_skus": unique_skus,
+          "subtotal": round(subtotal, 2),
+          "tax": tax,
+          "shipping": shipping,
+          "total": total,
+          "cheapest_item": cheapest["name"] if cheapest else None,
+          "cheapest_price": cheapest["price"] if cheapest else None,
+          "priciest_item": priciest["name"] if priciest else None,
+          "priciest_price": priciest["price"] if priciest else None,
+      }
+    output: summary
+
+  report:
+    # Human-readable composition. Every Jinja reference here
+    # is a bare expression — no wrapping shell quotes — so the
+    # shell-safe resolver passes all the values through
+    # shlex.quote automatically.
+    run: |
+      echo === ORDER SUMMARY ===
+      echo Order ID:       {{summary.order_id}}
+      echo Customer:       {{summary.customer_name}}
+      echo Email:          {{summary.customer_email}}
+      echo Line items:     {{summary.line_items}}
+      echo Total quantity: {{summary.total_qty}}
+      echo Unique SKUs:    {{summary.unique_skus}}
+      echo
+      echo Subtotal:  {{summary.subtotal}}
+      echo Tax:       {{summary.tax}}
+      echo Shipping:  {{summary.shipping}}
+      echo Total:     {{summary.total}}
+      echo
+      echo Cheapest: {{summary.cheapest_item}} at {{summary.cheapest_price}}
+      echo Priciest: {{summary.priciest_item}} at {{summary.priciest_price}}
+    depends: [analyze]
+    output: report

@@ -1,0 +1,67 @@
+{
+  "rows_processed": 15,
+  "regions_seen": [
+    "apac-south",
+    "eu-central",
+    "us-east",
+    "us-west"
+  ],
+  "categories_seen": [
+    "Electronics",
+    "Tools",
+    "Toys"
+  ],
+  "total_units": 36,
+  "total_revenue": 634.64,
+  "by_region_category": {
+    "us-west": {
+      "Tools": {
+        "units": 5,
+        "revenue": 69.95
+      },
+      "Electronics": {
+        "units": 1,
+        "revenue": 49.99
+      },
+      "Toys": {
+        "units": 4,
+        "revenue": 31.96
+      }
+    },
+    "us-east": {
+      "Toys": {
+        "units": 2,
+        "revenue": 29.98
+      },
+      "Tools": {
+        "units": 3,
+        "revenue": 49.97
+      }
+    },
+    "eu-central": {
+      "Electronics": {
+        "units": 4,
+        "revenue": 179.96
+      },
+      "Tools": {
+        "units": 7,
+        "revenue": 69.93
+      },
+      "Toys": {
+        "units": 6,
+        "revenue": 47.94
+      }
+    },
+    "apac-south": {
+      "Electronics": {
+        "units": 3,
+        "revenue": 89.97
+      },
+      "Toys": {
+        "units": 1,
+        "revenue": 14.99
+      }
+    }
+  },
+  "generated_at": "2026-04-19T10:39:06.585855+00:00"
+}

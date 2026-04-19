@@ -1,0 +1,73 @@
+name: email-to-ticket
+description: |
+  Read an unstructured customer support email (a blob of text) and
+  have the LLM extract structured ticket fields: subject, category,
+  priority, urgency_reason, suggested_response, tags. Output lands
+  as validated JSON suitable for pushing to a ticketing system
+  (Zendesk / Intercom / Jira) via a downstream step.
+
+  Pattern for: "I receive email and need structured fields for
+  routing." Works equally for Slack messages, PagerDuty pages, or
+  customer chat transcripts — just change the input type.
+
+  Usage:
+    aiorch run 22-email-to-ticket.yaml -i email=@./inputs/sample-email.txt
+
+input:
+  email:
+    type: artifact
+    format: text
+    description: Raw customer email body (plain text)
+
+steps:
+  extract:
+    prompt: |
+      You are triaging a customer support email. Return STRICT JSON
+      with the following fields:
+
+        subject           : ≤ 10 words, capturing the main issue
+        category          : one of "billing", "bug", "feature_request",
+                            "account_access", "how_to", "praise", "other"
+        priority          : one of "p1", "p2", "p3", "p4"
+        urgency_reason    : one sentence explaining why the priority
+                            is what it is (what would fail if we wait?)
+        suggested_response: a short empathetic reply the human agent
+                            could send verbatim (3 sentences max)
+        tags              : 2-5 short lowercase keywords that would
+                            help route or search later
+
+      Email:
+      ---
+      {{email}}
+      ---
+    format: json
+    schema:
+      type: object
+      required: [subject, category, priority, urgency_reason,
+                 suggested_response, tags]
+      properties:
+        subject:            { type: string }
+        category:           { type: string }
+        priority:           { type: string, enum: [p1, p2, p3, p4] }
+        urgency_reason:     { type: string }
+        suggested_response: { type: string }
+        tags:               { type: array, items: { type: string } }
+    retry_on_invalid: 2
+    output: ticket
+
+  show:
+    python: |
+      t = inputs["ticket"]
+      print("==== Ticket ====")
+      print(f"  Subject:    {t['subject']}")
+      print(f"  Category:   {t['category']}")
+      print(f"  Priority:   {t['priority']}")
+      print(f"  Tags:       {', '.join(t['tags'])}")
+      print()
+      print("  Urgency reason:")
+      print(f"    {t['urgency_reason']}")
+      print()
+      print("  Suggested response:")
+      print(f"    {t['suggested_response']}")
+      result = t
+    depends: [extract]

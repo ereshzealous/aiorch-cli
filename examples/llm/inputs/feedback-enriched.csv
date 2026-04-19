@@ -1,0 +1,11 @@
+id,customer,comment,sentiment,category,suggested_response
+1,alice@example.com,Love the new dashboard — finally a simple way to see all my runs at once.,positive,praise,We're so glad to hear you're enjoying the new dashboard and finding it useful for tracking your runs!
+2,bob@example.com,Logs are useful but scrolling through 500 lines to find one error is painful.,negative,usability,I understand how frustrating it can be to scroll through so many lines of logs to find a single error.
+3,carol@example.com,The webhook trigger feature is great. Worked first try.,positive,praise,We're so glad to hear that you found the webhook trigger feature great and that it worked perfectly for you on the first try!
+4,dave@example.com,Billing is confusing. Got charged twice last month and support took 5 days to respond.,negative,billing,"We're very sorry to hear about the billing issue and the delay in our support response, and we understand your frustration."
+5,eve@example.com,When will there be a Python SDK? The HTTP API is fine but an SDK would be faster.,neutral,feature_request,We appreciate your feedback and understand the potential benefits of a Python SDK for faster development.
+6,frank@example.com,Great tool overall. No complaints yet.,positive,praise,We're thrilled to hear you're enjoying our tool so far!
+7,grace@example.com,Archive button is in a weird spot and I've hit delete twice by accident.,negative,usability,We're sorry to hear that the archive and delete button placement has caused frustration and accidental deletions.
+8,henry@example.com,Just wanted to say thanks — this replaced three cron jobs and saved my weekend.,positive,praise,We're so glad to hear our product was able to simplify your workflow and give you back your weekend!
+9,iris@example.com,Docs could be more specific about how secrets interact with pipelines.,neutral,usability,Thank you for your feedback; we understand that more specific documentation on how secrets interact with pipelines would be valuable.
+10,jack@example.com,I really dislike the dark theme's contrast on small text. Please add a high-contrast option.,negative,feature_request,"We understand your frustration with the dark theme's contrast on small text, and we appreciate your suggestion for a high-contrast option."

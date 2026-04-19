@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="15" failures="2" errors="0" skipped="1" time="4.327">
+    <testcase classname="tests.test_auth" name="test_login_success" time="0.042"/>
+    <testcase classname="tests.test_auth" name="test_login_bad_password" time="0.038"/>
+    <testcase classname="tests.test_auth" name="test_logout" time="0.021"/>
+    <testcase classname="tests.test_orders" name="test_create_order" time="0.156"/>
+    <testcase classname="tests.test_orders" name="test_cancel_order" time="0.091"/>
+    <testcase classname="tests.test_orders" name="test_list_orders" time="0.078"/>
+    <testcase classname="tests.test_billing" name="test_charge_card" time="1.204">
+      <failure message="AssertionError: expected 200, got 500" type="AssertionError">
+Traceback (most recent call last):
+  File "tests/test_billing.py", line 42, in test_charge_card
+    assert response.status_code == 200
+AssertionError: expected 200, got 500
+      </failure>
+    </testcase>
+    <testcase classname="tests.test_billing" name="test_refund" time="0.832"/>
+    <testcase classname="tests.test_search" name="test_search_basic" time="0.045"/>
+    <testcase classname="tests.test_search" name="test_search_filters" time="0.063"/>
+    <testcase classname="tests.test_search" name="test_search_pagination" time="0.218">
+      <failure message="TimeoutError: page did not load in 5s" type="TimeoutError">
+Traceback (most recent call last):
+  File "tests/test_search.py", line 91, in test_search_pagination
+    raise TimeoutError("page did not load in 5s")
+TimeoutError: page did not load in 5s
+      </failure>
+    </testcase>
+    <testcase classname="tests.test_reports" name="test_generate_pdf" time="0.987"/>
+    <testcase classname="tests.test_reports" name="test_generate_csv" time="0.412"/>
+    <testcase classname="tests.test_reports" name="test_email_report" time="0.118"/>
+    <testcase classname="tests.test_integrations" name="test_slack_webhook" time="0.022">
+      <skipped message="integration disabled"/>
+    </testcase>
+  </testsuite>
+</testsuites>

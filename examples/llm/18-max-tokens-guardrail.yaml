@@ -1,0 +1,38 @@
+name: max-tokens-guardrail
+description: |
+  Demonstrate max_tokens control. Two steps fire the same prompt
+  asking for a long answer. One has `max_tokens: 40` (will truncate
+  mid-sentence). One has `max_tokens: 600` (plenty of room).
+
+  max_tokens is how you cap runaway cost on a step. Important when
+  the model tends to over-explain — or when downstream parsing
+  assumes a bounded response size. The price is truncation: a tiny
+  budget produces useless output, so tune it to the actual need.
+
+  Usage:
+    aiorch run 18-max-tokens-guardrail.yaml
+
+input:
+  topic:
+    type: string
+    default: "Describe the history of orchestration systems from cron to Airflow to modern YAML-first tools. Include at least 5 specific examples."
+
+steps:
+  tight_budget:
+    prompt: "{{topic}}"
+    max_tokens: 40
+    output: short_answer
+
+  generous_budget:
+    prompt: "{{topic}}"
+    max_tokens: 600
+    output: full_answer
+
+  show:
+    run: |
+      echo ==== max_tokens=40 budget-capped ====
+      echo {{short_answer}}
+      echo
+      echo ==== max_tokens=600 full ====
+      echo {{full_answer}}
+    depends: [tight_budget, generous_budget]

@@ -1,0 +1,70 @@
+{
+  "generated_at": "2026-04-19T10:39:16.361945+00:00",
+  "source": "/Users/ereshgorantla/Documents/Dev/Work/aiorch/cli/inputs/sample-git-log.txt",
+  "author_count": 5,
+  "total_commits": 20,
+  "total_added": 1697,
+  "total_deleted": 246,
+  "by_author": [
+    {
+      "author": "Aiko Tanaka",
+      "commits": 5,
+      "files": 9,
+      "added": 504,
+      "deleted": 33,
+      "subjects": [
+        "feat(ui): webhooks management page skeleton",
+        "fix(ui): webhook header form cleared on save",
+        "feat(ui): connectors pipeline polish pass"
+      ]
+    },
+    {
+      "author": "Priya Natarajan",
+      "commits": 4,
+      "files": 8,
+      "added": 186,
+      "deleted": 10,
+      "subjects": [
+        "feat(executor): parallel step dispatch with bounded worker pool",
+        "fix(executor): drain in-flight tasks on shutdown",
+        "chore(deps): bump httpx 0.27 -> 0.28"
+      ]
+    },
+    {
+      "author": "Marcus Weller",
+      "commits": 4,
+      "files": 8,
+      "added": 392,
+      "deleted": 171,
+      "subjects": [
+        "feat(scheduler): cron-free schedule table backed by postgres",
+        "refactor(scheduler): drop apscheduler dep",
+        "docs(scheduler): note postgres-coordination model"
+      ]
+    },
+    {
+      "author": "Jonas Eriksen",
+      "commits": 4,
+      "files": 7,
+      "added": 456,
+      "deleted": 2,
+      "subjects": [
+        "feat(api): inbound webhook triggers with hmac verification",
+        "test(api): webhook integration suite",
+        "fix(api): reject empty hmac secret at registration"
+      ]
+    },
+    {
+      "author": "Rosa Delgado",
+      "commits": 3,
+      "files": 8,
+      "added": 159,
+      "deleted": 30,
+      "subjects": [
+        "feat(runtime): surface condition-skipped steps in trace",
+        "refactor(runtime): pull status enum into shared module",
+        "docs(runtime): trace semantics for skipped"
+      ]
+    }
+  ]
+}

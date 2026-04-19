@@ -1,0 +1,47 @@
+name: prompt-cache-demo
+description: |
+  Demonstrates aiorch's LLM response cache. Two LLM steps fire the
+  EXACT same prompt + model. The first pays for a model call; the
+  second should come back in < 50ms at $0.0000 because aiorch
+  fingerprints the (prompt, model, temperature, max_tokens) tuple
+  and short-circuits duplicate requests against the local SQLite
+  cache at ~/.aiorch/history.db.
+
+  Useful for: iterating on a downstream step without re-paying for
+  upstream LLM calls. Kill your pipeline, tweak step 3, re-run —
+  steps 1 and 2 come back free.
+
+  Usage:
+    aiorch run 16-prompt-cache-demo.yaml
+    aiorch run 16-prompt-cache-demo.yaml    # second run — ALL steps cached
+
+input:
+  topic:
+    type: string
+    default: "the difference between a thread and a process, in 3 sentences"
+
+steps:
+  first_call:
+    prompt: |
+      {{topic}}
+    output: answer_1
+
+  second_call:
+    # Identical prompt. aiorch hashes it + model + params and returns
+    # the cached response without hitting the provider. Watch the trace:
+    # second_call's step summary will say "cache hit" and $0.0000.
+    prompt: |
+      {{topic}}
+    depends: [first_call]
+    output: answer_2
+
+  compare:
+    run: |
+      echo ==== First call -- paid ====
+      echo {{answer_1}}
+      echo
+      echo ==== Second call -- cached ====
+      echo {{answer_2}}
+      echo
+      echo Outputs should be byte-identical.
+    depends: [second_call]

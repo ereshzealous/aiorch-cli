@@ -1,0 +1,331 @@
+name: pipeline-as-orchestrator
+description: |
+  Production-shaped pipeline. Long chain of small steps,
+  each doing one thing well. The DAG looks more like a
+  real workflow than the toy examples — fetch, validate,
+  extract, enrich, batch, process, reconcile, format,
+  write, notify.
+
+  This is the closest thing in the catalog to "what your
+  actual production pipelines will look like." Use it as
+  a template — the shapes generalize.
+
+  The workflow:
+    1. fetch — pull a dataset from a public API
+    2. validate_response — check structure, fail loud if
+       upstream broke
+    3. extract_records — pull just the fields we need
+    4. enrich — compute derived fields per record
+    5. partition_by_type — split records into groups
+    6. process_each_partition — foreach over partitions,
+       compute per-partition metrics
+    7. reconcile — verify the partitioned counts add
+       back up to the original
+    8. format_report — build human-readable output
+    9. write_report — dump JSON to disk
+    10. notify — final shell echo (in production this
+        would be an action: webhook, slack, email)
+
+  Why so many small steps?
+    - Each step is independently retryable, observable,
+      and resumable
+    - Trace shows clear stage boundaries
+    - Failures point at exactly which stage broke
+    - You can run individual stages with --step
+    - You can resume from any stage with --from after
+      fixing an upstream issue
+
+  Run it:
+    aiorch run 39-pipeline-as-orchestrator.yaml
+    aiorch run 39-pipeline-as-orchestrator.yaml --from enrich
+
+  Inspect the output afterward:
+    cat ~/Documents/Dev/aiorch/cli/inputs/orchestrator-report.json | jq
+
+input:
+  source_url:
+    type: string
+    default: https://api.github.com/repos/anthropics/anthropic-sdk-python/issues
+    description: API endpoint to pull from. Default is the SDK's open issues.
+
+  max_records:
+    type: integer
+    default: 30
+    minimum: 1
+    maximum: 100
+    description: How many records to fetch per run.
+
+steps:
+  fetch:
+    # Stage 1: pull data. Real workflow would have
+    # auth headers, rate limiting, custom timeout, etc.
+    # Retry covers transient network blips.
+    python: |
+      import httpx
+
+      url = inputs["source_url"]
+      params = {"per_page": inputs["max_records"], "state": "open"}
+      headers = {
+          "Accept": "application/vnd.github+json",
+          "User-Agent": "aiorch-orchestrator/1.0",
+      }
+      with httpx.Client(timeout=10) as client:
+          r = client.get(url, params=params, headers=headers)
+      r.raise_for_status()
+      result = {
+          "status_code": r.status_code,
+          "url": str(r.url),
+          "rate_limit_remaining": r.headers.get("x-ratelimit-remaining", "unknown"),
+          "raw": r.json(),
+      }
+    retry: 3
+    retry_delay: 2s
+    output: fetched
+
+  validate_response:
+    # Stage 2: shape check. Fail loud if upstream
+    # changed their schema. This is the data quality
+    # gate from pipeline 24 reduced to one step.
+    python: |
+      raw = inputs["fetched"]["raw"]
+      if not isinstance(raw, list):
+          raise ValueError(
+              f"Expected list of issues from API, got {type(raw).__name__}"
+          )
+      if not raw:
+          raise ValueError("API returned 0 records — check the URL or filter.")
+
+      # Spot-check the first record has the fields we'll need
+      first = raw[0]
+      required = {"id", "number", "title", "state", "user", "created_at"}
+      missing = required - set(first.keys())
+      if missing:
+          raise ValueError(
+              f"Schema validation failed — missing fields: {sorted(missing)}. "
+              f"Got: {sorted(first.keys())[:10]}"
+          )
+
+      result = {
+          "validated": True,
+          "count": len(raw),
+          "first_id": first["id"],
+      }
+    depends: [fetch]
+    output: validated
+
+  extract_records:
+    # Stage 3: pull just the fields we care about. The
+    # GitHub issues response has dozens of fields per
+    # record; we only need a handful. Trimming early
+    # makes the rest of the pipeline cheaper to debug
+    # and faster to log.
+    python: |
+      raw = inputs["fetched"]["raw"]
+      records = []
+      for issue in raw:
+          records.append({
+              "id": issue["id"],
+              "number": issue["number"],
+              "title": issue["title"],
+              "state": issue["state"],
+              "author": issue["user"]["login"] if issue.get("user") else None,
+              "created_at": issue["created_at"],
+              "comments": issue.get("comments", 0),
+              "labels": [l["name"] for l in issue.get("labels", [])],
+              "is_pull_request": "pull_request" in issue,
+          })
+      result = {
+          "count": len(records),
+          "records": records,
+      }
+    depends: [validate_response]
+    output: extracted
+
+  enrich:
+    # Stage 4: compute derived fields per record. Things
+    # like "days since created", "category bucket",
+    # "engagement score". This is where business logic
+    # usually lives.
+    python: |
+      from datetime import datetime, timezone
+
+      records = inputs["extracted"]["records"]
+      now = datetime.now(timezone.utc)
+
+      enriched = []
+      for r in records:
+          created = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
+          age_days = (now - created).days
+          if age_days < 7:
+              age_bucket = "fresh"
+          elif age_days < 30:
+              age_bucket = "recent"
+          elif age_days < 90:
+              age_bucket = "stale"
+          else:
+              age_bucket = "ancient"
+
+          # Simple engagement score: comments × 2 + label count
+          engagement = r["comments"] * 2 + len(r["labels"])
+
+          enriched.append({
+              **r,
+              "age_days": age_days,
+              "age_bucket": age_bucket,
+              "engagement_score": engagement,
+              "type": "PR" if r["is_pull_request"] else "Issue",
+          })
+
+      result = {
+          "count": len(enriched),
+          "records": enriched,
+      }
+    depends: [extract_records]
+    output: enriched
+
+  partition_by_type:
+    # Stage 5: split into Issues vs PRs. Each gets
+    # processed separately downstream. In a real workflow
+    # this might split by region, customer tier, urgency,
+    # etc.
+    #
+    # The output is a top-level list (not wrapped in a
+    # dict) so the foreach step below can iterate it
+    # directly. foreach can't follow nested paths like
+    # `wrapped.partitions` — it only handles top-level
+    # variable references.
+    python: |
+      enriched = inputs["enriched"]["records"]
+      issues = [r for r in enriched if r["type"] == "Issue"]
+      prs = [r for r in enriched if r["type"] == "PR"]
+
+      result = [
+          {"name": "Issues", "records": issues},
+          {"name": "PRs",    "records": prs},
+      ]
+    depends: [enrich]
+    output: partitions
+
+  process_each_partition:
+    # Stage 6: foreach over partitions. Each iteration
+    # computes per-partition metrics.
+    python: |
+      partition = inputs["item"]
+      records = partition["records"]
+
+      total_engagement = sum(r["engagement_score"] for r in records)
+      avg_age = sum(r["age_days"] for r in records) / len(records) if records else 0
+
+      bucket_counts = {}
+      for r in records:
+          b = r["age_bucket"]
+          bucket_counts[b] = bucket_counts.get(b, 0) + 1
+
+      top_engaged = sorted(records, key=lambda r: r["engagement_score"], reverse=True)[:3]
+
+      result = {
+          "partition": partition["name"],
+          "count": len(records),
+          "total_engagement": total_engagement,
+          "avg_age_days": round(avg_age, 1),
+          "age_buckets": bucket_counts,
+          "top_3_engaged": [
+              {"number": t["number"], "title": t["title"][:60], "engagement": t["engagement_score"]}
+              for t in top_engaged
+          ],
+      }
+    foreach: "{{partitions}}"
+    depends: [partition_by_type]
+    output: partition_results
+
+  reconcile:
+    # Stage 7: integrity check. The sum of per-partition
+    # counts must equal the original record count. Loud
+    # fail if it doesn't — that means a record was lost
+    # in partitioning, which is a real bug worth
+    # catching loudly.
+    python: |
+      original = inputs["enriched"]["count"]
+      per_partition = inputs["partition_results"]
+      partitioned_total = sum(p["count"] for p in per_partition)
+
+      if original != partitioned_total:
+          raise ValueError(
+              f"RECONCILE FAILED — original={original} != partitioned={partitioned_total}. "
+              f"A record was lost or duplicated in partitioning."
+          )
+
+      result = {
+          "reconciled": True,
+          "total_records": original,
+          "partition_count": len(per_partition),
+      }
+    depends: [process_each_partition]
+    output: reconciliation
+
+  format_report:
+    # Stage 8: build the human-readable report dict.
+    # Pulled out of write_report so we can format and
+    # write as separate concerns.
+    python: |
+      from datetime import datetime, timezone
+      import json
+
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "source_url": inputs["source_url"],
+          "fetched_count": inputs["fetched"]["status_code"],
+          "rate_limit_remaining": inputs["fetched"]["rate_limit_remaining"],
+          "validated": inputs["validated"]["validated"],
+          "total_records": inputs["enriched"]["count"],
+          "reconciled": inputs["reconciliation"]["reconciled"],
+          "partitions": inputs["partition_results"],
+      }
+
+      result = {
+          "report": report,
+          "json_text": json.dumps(report, indent=2, default=str),
+      }
+    depends: [reconcile]
+    output: formatted
+
+  write_report:
+    # Stage 9: persist. Local file write via pathlib —
+    # in production this might be S3, a database row,
+    # or both. The format_report and write_report split
+    # makes it easy to swap the destination without
+    # touching the formatting logic.
+    python: |
+      from pathlib import Path
+
+      out_path = Path("inputs/orchestrator-report.json").resolve()
+      out_path.write_text(inputs["formatted"]["json_text"])
+
+      result = {
+          "path": str(out_path),
+          "size_bytes": out_path.stat().st_size,
+      }
+    depends: [format_report]
+    output: written
+
+  notify:
+    # Stage 10: emit a summary to stdout (in production
+    # this would be action: webhook posting to Slack,
+    # action: email sending a digest, etc.). The shell
+    # echo here just demonstrates the final notification
+    # stage.
+    run: |
+      echo === ORCHESTRATOR COMPLETE ===
+      echo Source:           {{source_url}}
+      echo Records fetched:  {{enriched.count}}
+      echo Validated:        {{validated.validated}}
+      echo Reconciled:       {{reconciliation.reconciled}}
+      echo Partitions:       {{reconciliation.partition_count}}
+      echo Issues count:     {{partition_results[0].count}}
+      echo PRs count:        {{partition_results[1].count}}
+      echo Top engaged:      #{{partition_results[0].top_3_engaged[0].number}} [score {{partition_results[0].top_3_engaged[0].engagement}}]
+      echo
+      echo Report written to: {{written.path}}
+      echo Inspect with:      cat {{written.path}}
+    depends: [write_report]
+    output: report_text

@@ -1,0 +1,91 @@
+name: map-reduce-summarize
+description: |
+  Classic map/reduce with an LLM in both stages. Python splits a
+  long document into roughly-equal chunks, the map step summarizes
+  each chunk IN PARALLEL via foreach, and the reduce step rolls
+  the per-chunk summaries up into a single final summary.
+
+  Pattern for "this article is too long to fit in one LLM call" —
+  works whether the original is 10k words or 100k. Tune chunk_size
+  to match your model's context budget.
+
+  Usage:
+    aiorch run 11-map-reduce-summarize.yaml -i document=@./inputs/long-article.txt
+    aiorch run 11-map-reduce-summarize.yaml -i document=@./inputs/long-article.txt -i chunk_size=800
+
+input:
+  document:
+    type: artifact
+    format: text
+    description: Long text to summarize in chunks
+  chunk_size:
+    type: integer
+    default: 1200
+    minimum: 200
+    maximum: 8000
+    description: Approximate characters per chunk (not tokens — simple heuristic)
+
+steps:
+  split:
+    # Chunk on paragraph boundaries where possible so each chunk
+    # is self-contained. Falls back to hard slicing if a paragraph
+    # is bigger than chunk_size.
+    python: |
+      text = inputs["document"]
+      target = int(inputs["chunk_size"])
+      paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+      chunks, buf = [], ""
+      for p in paras:
+          if len(buf) + len(p) + 2 <= target:
+              buf = (buf + "\n\n" + p).strip()
+          else:
+              if buf:
+                  chunks.append(buf)
+              if len(p) <= target:
+                  buf = p
+              else:
+                  # Oversized paragraph — hard-slice
+                  for i in range(0, len(p), target):
+                      chunks.append(p[i:i + target])
+                  buf = ""
+      if buf:
+          chunks.append(buf)
+
+      print(f"Split {len(text)} chars into {len(chunks)} chunks (~{target} chars each)")
+      result = chunks
+    output: chunks
+
+  map_summarize:
+    prompt: |
+      Summarize this text excerpt in 2 sentences. Be concrete —
+      name the actual subjects, numbers, and outcomes. No preamble.
+
+      ---
+      {{item}}
+      ---
+    foreach: "{{chunks}}"
+    depends: [split]
+    output: per_chunk_summaries
+
+  reduce:
+    prompt: |
+      Here are {{per_chunk_summaries | length}} chunk-level summaries
+      of a single longer document:
+
+      {% for s in per_chunk_summaries %}
+      --- chunk {{loop.index}} ---
+      {{s}}
+      {% endfor %}
+
+      Merge them into ONE unified summary in 4-6 bullet points that
+      covers the document end-to-end without redundancy. Preserve
+      concrete names/numbers.
+    depends: [map_summarize]
+    output: final_summary
+
+  show:
+    run: |
+      echo "==== Final summary (map/reduce) ===="
+      echo {{final_summary}}
+    depends: [reduce]

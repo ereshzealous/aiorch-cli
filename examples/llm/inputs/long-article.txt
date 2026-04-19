@@ -1,0 +1,70 @@
+Pipeline orchestration has evolved in three distinct waves, each responding to
+failure modes of the previous wave. Understanding the progression matters
+because it tells you what the next wave is likely to solve.
+
+The first wave was cron + shell scripts. A 1970s-era model where you write
+self-contained shell programs and schedule them with crontab. The appeal was
+obvious: zero infrastructure, runs on every Unix system, composable with pipes.
+The failure mode was equally obvious: when a step fails, cron does nothing
+useful — it just sends you an email. When a step succeeds, cron does nothing
+useful either. You're left writing your own retry logic, your own logging,
+your own dependency tracking, your own failure handling. For small jobs this
+was fine; for any real workflow it became an unmaintainable pile of sentinel
+files and grep-the-log debugging.
+
+The second wave was the first generation of workflow engines — Airflow,
+Luigi, Prefect, Dagster, Temporal. They moved the DAG into code and gave you
+a UI, structured logs, retries, and a scheduler that understood dependencies.
+The failure modes of wave-one were solved. But a new set of failure modes
+emerged. These systems require Python (or their specific DSL) for everything.
+If you want to express "run this shell command, then call this API, then
+write to S3" you are writing Python wrappers around each. The deployment is
+heavyweight — you need a scheduler process, workers, a database, sometimes a
+message broker. The barrier to writing a simple workflow went from "learn
+cron syntax" to "learn a framework, stand up infrastructure, write Python."
+
+A generation of operators got shut out. If you're a business analyst who
+understands your own process but not Python, you can't use these tools. If
+you're a DBA who knows SQL deeply but not distributed systems, you can't use
+these tools. If you're a support engineer who needs to automate a recurring
+triage workflow, you can't use these tools. The tools optimized for software
+engineers and ignored everyone else who actually owns the business logic.
+
+The third wave is responding to this gap. It's YAML-first pipelines that
+can orchestrate both deterministic steps (shell, SQL, HTTP, file I/O) AND
+AI steps (LLM calls, embeddings, agentic tool use) in the same DAG. The
+bet is that the DAG shape and the retry/failure/observability concerns are
+the right level of abstraction for the operator, and that the per-step logic
+is often simple enough to express in a few lines of shell or Python.
+
+What makes this wave different from "Airflow but with YAML" is the integration
+of AI steps as first-class primitives. You're not calling out to an LLM
+through a Python wrapper; you're writing a step that says `prompt: "summarize
+this data"` with the same retry and output-contract machinery as any other
+step. This matters because AI steps have specific failure modes (invalid
+JSON output, context-window overflow, model deprecation) that benefit from
+framework-level handling rather than every pipeline author rolling their own.
+
+The interesting technical question this third wave raises is where the
+boundary goes between the declarative layer (YAML) and the escape hatch
+(Python / shell). Too much YAML and you end up encoding Turing-complete
+logic in Jinja templates — a well-documented historical failure of
+declarative tools. Too much escape hatch and every pipeline becomes bespoke
+Python, which is the failure mode of wave-two all over again.
+
+The early answer from tools in this space — aiorch being one — is that the
+sweet spot is YAML for the DAG shape, input/output contracts, retry
+policies, and branching decisions, and short Python or shell bodies for
+the actual per-step computation. The DAG layer is what operators need to
+reason about. The step body is where domain logic lives. Keeping those
+two concerns separate is what makes pipelines readable by the person who
+owns the business process, not just the engineer who wrote the glue.
+
+Whether this third-wave bet pays off will depend on whether the
+YAML-plus-short-Python-bodies pattern generalizes to the workflows
+real teams need to run, or whether it collapses back into one of the two
+failure modes. The evidence so far is encouraging: teams who adopt this
+pattern reliably produce more pipelines, maintained by more people, than
+teams on Airflow-class tools. But the long-term equilibrium is still an
+open question, and the space is young enough that the right answer may not
+have been built yet.

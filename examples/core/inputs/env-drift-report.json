@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-04-19T10:39:18.886391+00:00",
+  "env_path": "inputs/sample.env",
+  "example_path": "inputs/sample.env.example",
+  "env_key_count": 3,
+  "example_key_count": 3,
+  "matched_count": 2,
+  "missing_in_env_count": 1,
+  "extra_in_env_count": 1,
+  "missing_in_env": [
+    "NEW_REQUIRED_VAR"
+  ],
+  "extra_in_env": [
+    "OLD_DEAD_VAR"
+  ],
+  "matched": [
+    "API_KEY",
+    "DB_URL"
+  ],
+  "in_sync": false
+}

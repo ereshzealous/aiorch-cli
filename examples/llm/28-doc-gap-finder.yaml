@@ -1,0 +1,107 @@
+name: doc-gap-finder
+description: |
+  Read a README (or any doc) + a list of features the product claims
+  to have. Ask the LLM to identify which features are documented vs
+  undocumented. Python writes a gap report so maintainers know what
+  to write next.
+
+  Pattern for: "I know we shipped X, Y, Z — did we document them?"
+  The LLM is good at semantic matching (the README might discuss
+  feature Y using different words than the feature-list entry).
+  Regex / grep alone gives too many false negatives.
+
+  Usage:
+    aiorch run 28-doc-gap-finder.yaml
+
+input:
+  doc_path:
+    type: string
+    default: ./inputs/sample-readme.md
+  features:
+    type: list
+    default:
+      - "Webhook triggers with HMAC signature verification"
+      - "Per-trigger rate limiting"
+      - "Delivery history showing every inbound fire and its outcome"
+      - "Test-fire button to synthetically trigger a webhook from the UI"
+      - "LLM cost tracking per run and per step"
+      - "Connector-aware pipeline steps (postgres, S3, kafka, email)"
+      - "Secrets encrypted at rest with AES-256-GCM"
+
+steps:
+  load_doc:
+    python: |
+      import pathlib
+      p = pathlib.Path(inputs["doc_path"])
+      text = p.read_text()
+      print(f"Loaded {len(text)} chars from {p}")
+      result = text
+    output: doc_text
+
+  find_gaps:
+    prompt: |
+      Below is the current product documentation, followed by a list
+      of features the product claims to ship.
+
+      For EACH feature, decide whether it is discussed in the doc.
+      Semantic match is fine — the doc doesn't have to use the exact
+      words as the feature label. Be strict but fair: a passing
+      mention is documentation, but a topic only hinted at is NOT.
+
+      Reply with JSON:
+        results : array of { feature, documented (bool), evidence }
+                  where evidence is either a short quote from the doc
+                  (for documented=true) or "" (for documented=false)
+
+      Documentation:
+      ---
+      {{doc_text}}
+      ---
+
+      Features to check:
+      {% for f in features %}
+      - {{f}}
+      {% endfor %}
+    format: json
+    schema:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required: [feature, documented, evidence]
+            properties:
+              feature:    { type: string }
+              documented: { type: boolean }
+              evidence:   { type: string }
+    retry_on_invalid: 2
+    depends: [load_doc]
+    output: audit
+
+  report:
+    python: |
+      results = inputs["audit"]["results"]
+      documented   = [r for r in results if r["documented"]]
+      undocumented = [r for r in results if not r["documented"]]
+
+      print(f"==== Doc coverage: {len(documented)}/{len(results)} features documented ====")
+      if documented:
+          print("\n✓ Documented:")
+          for r in documented:
+              print(f"  - {r['feature']}")
+              if r["evidence"]:
+                  print(f"      evidence: {r['evidence'][:120]!r}")
+      if undocumented:
+          print("\n✗ MISSING from docs (write these up):")
+          for r in undocumented:
+              print(f"  - {r['feature']}")
+      print()
+      print(f"Coverage: {round(100 * len(documented) / max(len(results), 1))}%")
+      result = {
+          "documented":   len(documented),
+          "undocumented": len(undocumented),
+      }
+    depends: [find_gaps]
+    output: summary

@@ -1,0 +1,169 @@
+name: map-reduce-text
+description: |
+  Classic map / reduce shape applied to text analysis.
+
+  Pipeline shape:
+    split → foreach(chunk) → combine
+
+  How it works:
+    1. SPLIT — take a long input text, break it into N
+       roughly-equal chunks. Each chunk is independent.
+    2. MAP (foreach) — for each chunk, compute a partial
+       result (word frequency dict, char count, line
+       count). Each chunk is processed independently.
+    3. REDUCE (combine) — merge all the partial results
+       into one global result.
+
+  This is the simplest demonstration of the map/reduce
+  pattern in aiorch — same shape Hadoop/Spark/MapReduce
+  use, but in-process and at small scale. Good template
+  for any "process N independent chunks then aggregate"
+  workflow.
+
+  Why this matters for aiorch specifically:
+    - Each foreach iteration is independent, so the
+      runtime can parallelize them via parallel: true
+      on the foreach step. Try toggling that and watch
+      the trace timeline.
+    - The reduce step is a normal join — depends on the
+      foreach step's output (which is a list of all
+      iteration results).
+
+  No connectors, no LLM, no external services. Pure
+  in-process Python.
+
+  What to verify:
+    1. The split step produces N chunks
+    2. The map step runs N foreach iterations
+    3. The combined word-count matches what you'd get
+       from running the same analysis on the raw text
+       in one shot
+    4. Setting parallel: true on the map step makes
+       the iterations run concurrently (visible in
+       trace timeline)
+
+input:
+  text:
+    type: string
+    default: |
+      The quick brown fox jumps over the lazy dog. The dog was not amused
+      by the fox's antics. Lorem ipsum dolor sit amet consectetur adipiscing
+      elit. The quick brown fox is a common English pangram used by typists
+      to test typewriters and keyboards. The lazy dog continues to ignore
+      the fox even as the fox makes more noise. Sed do eiusmod tempor
+      incididunt ut labore et dolore magna aliqua. The fox eventually gives
+      up and walks away leaving the dog in peace.
+    description: Text to analyze. Default is a few sentences for quick testing.
+
+  chunk_count:
+    type: integer
+    default: 4
+    minimum: 1
+    maximum: 20
+    description: How many chunks to split the text into for parallel processing.
+
+steps:
+  split:
+    # Break the input text into N roughly-equal chunks
+    # by character count. A real implementation would
+    # split on word or sentence boundaries; this just
+    # splits at character offsets for simplicity.
+    python: |
+      text = inputs["text"]
+      n = inputs["chunk_count"]
+
+      chunk_size = max(1, len(text) // n)
+      chunks = []
+      for i in range(n):
+          start = i * chunk_size
+          # Last chunk takes everything remaining
+          end = len(text) if i == n - 1 else (i + 1) * chunk_size
+          chunks.append({
+              "id": i,
+              "start": start,
+              "end": end,
+              "text": text[start:end],
+          })
+
+      result = chunks
+    output: chunks
+
+  map:
+    # foreach iteration over the chunks. For each chunk,
+    # compute a partial result. parallel: true makes the
+    # iterations run concurrently — toggle to false and
+    # the trace timeline will show them stacked instead
+    # of overlapping.
+    python: |
+      import re
+      from collections import Counter
+      import time
+
+      chunk = inputs["item"]
+      time.sleep(0.1)  # simulate per-chunk work, makes parallelism visible
+
+      text = chunk["text"]
+      words = re.findall(r"\w+", text.lower())
+      result = {
+          "chunk_id": chunk["id"],
+          "char_count": len(text),
+          "word_count": len(words),
+          "line_count": text.count("\n") + (1 if text and not text.endswith("\n") else 0),
+          "word_freq": dict(Counter(words)),
+      }
+    foreach: "{{chunks}}"
+    parallel: true
+    depends: [split]
+    output: partial_results
+
+  reduce:
+    # Merge all partial results into one global result.
+    # The Counter merge is the canonical reduce step in
+    # any word-count map/reduce — sum the per-chunk
+    # frequencies into one global frequency dict, then
+    # take the top N.
+    python: |
+      from collections import Counter
+
+      partials = inputs["partial_results"]
+
+      total_chars = 0
+      total_words = 0
+      total_lines = 0
+      global_freq = Counter()
+
+      for p in partials:
+          total_chars += p["char_count"]
+          total_words += p["word_count"]
+          total_lines += p["line_count"]
+          global_freq.update(p["word_freq"])
+
+      top_10 = global_freq.most_common(10)
+
+      result = {
+          "chunks_processed": len(partials),
+          "total_chars": total_chars,
+          "total_words": total_words,
+          "total_lines": total_lines,
+          "unique_words": len(global_freq),
+          "top_10": [{"word": w, "count": c} for w, c in top_10],
+      }
+    depends: [map]
+    output: report
+
+  show:
+    run: |
+      echo === MAP/REDUCE WORD COUNT ===
+      echo Chunks processed: {{report.chunks_processed}}
+      echo Total chars:      {{report.total_chars}}
+      echo Total words:      {{report.total_words}}
+      echo Unique words:     {{report.unique_words}}
+      echo
+      echo Top words:
+      echo - {{report.top_10[0].word}} [{{report.top_10[0].count}}]
+      echo - {{report.top_10[1].word}} [{{report.top_10[1].count}}]
+      echo - {{report.top_10[2].word}} [{{report.top_10[2].count}}]
+      echo - {{report.top_10[3].word}} [{{report.top_10[3].count}}]
+      echo - {{report.top_10[4].word}} [{{report.top_10[4].count}}]
+    depends: [reduce]
+    output: report_text

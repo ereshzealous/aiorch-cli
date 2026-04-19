@@ -1,0 +1,92 @@
+name: regex-builder
+description: |
+  Natural-language description → LLM generates a Python regex + 5
+  test cases (3 should match, 2 should not). Python then actually
+  RUNS the regex against the test cases and reports whether the
+  LLM's claims hold.
+
+  Pattern for: "I need a regex, but every time I write one I get it
+  subtly wrong." LLM produces the candidate, Python verifies it
+  empirically before you trust it. This is the right integration
+  shape — don't trust the LLM's "this regex works" without running it.
+
+  Usage:
+    aiorch run 27-regex-builder.yaml
+    aiorch run 27-regex-builder.yaml -i description="Match a 6-to-12 character password with at least one digit and one uppercase"
+
+input:
+  description:
+    type: string
+    default: "Match a US phone number in any of these formats: (555) 123-4567, 555-123-4567, 555.123.4567, 5551234567"
+
+steps:
+  build:
+    prompt: |
+      Write a Python regex that matches: {{description}}
+
+      Reply with JSON:
+        regex    : the pattern as a string (use standard Python re syntax)
+        explain  : one sentence on how the regex works
+        should_match : 3 example strings that SHOULD match
+        should_not   : 2 example strings that should NOT match
+
+      Keep the regex concise but correct. Prefer readable over clever.
+    format: json
+    schema:
+      type: object
+      required: [regex, explain, should_match, should_not]
+      properties:
+        regex:        { type: string }
+        explain:      { type: string }
+        should_match: { type: array, items: { type: string } }
+        should_not:   { type: array, items: { type: string } }
+    retry_on_invalid: 2
+    output: candidate
+
+  verify:
+    python: |
+      import re
+
+      c = inputs["candidate"]
+      pattern = c["regex"]
+
+      try:
+          rx = re.compile(pattern)
+      except re.error as e:
+          print(f"✗ Regex is not valid Python: {e}")
+          result = {"valid": False, "error": str(e)}
+          raise RuntimeError("Regex did not compile")
+
+      print(f"==== Regex ====")
+      print(f"  {pattern}")
+      print(f"  ({c['explain']})")
+      print()
+
+      correct = 0
+      wrong = 0
+
+      print("Positive cases (should match):")
+      for s in c["should_match"]:
+          ok = rx.search(s) is not None
+          mark = "✓" if ok else "✗"
+          print(f"  {mark}  {s!r}")
+          if ok: correct += 1
+          else:  wrong += 1
+
+      print()
+      print("Negative cases (should not match):")
+      for s in c["should_not"]:
+          ok = rx.search(s) is None
+          mark = "✓" if ok else "✗"
+          print(f"  {mark}  {s!r}")
+          if ok: correct += 1
+          else:  wrong += 1
+
+      print()
+      print(f"Score: {correct}/{correct + wrong}")
+      if wrong:
+          print("(At least one case disagreed with the LLM's claim — "
+                "inspect the regex before using it.)")
+      result = {"correct": correct, "wrong": wrong, "pattern": pattern}
+    depends: [build]
+    output: verification

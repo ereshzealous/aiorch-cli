@@ -1,0 +1,197 @@
+name: db-parallel-queries
+description: |
+  Five independent SQL queries run in PARALLEL via the
+  aiorch DAG layering. Each query is its own python:
+  step, all in the same DAG layer, so the runtime
+  dispatches them concurrently via asyncio.gather.
+
+  Five aggregation queries against the sample DB:
+    1. Top customers by total order volume
+    2. Per-region revenue breakdown
+    3. Per-category sales counts
+    4. Per-day order counts (time series)
+    5. Top products by units sold
+
+  All five hit the SAME DB but compute completely
+  different aggregations. Each step opens its own
+  sqlite3 connection (sqlite3 connections are not
+  thread-safe across coroutines, and even if they
+  were, separate connections per parallel step is
+  the cleanest pattern).
+
+  Why this is interesting:
+    - Demonstrates parallel I/O against a database
+      from CLI mode without any aiorch connector
+    - Same shape as pipeline 18 (parallel python
+      workers) but with REAL work (DB queries) instead
+      of synthetic time.sleep
+    - Open the trace timeline — all five queries
+      should overlap visibly, not stack sequentially
+
+  Performance note for SQLite specifically:
+    SQLite serializes writes via a database-level
+    lock, but READS can happen concurrently from
+    multiple connections. For Postgres / MySQL /
+    BigQuery / Snowflake, the parallelism is real
+    end-to-end. For SQLite it's still useful as a
+    demo of the DAG shape.
+
+  Prerequisites:
+    Run inputs/setup-sample-db.sh once.
+
+  Run it:
+    aiorch run 34-db-parallel-queries.yaml
+
+steps:
+  query_top_customers:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      cursor = conn.execute("""
+          SELECT c.name, c.region, SUM(o.quantity) AS total_units
+          FROM orders o
+          JOIN customers c ON c.id = o.customer_id
+          GROUP BY c.id
+          ORDER BY total_units DESC
+          LIMIT 5
+      """)
+      result = {
+          "query": "top_customers",
+          "rows": [dict(r) for r in cursor.fetchall()],
+      }
+      conn.close()
+    output: top_customers
+
+  query_revenue_by_region:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      cursor = conn.execute("""
+          SELECT c.region,
+                 SUM(o.quantity * p.price) AS revenue,
+                 COUNT(DISTINCT o.id) AS order_count
+          FROM orders o
+          JOIN customers c ON c.id = o.customer_id
+          JOIN products  p ON p.sku = o.sku
+          GROUP BY c.region
+          ORDER BY revenue DESC
+      """)
+      result = {
+          "query": "revenue_by_region",
+          "rows": [
+              {"region": r["region"], "revenue": round(r["revenue"], 2), "order_count": r["order_count"]}
+              for r in cursor.fetchall()
+          ],
+      }
+      conn.close()
+    output: revenue_by_region
+
+  query_sales_by_category:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      cursor = conn.execute("""
+          SELECT p.category,
+                 SUM(o.quantity) AS units_sold,
+                 COUNT(DISTINCT o.id) AS order_count
+          FROM orders o
+          JOIN products p ON p.sku = o.sku
+          GROUP BY p.category
+          ORDER BY units_sold DESC
+      """)
+      result = {
+          "query": "sales_by_category",
+          "rows": [dict(r) for r in cursor.fetchall()],
+      }
+      conn.close()
+    output: sales_by_category
+
+  query_daily_orders:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      cursor = conn.execute("""
+          SELECT order_date, COUNT(*) AS order_count, SUM(quantity) AS units
+          FROM orders
+          GROUP BY order_date
+          ORDER BY order_date ASC
+      """)
+      result = {
+          "query": "daily_orders",
+          "rows": [dict(r) for r in cursor.fetchall()],
+      }
+      conn.close()
+    output: daily_orders
+
+  query_top_products:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      conn = sqlite3.connect(str(Path("inputs/sample.db").resolve()))
+      conn.row_factory = sqlite3.Row
+      cursor = conn.execute("""
+          SELECT p.sku, p.name, p.category,
+                 SUM(o.quantity) AS units_sold,
+                 SUM(o.quantity * p.price) AS revenue
+          FROM orders o
+          JOIN products p ON p.sku = o.sku
+          GROUP BY p.sku
+          ORDER BY revenue DESC
+          LIMIT 5
+      """)
+      result = {
+          "query": "top_products",
+          "rows": [
+              {**dict(r), "revenue": round(r["revenue"], 2)}
+              for r in cursor.fetchall()
+          ],
+      }
+      conn.close()
+    output: top_products
+
+  aggregate:
+    # Fan-in step. References all five parallel query
+    # results. The runtime won't dispatch this step
+    # until all five queries complete, so by the time
+    # this runs all five outputs are guaranteed to be
+    # in the context.
+    python: |
+      result = {
+          "report_sections": 5,
+          "top_customers":      inputs["top_customers"]["rows"],
+          "revenue_by_region":  inputs["revenue_by_region"]["rows"],
+          "sales_by_category":  inputs["sales_by_category"]["rows"],
+          "daily_orders":       inputs["daily_orders"]["rows"],
+          "top_products":       inputs["top_products"]["rows"],
+      }
+    depends:
+      - query_top_customers
+      - query_revenue_by_region
+      - query_sales_by_category
+      - query_daily_orders
+      - query_top_products
+    output: report
+
+  show:
+    run: |
+      echo === SALES DASHBOARD ===
+      echo Top customers:    {{report.top_customers[0].name}} [{{report.top_customers[0].total_units}}u]
+      echo Top region:       {{report.revenue_by_region[0].region}} [{{report.revenue_by_region[0].revenue}}]
+      echo Top category:     {{report.sales_by_category[0].category}} [{{report.sales_by_category[0].units_sold}}u]
+      echo Top product:      {{report.top_products[0].name}} [{{report.top_products[0].revenue}}]
+      echo Days with orders: {{report.daily_orders[0].order_date}} ... {{report.daily_orders[-1].order_date}}
+    depends: [aggregate]
+    output: report_text

@@ -1,0 +1,109 @@
+name: pytest-failure-triage
+description: |
+  Read pytest output (the verbose `pytest -v` or JUnit-to-text dump),
+  Python extracts the failed test lines + error types, LLM groups
+  them by apparent root cause and suggests one concrete fix per
+  group. Python writes the triage report to disk.
+
+  Pattern for: "CI is red with 20 failures, I need to know if it's
+  one bug or twenty." The LLM is GOOD at finding common roots across
+  different-looking stacktraces. The deterministic parser guarantees
+  we only pass the signal lines to the LLM, not 5000 lines of noise.
+
+  Usage:
+    aiorch run 25-pytest-failure-triage.yaml
+    aiorch run 25-pytest-failure-triage.yaml -i log_path=./my-pytest.txt
+
+input:
+  log_path:
+    type: string
+    default: ./inputs/sample-pytest.txt
+
+steps:
+  parse:
+    python: |
+      import pathlib, re
+      text = pathlib.Path(inputs["log_path"]).read_text()
+
+      # Extract FAILED lines and their accompanying error type + brief
+      # excerpt. Pytest format: "FAILED path::test - ErrorType: msg"
+      failures = []
+      for m in re.finditer(
+          r"^FAILED\s+(\S+)(?:\s+-\s+([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception)?)\s*:\s*([^\n]*))?",
+          text, re.M,
+      ):
+          failures.append({
+              "test":        m.group(1),
+              "error_type":  (m.group(2) or "Unknown"),
+              "short_msg":   (m.group(3) or "").strip()[:200],
+          })
+
+      # Summary counts
+      total_tests = len(re.findall(r"^\s*(PASSED|FAILED|ERROR|SKIPPED)\s", text, re.M))
+      print(f"Parsed {len(failures)} failures from {total_tests} total test lines")
+      result = {
+          "failures":    failures,
+          "total_tests": total_tests,
+          "source":      inputs["log_path"],
+      }
+    output: parsed
+
+  triage:
+    prompt: |
+      You are triaging CI failures. Below are the failed tests plus
+      their error type and short message.
+
+      Failures:
+      {% for f in parsed.failures %}
+      - {{f.test}}  [{{f.error_type}}]  {{f.short_msg}}
+      {% endfor %}
+
+      Group these into APPARENT ROOT CAUSES. One group per distinct
+      root cause — don't split tests that probably share a cause.
+      For each group, suggest ONE concrete next step for the on-call
+      engineer (read file X, run command Y, check config Z).
+
+      Reply with a JSON array of groups:
+        root_cause  : short one-phrase cause
+        affected    : list of test paths from the failures above
+        next_action : one sentence of concrete action
+    format: json
+    schema:
+      type: array
+      items:
+        type: object
+        required: [root_cause, affected, next_action]
+        properties:
+          root_cause:  { type: string }
+          affected:    { type: array, items: { type: string } }
+          next_action: { type: string }
+    retry_on_invalid: 2
+    depends: [parse]
+    output: groups
+
+  write_report:
+    python: |
+      import json, pathlib
+      groups  = inputs["groups"]
+      parsed  = inputs["parsed"]
+
+      print(f"==== pytest triage ({len(parsed['failures'])} failures) ====")
+      for i, g in enumerate(groups, 1):
+          print(f"\n{i}. {g['root_cause']}")
+          print(f"   Affected ({len(g['affected'])}):")
+          for t in g["affected"][:5]:
+              print(f"     - {t}")
+          if len(g["affected"]) > 5:
+              print(f"     ... and {len(g['affected']) - 5} more.")
+          print(f"   → {g['next_action']}")
+
+      out = pathlib.Path("./inputs/pytest-triage.json")
+      out.write_text(json.dumps({
+          "total_tests":    parsed["total_tests"],
+          "total_failures": len(parsed["failures"]),
+          "groups":         groups,
+      }, indent=2))
+      print(f"\nFull report: {out.resolve()}")
+      result = {"groups": len(groups), "output_path": str(out)}
+    depends: [triage]
+    output: report

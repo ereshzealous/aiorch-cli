@@ -1,0 +1,142 @@
+name: env-drift
+description: |
+  Compare two dotenv-style files and report the key-level
+  drift between them. Typical use: compare a live `.env`
+  against the checked-in `.env.example` and see what's
+  missing, what's leftover, and what's in sync.
+
+  Three outcomes per key:
+    - missing_in_env    → declared in the example but
+                          absent from .env. Will break at
+                          runtime.
+    - extra_in_env      → set in .env but no longer
+                          declared. Either dead code or a
+                          leaked secret that nobody's
+                          tracking.
+    - matched           → present on both sides.
+
+  DAG shape:
+    [parse_env || parse_example] → compute_drift → show
+
+  parse_env and parse_example run in parallel in the same
+  DAG layer — independent reads over independent files.
+
+  Parser:
+    A tiny hand-rolled dotenv parser. Strips comments,
+    blank lines, and inline comments, splits on the FIRST
+    `=` (so values containing `=` are preserved). No
+    python-dotenv dep.
+
+  Run it:
+    aiorch run 47-env-drift.yaml
+    aiorch run 47-env-drift.yaml -i env_path=.env -i example_path=.env.example
+
+input:
+  env_path:
+    type: string
+    default: inputs/sample.env
+    description: Path to the actual .env file.
+
+  example_path:
+    type: string
+    default: inputs/sample.env.example
+    description: Path to the reference .env.example template.
+
+steps:
+  parse_env:
+    # Hand-rolled dotenv parser. Returns a sorted list of
+    # keys — values are intentionally dropped since the
+    # drift analysis only cares about key presence.
+    python: |
+      from pathlib import Path
+
+      def parse_dotenv(path):
+          keys = []
+          for line in Path(path).read_text().splitlines():
+              s = line.strip()
+              if not s or s.startswith("#"):
+                  continue
+              if "=" not in s:
+                  continue
+              key, _, _val = s.partition("=")
+              keys.append(key.strip())
+          return sorted(set(keys))
+
+      keys = parse_dotenv(inputs["env_path"])
+      result = {"path": inputs["env_path"], "count": len(keys), "keys": keys}
+    output: env
+
+  parse_example:
+    # Same parser over the template file. Parallel with
+    # parse_env.
+    python: |
+      from pathlib import Path
+
+      def parse_dotenv(path):
+          keys = []
+          for line in Path(path).read_text().splitlines():
+              s = line.strip()
+              if not s or s.startswith("#"):
+                  continue
+              if "=" not in s:
+                  continue
+              key, _, _val = s.partition("=")
+              keys.append(key.strip())
+          return sorted(set(keys))
+
+      keys = parse_dotenv(inputs["example_path"])
+      result = {"path": inputs["example_path"], "count": len(keys), "keys": keys}
+    output: example
+
+  compute_drift:
+    # Set arithmetic on the two key lists. The
+    # `missing_in_env` set is the one that breaks runtime
+    # — promote it in the report so operators see it
+    # first.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      env_keys     = set(inputs["env"]["keys"])
+      example_keys = set(inputs["example"]["keys"])
+
+      missing_in_env = sorted(example_keys - env_keys)
+      extra_in_env   = sorted(env_keys - example_keys)
+      matched        = sorted(env_keys & example_keys)
+
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "env_path": inputs["env"]["path"],
+          "example_path": inputs["example"]["path"],
+          "env_key_count": len(env_keys),
+          "example_key_count": len(example_keys),
+          "matched_count": len(matched),
+          "missing_in_env_count": len(missing_in_env),
+          "extra_in_env_count": len(extra_in_env),
+          "missing_in_env": missing_in_env,
+          "extra_in_env": extra_in_env,
+          "matched": matched,
+          "in_sync": not missing_in_env and not extra_in_env,
+      }
+
+      out = Path("inputs/env-drift-report.json").resolve()
+      out.write_text(json.dumps(report, indent=2))
+      result = {**report, "path": str(out)}
+    depends: [parse_env, parse_example]
+    output: report
+
+  show:
+    run: |
+      echo === ENV DRIFT ===
+      echo env file:       {{report.env_path}}
+      echo example file:   {{report.example_path}}
+      echo env keys:       {{report.env_key_count}}
+      echo example keys:   {{report.example_key_count}}
+      echo matched:        {{report.matched_count}}
+      echo missing in env: {{report.missing_in_env_count}}
+      echo extra in env:   {{report.extra_in_env_count}}
+      echo in sync:        {{report.in_sync}}
+      echo Report:         {{report.path}}
+    depends: [compute_drift]
+    output: report_text

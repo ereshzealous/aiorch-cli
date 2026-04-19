@@ -1,0 +1,156 @@
+name: nested-foreach-aggregate
+description: |
+  Process a nested data structure: N categories, each
+  containing M items. The outer iteration is aiorch's
+  `foreach:` step primitive; the inner iteration is a
+  normal Python for loop inside the foreach step's body.
+
+  This is the practical pattern for nested processing
+  in aiorch. True "nested foreach" (foreach inside
+  foreach as separate steps) requires a sub-pipeline
+  via `flow:`, which adds path-resolution complexity.
+  Inline Python iteration inside the outer foreach is
+  simpler, faster, and just as expressive.
+
+  Use case: process per-region sales data. Each region
+  has a list of transactions; the pipeline needs to
+  compute per-region totals AND a global summary.
+
+  DAG shape:
+    source → foreach(per_region) → aggregate → report
+                ↓ (M iterations)
+              each iteration computes one region's totals
+
+  What to verify:
+    1. The per_region step runs once per region (visible
+       in the trace as N iteration entries)
+    2. Each iteration's output contributes to the
+       per_region_results list that the aggregate step
+       consumes
+    3. The aggregate step computes the global summary
+       across all regions
+    4. Final report shows both per-region rows AND
+       grand total
+
+steps:
+  source:
+    # Generate a synthetic nested dataset. In a real
+    # workflow this would come from a database query,
+    # a CSV, or an API response.
+    #
+    # Note: the result here exposes BOTH a top-level
+    # `regions` list AND wraps it in a dict. The outer
+    # dict carries metadata; the top-level list is for
+    # the foreach step below to iterate (foreach can't
+    # follow nested paths like `dataset.regions`).
+    python: |
+      result = [
+          {
+              "name": "us-east",
+              "transactions": [
+                  {"product": "A", "quantity": 10, "price": 9.99},
+                  {"product": "B", "quantity": 5, "price": 19.99},
+                  {"product": "C", "quantity": 8, "price": 4.99},
+              ],
+          },
+          {
+              "name": "us-west",
+              "transactions": [
+                  {"product": "A", "quantity": 7, "price": 9.99},
+                  {"product": "B", "quantity": 12, "price": 19.99},
+              ],
+          },
+          {
+              "name": "eu-central",
+              "transactions": [
+                  {"product": "A", "quantity": 15, "price": 11.99},
+                  {"product": "B", "quantity": 8, "price": 21.99},
+                  {"product": "C", "quantity": 6, "price": 5.99},
+                  {"product": "D", "quantity": 3, "price": 49.99},
+              ],
+          },
+      ]
+    output: regions
+
+  per_region:
+    # foreach iterates the regions list. `item` is each
+    # region dict. The python body then does an inner
+    # python loop over that region's transactions to
+    # compute per-region totals.
+    python: |
+      region = inputs["item"]
+      txns = region["transactions"]
+
+      total_units = 0
+      total_revenue = 0.0
+      product_counts = {}
+
+      for t in txns:
+          qty = int(t["quantity"])
+          price = float(t["price"])
+          revenue = qty * price
+          total_units += qty
+          total_revenue += revenue
+          product_counts[t["product"]] = product_counts.get(t["product"], 0) + qty
+
+      result = {
+          "region": region["name"],
+          "transaction_count": len(txns),
+          "total_units": total_units,
+          "total_revenue": round(total_revenue, 2),
+          "products": product_counts,
+      }
+    foreach: "{{regions}}"
+    depends: [source]
+    output: per_region_results
+
+  aggregate:
+    # per_region_results is a list of per-region dicts
+    # (one per foreach iteration). Sum across regions
+    # for the global summary.
+    python: |
+      from collections import defaultdict
+
+      regions = inputs["per_region_results"]
+
+      grand_units = sum(r["total_units"] for r in regions)
+      grand_revenue = round(sum(r["total_revenue"] for r in regions), 2)
+
+      # Sum products across regions
+      global_products = defaultdict(int)
+      for r in regions:
+          for p, q in r["products"].items():
+              global_products[p] += q
+
+      # Find top region by revenue
+      top_region = max(regions, key=lambda r: r["total_revenue"])
+
+      result = {
+          "region_count": len(regions),
+          "grand_units": grand_units,
+          "grand_revenue": grand_revenue,
+          "unique_products": len(global_products),
+          "global_product_units": dict(global_products),
+          "top_region_name": top_region["region"],
+          "top_region_revenue": top_region["total_revenue"],
+          "per_region": regions,
+      }
+    depends: [per_region]
+    output: report
+
+  show:
+    run: |
+      echo === NESTED REGIONAL REPORT ===
+      echo Regions:         {{report.region_count}}
+      echo Grand units:     {{report.grand_units}}
+      echo Grand revenue:   {{report.grand_revenue}}
+      echo Unique products: {{report.unique_products}}
+      echo
+      echo Top region:      {{report.top_region_name}} [{{report.top_region_revenue}}]
+      echo
+      echo Per-region:
+      echo - {{report.per_region[0].region}}: units={{report.per_region[0].total_units}} rev={{report.per_region[0].total_revenue}}
+      echo - {{report.per_region[1].region}}: units={{report.per_region[1].total_units}} rev={{report.per_region[1].total_revenue}}
+      echo - {{report.per_region[2].region}}: units={{report.per_region[2].total_units}} rev={{report.per_region[2].total_revenue}}
+    depends: [aggregate]
+    output: report_text

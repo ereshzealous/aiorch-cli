@@ -1,0 +1,207 @@
+name: health-check-multi
+description: |
+  Multi-endpoint health check. Hits N HTTP endpoints in
+  parallel via independent python steps that use httpx
+  directly. Aggregates the results, reports up/down per
+  endpoint, fails the run if any are red.
+
+  Why python+httpx instead of `type: http` inputs:
+    `type: http` works well for ONE URL where the value
+    flows into a downstream step. For N parallel checks
+    against different URLs, the cleaner pattern is one
+    python step per endpoint — they form a single DAG
+    layer that aiorch dispatches concurrently via
+    asyncio.gather, just like pipeline 18's worker fan-
+    out. Same parallelism, more flexibility (per-endpoint
+    timeout, custom headers, response shape parsing).
+
+  No connectors. No external setup needed. Only requirement
+  is that the executor's python environment has httpx,
+  which it does (httpx is an aiorch runtime dependency).
+
+  Endpoints checked (all should be reachable from your
+  executor host):
+    1. http://localhost:5173/api/health  (aiorch's own)
+    2. https://api.github.com/zen          (external sanity)
+    3. https://httpbin.org/status/200      (HTTP test svc)
+
+  What "healthy" means per check:
+    - HTTP 2xx with response body received within 5 seconds
+    - Anything else (timeout, 4xx, 5xx, network error) =
+      unhealthy
+
+  What to verify:
+    1. The three check_* steps run in PARALLEL (overlap
+       in the trace timeline, NOT stacked sequentially)
+    2. With aiorch running locally, check_aiorch passes
+       in <100ms
+    3. check_github passes (~200-500ms depending on
+       network)
+    4. check_httpbin may or may not pass — httpbin can
+       be flaky. That's actually a useful test of the
+       failure path.
+    5. The aggregate step builds a unified report
+    6. fail_if_any_red raises if any endpoint is unhealthy,
+       so the run fails loud
+
+  Expected runtime: ~500ms-1s (one round-trip slowest endpoint).
+
+steps:
+  check_aiorch:
+    python: |
+      import time
+      import httpx
+
+      url = "http://localhost:5173/api/health"
+      t0 = time.time()
+      try:
+          with httpx.Client(timeout=5) as client:
+              r = client.get(url)
+          duration_ms = round((time.time() - t0) * 1000, 1)
+          ok = 200 <= r.status_code < 300
+          result = {
+              "name": "aiorch",
+              "url": url,
+              "ok": ok,
+              "status_code": r.status_code,
+              "duration_ms": duration_ms,
+              "error": None,
+              "body_preview": r.text[:120],
+          }
+      except Exception as e:
+          result = {
+              "name": "aiorch",
+              "url": url,
+              "ok": False,
+              "status_code": None,
+              "duration_ms": round((time.time() - t0) * 1000, 1),
+              "error": f"{type(e).__name__}: {e}",
+              "body_preview": None,
+          }
+    output: check_aiorch_result
+
+  check_github:
+    python: |
+      import time
+      import httpx
+
+      url = "https://api.github.com/zen"
+      t0 = time.time()
+      try:
+          with httpx.Client(timeout=5) as client:
+              r = client.get(url)
+          duration_ms = round((time.time() - t0) * 1000, 1)
+          ok = 200 <= r.status_code < 300
+          result = {
+              "name": "github",
+              "url": url,
+              "ok": ok,
+              "status_code": r.status_code,
+              "duration_ms": duration_ms,
+              "error": None,
+              "body_preview": r.text[:120],
+          }
+      except Exception as e:
+          result = {
+              "name": "github",
+              "url": url,
+              "ok": False,
+              "status_code": None,
+              "duration_ms": round((time.time() - t0) * 1000, 1),
+              "error": f"{type(e).__name__}: {e}",
+              "body_preview": None,
+          }
+    output: check_github_result
+
+  check_httpbin:
+    python: |
+      import time
+      import httpx
+
+      url = "https://httpbin.org/status/200"
+      t0 = time.time()
+      try:
+          with httpx.Client(timeout=5) as client:
+              r = client.get(url)
+          duration_ms = round((time.time() - t0) * 1000, 1)
+          ok = 200 <= r.status_code < 300
+          result = {
+              "name": "httpbin",
+              "url": url,
+              "ok": ok,
+              "status_code": r.status_code,
+              "duration_ms": duration_ms,
+              "error": None,
+              "body_preview": r.text[:120],
+          }
+      except Exception as e:
+          result = {
+              "name": "httpbin",
+              "url": url,
+              "ok": False,
+              "status_code": None,
+              "duration_ms": round((time.time() - t0) * 1000, 1),
+              "error": f"{type(e).__name__}: {e}",
+              "body_preview": None,
+          }
+    output: check_httpbin_result
+
+  aggregate:
+    python: |
+      from datetime import datetime, timezone
+
+      checks = [
+          inputs["check_aiorch_result"],
+          inputs["check_github_result"],
+          inputs["check_httpbin_result"],
+      ]
+
+      healthy = [c for c in checks if c["ok"]]
+      unhealthy = [c for c in checks if not c["ok"]]
+
+      result = {
+          "checked_at": datetime.now(timezone.utc).isoformat(),
+          "total_checks": len(checks),
+          "healthy_count": len(healthy),
+          "unhealthy_count": len(unhealthy),
+          "status": "GREEN" if not unhealthy else "RED",
+          "checks": checks,
+          "unhealthy_names": [c["name"] for c in unhealthy],
+      }
+    depends: [check_aiorch, check_github, check_httpbin]
+    output: report
+
+  fail_if_any_red:
+    # Raise if any endpoint is unhealthy so the run fails
+    # loud. Critical for using this as a gate before a
+    # downstream "deploy" or "promote" pipeline — a
+    # red health check should block the next step.
+    python: |
+      r = inputs["report"]
+      if r["unhealthy_count"] > 0:
+          names = ", ".join(r["unhealthy_names"])
+          details = "\n".join(
+              f"  - {c['name']}: {c['url']} → "
+              f"{c['status_code'] or 'NETWORK_ERROR'} "
+              f"({c['error'] or 'ok'})"
+              for c in r["checks"] if not c["ok"]
+          )
+          raise RuntimeError(
+              f"Health check FAILED — {r['unhealthy_count']}/{r['total_checks']} "
+              f"endpoint(s) red: {names}\n{details}"
+          )
+      result = {"gate": "all_green"}
+    depends: [aggregate]
+    output: gate
+
+  show:
+    run: |
+      echo === HEALTH CHECK REPORT ===
+      echo Status:    {{report.status}}
+      echo Healthy:   {{report.healthy_count}}/{{report.total_checks}}
+      echo
+      echo - aiorch:  ok={{report.checks[0].ok}} status={{report.checks[0].status_code}} {{report.checks[0].duration_ms}}ms
+      echo - github:  ok={{report.checks[1].ok}} status={{report.checks[1].status_code}} {{report.checks[1].duration_ms}}ms
+      echo - httpbin: ok={{report.checks[2].ok}} status={{report.checks[2].status_code}} {{report.checks[2].duration_ms}}ms
+    depends: [fail_if_any_red]
+    output: report_text

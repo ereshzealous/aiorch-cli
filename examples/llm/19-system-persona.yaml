@@ -1,0 +1,46 @@
+name: system-persona
+description: |
+  Same USER prompt, two different SYSTEM prompts establishing
+  different voices/personas. Demonstrates how the system-level
+  instruction shapes tone + framing without changing the question.
+
+  System prompts are sticky — they constrain the whole conversation,
+  so they're the right tool for "speak as X" / "always reply in Y
+  format" / "never discuss Z." User prompts are the per-request
+  question.
+
+  Usage:
+    aiorch run 19-system-persona.yaml
+    aiorch run 19-system-persona.yaml -i question="Why does my Python code leak memory?"
+
+input:
+  question:
+    type: string
+    default: "What should I look for when code-reviewing a new pull request?"
+
+steps:
+  as_senior_engineer:
+    system: |
+      You are a staff-level backend engineer reviewing code.
+      You value correctness over cleverness, prefer small focused
+      changes, and always ask about test coverage before style.
+      Be direct; no hedging.
+    prompt: "{{question}}"
+    output: engineer_answer
+
+  as_junior_coach:
+    system: |
+      You are a patient coach helping a junior developer learn.
+      You explain the "why" before the "what," encourage the reader,
+      and ALWAYS give at least one concrete example.
+    prompt: "{{question}}"
+    output: coach_answer
+
+  show:
+    run: |
+      echo ==== As senior engineer ====
+      echo {{engineer_answer}}
+      echo
+      echo ==== As junior coach ====
+      echo {{coach_answer}}
+    depends: [as_senior_engineer, as_junior_coach]

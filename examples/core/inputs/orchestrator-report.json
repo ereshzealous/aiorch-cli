@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-04-19T10:39:16.078598+00:00",
+  "source_url": "https://api.github.com/repos/anthropics/anthropic-sdk-python/issues",
+  "fetched_count": 200,
+  "rate_limit_remaining": "54",
+  "validated": true,
+  "total_records": 30,
+  "reconciled": true,
+  "partitions": [
+    {
+      "partition": "Issues",
+      "count": 10,
+      "total_engagement": 4,
+      "avg_age_days": 4.7,
+      "age_buckets": {
+        "fresh": 7,
+        "recent": 3
+      },
+      "top_3_engaged": [
+        {
+          "number": 1383,
+          "title": "Managed Agents MCP client only supports SSE transport \u2014 inco",
+          "engagement": 2
+        },
+        {
+          "number": 1365,
+          "title": "Safety concern: Claude Code executed irreversible blockchain",
+          "engagement": 2
+        },
+        {
+          "number": 1411,
+          "title": "xhigh effort capability for Opus 4.7",
+          "engagement": 0
+        }
+      ]
+    },
+    {
+      "partition": "PRs",
+      "count": 20,
+      "total_engagement": 5,
+      "avg_age_days": 3.5,
+      "age_buckets": {
+        "fresh": 17,
+        "recent": 3
+      },
+      "top_3_engaged": [
+        {
+          "number": 1407,
+          "title": "release: 0.96.1",
+          "engagement": 3
+        },
+        {
+          "number": 1367,
+          "title": "docs: document custom_id length limit in batch requests",
+          "engagement": 2
+        },
+        {
+          "number": 1413,
+          "title": "fix: pass aws_profile to boto3.Session when inferring Bedroc",
+          "engagement": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+name: retry-strategies
+description: |
+  Real-world retry patterns. Pipeline 21 showed the
+  basics of retry/condition/try-except — this one shows
+  the STRATEGIC differences between four common patterns
+  and when to pick each.
+
+  The four strategies:
+
+  1. AGGRESSIVE FAST RETRY
+     retry: 10, retry_delay: 0.1s
+     For: transient network blips that recover in
+     milliseconds (DNS race, brief connection refusal)
+     Cost budget: ~1 second total
+
+  2. PATIENT BACKOFF
+     retry: 3, retry_delay: 2s
+     For: slow upstream recovery (database failover,
+     service restart, cold-start of a serverless function)
+     Cost budget: ~6 seconds total
+
+  3. GRACEFUL FALLBACK
+     try/except inside the python step, no retry: at all
+     For: best-effort calls where failure is acceptable
+     and a sentinel value is fine (analytics, logging,
+     cache warm). Step always succeeds.
+
+  4. RETRY-THEN-DEFAULT
+     try/except WRAPPING aiorch's retry semantics.
+     The python step internally retries N times with
+     backoff, then falls back to a cached value if
+     all attempts fail. Step succeeds either way but
+     the result tells downstream which path it took.
+
+  Aiorch's built-in retry is FIXED delay (no exponential
+  backoff in the runtime today). To get exponential
+  backoff, do the retry loop inside the python step
+  with `time.sleep(2 ** attempt)`. Pattern 4 shows that
+  shape.
+
+  Each strategy is independently observable in the trace
+  — different attempt counts, different durations,
+  different outcomes. Run it 4-5 times and you'll see
+  the "flaky" steps land in different states each run
+  (the failure simulation uses random).
+
+  Run it:
+    aiorch run 38-retry-strategies.yaml
+
+steps:
+  strategy_1_aggressive:
+    # Fast retry. retry_delay 0.1s means 10 retries cost
+    # ~1 second total in the worst case. Random 60% chance
+    # of failure per attempt — almost certainly succeeds
+    # within the 11 attempts.
+    python: |
+      import random
+      if random.random() < 0.6:
+          raise RuntimeError("transient blip")
+      result = {"strategy": "aggressive", "value": 100, "ok": True}
+    retry: 10
+    retry_delay: 100ms
+    output: aggressive_result
+
+  strategy_2_patient:
+    # Patient retry. Higher chance of failure per attempt
+    # (75%) but with a longer delay. With 3 retries this
+    # CAN exhaust if you're unlucky — that's the point,
+    # patient retry is for "give upstream more time" not
+    # "infinitely keep trying."
+    python: |
+      import random
+      if random.random() < 0.75:
+          raise RuntimeError("upstream still recovering")
+      result = {"strategy": "patient", "value": 200, "ok": True}
+    retry: 3
+    retry_delay: 2s
+    output: patient_result
+    on_failure: patient_fallback
+
+  patient_fallback:
+    # on_failure handler. Runs ONLY if patient_retry
+    # exhausts its attempts. Note: aiorch's on_failure
+    # runs the cleanup but then re-raises the original
+    # error, so the run still fails overall. This is
+    # mostly for sending alerts / writing audit logs,
+    # not for fault-tolerant control flow.
+    python: |
+      print("⚠ Patient retry exhausted — running cleanup")
+      result = {"cleanup": "done", "alerted": True}
+
+  strategy_3_graceful:
+    # Pure try/except inside the step. No retry: clause.
+    # The step ALWAYS succeeds. Failure is part of the
+    # data — downstream steps inspect the `ok` field
+    # and decide what to do. Use this for "best effort"
+    # work where missing data is acceptable.
+    python: |
+      try:
+          import random
+          if random.random() < 0.4:
+              raise ValueError("simulated transient failure")
+          # Real work would go here
+          value = 300
+          ok = True
+          err = None
+      except Exception as e:
+          value = None
+          ok = False
+          err = str(e)
+      result = {
+          "strategy": "graceful",
+          "value": value,
+          "ok": ok,
+          "error": err,
+      }
+    output: graceful_result
+
+  strategy_4_retry_then_default:
+    # Internal retry loop inside python. Demonstrates
+    # exponential backoff (which aiorch's retry: doesn't
+    # do), gives up after N tries, returns a cached
+    # default value. The step ALWAYS succeeds because
+    # the fallback is part of the contract.
+    python: |
+      import time
+      import random
+
+      MAX_ATTEMPTS = 4
+      CACHED_DEFAULT = {"value": 0, "stale": True, "from": "cache"}
+
+      attempt = 0
+      result_value = None
+      err = None
+
+      while attempt < MAX_ATTEMPTS:
+          attempt += 1
+          try:
+              if random.random() < 0.7:
+                  raise ConnectionError(f"attempt {attempt}: still failing")
+              result_value = {"value": 400, "stale": False, "from": "live"}
+              err = None
+              break
+          except Exception as e:
+              err = str(e)
+              # Exponential backoff: 0.1, 0.2, 0.4, 0.8 seconds
+              if attempt < MAX_ATTEMPTS:
+                  delay = 0.1 * (2 ** (attempt - 1))
+                  print(f"  attempt {attempt} failed [{err}], sleeping {delay}s")
+                  time.sleep(delay)
+              else:
+                  print(f"  all {MAX_ATTEMPTS} attempts failed, falling back to cache")
+
+      if result_value is None:
+          result_value = CACHED_DEFAULT
+
+      result = {
+          "strategy": "retry_then_default",
+          "attempts": attempt,
+          "from_cache": result_value["from"] == "cache",
+          "value": result_value["value"],
+          "last_error": err,
+      }
+    output: retry_default_result
+
+  summarize:
+    # Final fan-in. Reports which strategy ended up in
+    # which state. Note we use inputs.get for the patient
+    # one because if it exhausted retries the run is
+    # marked failed — but if you got here, it succeeded.
+    python: |
+      result = {
+          "aggressive":      inputs["aggressive_result"],
+          "patient":         inputs.get("patient_result"),
+          "graceful":        inputs["graceful_result"],
+          "retry_default":   inputs["retry_default_result"],
+      }
+    depends:
+      - strategy_1_aggressive
+      - strategy_2_patient
+      - strategy_3_graceful
+      - strategy_4_retry_then_default
+    output: report
+
+  show:
+    run: |
+      echo === RETRY STRATEGY COMPARISON ===
+      echo
+      echo Aggressive [fast retry]:
+      echo   ok={{report.aggressive.ok}} value={{report.aggressive.value}}
+      echo
+      echo Patient [backoff retry]:
+      echo   ok={{report.patient.ok}} value={{report.patient.value}}
+      echo
+      echo Graceful [try/except, never fails]:
+      echo   ok={{report.graceful.ok}} value={{report.graceful.value}}
+      echo   err={{report.graceful.error}}
+      echo
+      echo Retry-then-default [internal exponential backoff]:
+      echo   attempts={{report.retry_default.attempts}}
+      echo   from_cache={{report.retry_default.from_cache}}
+      echo   value={{report.retry_default.value}}
+    depends: [summarize]
+    output: report_text

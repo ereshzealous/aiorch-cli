@@ -1,0 +1,199 @@
+name: webhook-api-poll
+description: |
+  The pull-based equivalent of an inbound webhook trigger.
+
+  Inbound webhook triggers (Platform mode only) are PUSH:
+  the external system POSTs and aiorch reacts. This
+  pipeline is the PULL version: aiorch hits an external
+  API on its own schedule (or manually via aiorch run),
+  fetches whatever's new since last invocation, processes
+  it, and emits results.
+
+  Why this matters:
+    Most "I need to react to events from system X"
+    workflows can be solved either way. Push is lower
+    latency but requires the external system to support
+    webhooks AND reach your aiorch endpoint. Pull works
+    for ANY HTTP API, including ones behind a firewall,
+    rate-limited, or with no webhook support.
+
+  This pipeline polls GitHub's public events API for the
+  Anthropic Python SDK repo. Real endpoint, real data,
+  no auth needed (anonymous rate limit is 60 req/hour
+  which is plenty for testing).
+
+  How it would run in production:
+    1. Schedule it: `aiorch schedule add ... --cron '*/5 * * * *'`
+       to fire every 5 minutes
+    2. The pipeline reads "last seen event id" from a
+       local state file
+    3. Filters incoming events to only those newer
+       than the watermark
+    4. Processes them and updates the state file
+    5. Next run picks up from where this one left off
+
+  For this CLI demo we keep it simple: every run
+  processes the latest 30 events and prints a summary.
+  The state-tracking pattern is left as an exercise
+  (see pipeline 26 in the no_llm reference for the full
+  watermark approach against MinIO).
+
+  Run it:
+    aiorch run 36-webhook-api-poll.yaml
+    aiorch run 36-webhook-api-poll.yaml -i max_events=10
+    aiorch run 36-webhook-api-poll.yaml -i event_filter=PushEvent
+
+input:
+  max_events:
+    type: integer
+    default: 30
+    minimum: 1
+    maximum: 100
+    description: How many recent events to pull from the API per run.
+
+  event_filter:
+    type: string
+    default: ""
+    description: When set, only process events of this type (e.g. PushEvent, IssuesEvent, PullRequestEvent). Empty = no filter.
+
+steps:
+  fetch_events:
+    # python: + httpx for the API call. We could use type:
+    # http here for the URL, but we want to pass the
+    # max_events as a query parameter dynamically and
+    # type: http doesn't template its URL field cleanly.
+    # python: gives us full control over the request.
+    python: |
+      import httpx
+      url = "https://api.github.com/repos/anthropics/anthropic-sdk-python/events"
+      params = {"per_page": inputs["max_events"]}
+      headers = {
+          "Accept": "application/vnd.github+json",
+          "User-Agent": "aiorch-pipeline-poll/1.0",
+      }
+      with httpx.Client(timeout=10) as client:
+          r = client.get(url, params=params, headers=headers)
+      r.raise_for_status()
+      events = r.json()
+      result = {
+          "url": url,
+          "fetched_count": len(events),
+          "rate_limit_remaining": r.headers.get("x-ratelimit-remaining", "unknown"),
+          "events": events,
+      }
+    retry: 3
+    retry_delay: 2s
+    output: api_response
+
+  filter_events:
+    # Apply the user's event_filter, then extract just
+    # the fields we care about. The full GitHub events
+    # response is huge — we don't need most of it.
+    python: |
+      events = inputs["api_response"]["events"]
+      filt = inputs["event_filter"]
+
+      filtered = []
+      for e in events:
+          if filt and e.get("type") != filt:
+              continue
+          filtered.append({
+              "id": e.get("id"),
+              "type": e.get("type"),
+              "actor": e.get("actor", {}).get("login"),
+              "created_at": e.get("created_at"),
+          })
+
+      result = {
+          "filter": filt or "(none)",
+          "kept": len(filtered),
+          "discarded": len(events) - len(filtered),
+          "events": filtered,
+      }
+    depends: [fetch_events]
+    output: filtered
+
+  lift_events:
+    # foreach: "{{filtered.events}}" doesn't work — the
+    # foreach resolver only handles TOP-LEVEL context
+    # variables, not nested paths like filtered.events.
+    # The workaround is this small intermediate step
+    # that re-publishes filtered.events as a top-level
+    # variable named `events_to_process`. Then the
+    # foreach below references that name directly and
+    # the resolver finds it via the fast path.
+    #
+    # Known limitation of resolve_foreach_items() in
+    # aiorch's runtime/foreach.py.
+    python: |
+      result = inputs["filtered"]["events"]
+    depends: [filter_events]
+    output: events_to_process
+
+  check_has_events:
+    # Demonstration of `condition:` for short-circuiting.
+    # If the filter discarded everything, skip the
+    # process_each step entirely instead of running an
+    # empty foreach.
+    python: |
+      result = {"proceed": inputs["filtered"]["kept"] > 0}
+    depends: [filter_events]
+    output: gate
+
+  process_each:
+    # foreach over the lifted top-level variable. Each
+    # iteration's `item` is one event dict.
+    python: |
+      ev = inputs["item"]
+      print(f"  processing {ev['type']} by {ev['actor']} at {ev['created_at']}")
+      result = {
+          "id": ev["id"],
+          "type": ev["type"],
+          "actor": ev["actor"],
+          "processed": True,
+      }
+    foreach: "{{events_to_process}}"
+    condition: "{{gate.proceed}} == True"
+    depends: [lift_events, check_has_events]
+    output: processed
+
+  summarize:
+    # Build a per-type histogram of what we processed.
+    # Always runs (no condition) so the report is
+    # complete even when zero events were processed.
+    python: |
+      from collections import Counter
+
+      filtered = inputs["filtered"]
+      processed = inputs.get("processed") or []
+
+      type_counts = Counter(e["type"] for e in filtered["events"])
+      actor_counts = Counter(e["actor"] for e in filtered["events"] if e["actor"])
+
+      result = {
+          "fetched": inputs["api_response"]["fetched_count"],
+          "filter": filtered["filter"],
+          "kept": filtered["kept"],
+          "discarded": filtered["discarded"],
+          "processed": len(processed),
+          "rate_limit_remaining": inputs["api_response"]["rate_limit_remaining"],
+          "by_type":  dict(type_counts.most_common(5)),
+          "by_actor": dict(actor_counts.most_common(5)),
+      }
+    depends: [process_each]
+    output: summary
+
+  show:
+    run: |
+      echo === GITHUB EVENTS POLL ===
+      echo Fetched:            {{summary.fetched}}
+      echo Filter:             {{summary.filter}}
+      echo Kept after filter:  {{summary.kept}}
+      echo Discarded:          {{summary.discarded}}
+      echo Processed:          {{summary.processed}}
+      echo Rate limit left:    {{summary.rate_limit_remaining}}
+      echo
+      echo Top event types:    {{summary.by_type}}
+      echo Top actors:         {{summary.by_actor}}
+    depends: [summarize]
+    output: report_text

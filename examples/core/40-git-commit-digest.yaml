@@ -1,0 +1,173 @@
+name: git-commit-digest
+description: |
+  Produce a per-author standup digest by parsing a git-log
+  fixture. The pipeline reads the fixture file, walks the
+  lines, stitches commit metadata together with numstat
+  rows, and rolls up per-author stats: commit count, files
+  touched, lines added, lines deleted.
+
+  Why this is useful:
+    Standup fodder. Archive a `git log` dump as part of a
+    nightly job (or from CI) and run this pipeline against
+    it to produce a JSON digest you can paste into a daily
+    update, post to Slack, or schedule as a morning cron.
+
+  Why a fixture instead of shelling out to git?
+    Pipelines should be hermetic: runnable by anyone,
+    anywhere, with zero local-repo assumptions. The
+    fixture ships with the catalog so the default run
+    works on a fresh clone with no setup.
+
+  Use real git output:
+    1. Dump the log to a file:
+         git log --since='30 days ago' \
+           --pretty=format:'__AIORCH_COMMIT__%H|%an|%ae|%at|%s' \
+           --numstat > my-log.txt
+    2. Run the pipeline pointing at it:
+         aiorch run 40-git-commit-digest.yaml -i log_path=my-log.txt
+
+  DAG shape:
+    read_log → parse_commits → group_by_author → write_report → show
+
+input:
+  log_path:
+    type: string
+    default: inputs/sample-git-log.txt
+    description: Path to a git-log fixture produced with `--pretty=format:'__AIORCH_COMMIT__%H|%an|%ae|%at|%s' --numstat`. Default ships with the catalog.
+
+steps:
+  read_log:
+    # Read the fixture file. Captures both the raw lines
+    # and a few provenance fields so downstream steps know
+    # where the data came from.
+    python: |
+      from pathlib import Path
+
+      p = Path(inputs["log_path"])
+      text = p.read_text()
+      result = {
+          "source": str(p.resolve()),
+          "raw_lines": text.splitlines(),
+          "byte_size": len(text),
+      }
+    output: raw_log
+
+  parse_commits:
+    # Walk the raw log, stitching each commit's metadata
+    # together with its numstat rows. The separator marks
+    # the start of a new commit block.
+    python: |
+      lines = inputs["raw_log"]["raw_lines"]
+      sep = "__AIORCH_COMMIT__"
+
+      commits = []
+      current = None
+      for line in lines:
+          if line.startswith(sep):
+              if current is not None:
+                  commits.append(current)
+              meta = line[len(sep):].split("|", 4)
+              if len(meta) == 5:
+                  sha, name, email, ts, subject = meta
+                  current = {
+                      "sha": sha[:10],
+                      "author": name,
+                      "email": email,
+                      "timestamp": int(ts),
+                      "subject": subject,
+                      "files": 0,
+                      "added": 0,
+                      "deleted": 0,
+                  }
+          elif current is not None and line.strip():
+              # Numstat row: "<added>\t<deleted>\t<path>"
+              parts = line.split("\t")
+              if len(parts) == 3:
+                  a, d, _path = parts
+                  current["files"] += 1
+                  if a.isdigit():
+                      current["added"] += int(a)
+                  if d.isdigit():
+                      current["deleted"] += int(d)
+      if current is not None:
+          commits.append(current)
+
+      result = {
+          "commit_count": len(commits),
+          "commits": commits,
+      }
+    depends: [read_log]
+    output: parsed
+
+  group_by_author:
+    # Bucket commits by author and compute the totals each
+    # row needs. Sorted descending by commit count so the
+    # "who shipped the most" answer is first.
+    python: |
+      from collections import defaultdict
+
+      commits = inputs["parsed"]["commits"]
+      by_author = defaultdict(lambda: {
+          "commits": 0,
+          "files": 0,
+          "added": 0,
+          "deleted": 0,
+          "subjects": [],
+      })
+
+      for c in commits:
+          a = by_author[c["author"]]
+          a["commits"] += 1
+          a["files"]   += c["files"]
+          a["added"]   += c["added"]
+          a["deleted"] += c["deleted"]
+          if len(a["subjects"]) < 3:
+              a["subjects"].append(c["subject"][:80])
+
+      rollup = sorted(
+          [{"author": k, **v} for k, v in by_author.items()],
+          key=lambda r: r["commits"],
+          reverse=True,
+      )
+
+      result = {
+          "author_count": len(rollup),
+          "total_commits": sum(r["commits"] for r in rollup),
+          "total_added":   sum(r["added"]   for r in rollup),
+          "total_deleted": sum(r["deleted"] for r in rollup),
+          "by_author": rollup,
+      }
+    depends: [parse_commits]
+    output: report
+
+  write_report:
+    # Persist JSON for downstream consumption (slack bot,
+    # markdown renderer, daily digest mail, etc).
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      payload = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "source": inputs["raw_log"]["source"],
+          **inputs["report"],
+      }
+      out = Path("inputs/git-commit-digest.json").resolve()
+      out.write_text(json.dumps(payload, indent=2))
+      result = {"path": str(out), "size_bytes": out.stat().st_size}
+    depends: [group_by_author]
+    output: written
+
+  show:
+    run: |
+      echo === GIT COMMIT DIGEST ===
+      echo Source:         {{raw_log.source}}
+      echo Commits:        {{report.total_commits}}
+      echo Authors:        {{report.author_count}}
+      echo Lines added:    {{report.total_added}}
+      echo Lines deleted:  {{report.total_deleted}}
+      echo
+      echo Wrote report:   {{written.path}}
+    depends: [write_report]
+    output: report_text

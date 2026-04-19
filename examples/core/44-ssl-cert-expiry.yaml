@@ -1,0 +1,137 @@
+name: ssl-cert-expiry
+description: |
+  Check the TLS certificate expiry date for a list of
+  hostnames in parallel. For each host: open a TCP socket
+  on port 443, pull the peer certificate, parse the
+  `notAfter` field, compute days until expiry, and flag
+  anything expiring within `warn_days`.
+
+  Why this matters:
+    Expired certs are a predictable, boring outage. A
+    5-minute pipeline that runs daily and yells about any
+    cert expiring in <30 days prevents the whole class of
+    "oops we forgot to renew" incidents. Wire this to a
+    webhook action and you have a self-healing reminder.
+
+  DAG shape:
+    check_each_host (foreach, parallel) → summarize → show
+
+  Per-host failure isolation:
+    Each host check is wrapped in try/except — an
+    unreachable host (DNS failure, firewall, wrong port)
+    won't kill the whole run. Failed hosts come back with
+    `status: "error"` and no expiry date so the summary
+    still produces a usable report.
+
+  Why socket + getpeercert() instead of ssl.get_server_certificate:
+    get_server_certificate returns PEM text you have to
+    re-parse. Doing an explicit TCP connect + getpeercert()
+    gives you a parsed dict directly, with the notAfter
+    field already decoded.
+
+  Run it:
+    aiorch run 44-ssl-cert-expiry.yaml
+    aiorch run 44-ssl-cert-expiry.yaml -i warn_days=60
+
+input:
+  hosts:
+    type: list
+    default: [github.com, pypi.org, google.com, cloudflare.com, anthropic.com]
+    description: Hostnames to check. Port 443 is assumed.
+
+  warn_days:
+    type: integer
+    default: 30
+    minimum: 1
+    maximum: 3650
+    description: Flag any cert expiring within this many days.
+
+steps:
+  check_each_host:
+    # One TCP+TLS handshake per host, dispatched in
+    # parallel by the foreach runtime. Each iteration is
+    # independent — no shared state, no cross-host locks.
+    python: |
+      import socket
+      import ssl
+      from datetime import datetime, timezone
+
+      host = inputs["item"]
+      entry = {"host": host}
+
+      try:
+          ctx = ssl.create_default_context()
+          with socket.create_connection((host, 443), timeout=5) as sock:
+              with ctx.wrap_socket(sock, server_hostname=host) as tls:
+                  cert = tls.getpeercert()
+
+          not_after_raw = cert.get("notAfter")
+          # OpenSSL format: "Jul  8 12:00:00 2026 GMT"
+          expires = datetime.strptime(not_after_raw, "%b %d %H:%M:%S %Y %Z")
+          expires = expires.replace(tzinfo=timezone.utc)
+          days_left = (expires - datetime.now(timezone.utc)).days
+
+          issuer = dict(x[0] for x in cert.get("issuer", [])) if cert.get("issuer") else {}
+          subject = dict(x[0] for x in cert.get("subject", [])) if cert.get("subject") else {}
+
+          entry.update({
+              "status": "ok",
+              "not_after": not_after_raw,
+              "days_left": days_left,
+              "issuer": issuer.get("organizationName") or issuer.get("commonName") or "unknown",
+              "subject_cn": subject.get("commonName") or host,
+          })
+      except Exception as e:
+          entry.update({
+              "status": "error",
+              "error": f"{type(e).__name__}: {e}",
+              "days_left": None,
+          })
+
+      result = entry
+    foreach: "{{hosts}}"
+    output: checks
+
+  summarize:
+    # Roll up the per-host results. Anything with
+    # days_left < warn_days (or None from an error) gets
+    # flagged in the expiring list.
+    python: |
+      checks = inputs["checks"]
+      warn = inputs["warn_days"]
+
+      ok = [c for c in checks if c["status"] == "ok"]
+      errored = [c for c in checks if c["status"] != "ok"]
+      expiring = [
+          c for c in ok
+          if c.get("days_left") is not None and c["days_left"] < warn
+      ]
+
+      if ok:
+          soonest = min(ok, key=lambda c: c["days_left"])
+      else:
+          soonest = None
+
+      result = {
+          "total": len(checks),
+          "ok_count": len(ok),
+          "error_count": len(errored),
+          "expiring_count": len(expiring),
+          "soonest_host": soonest["host"] if soonest else None,
+          "soonest_days": soonest["days_left"] if soonest else None,
+          "expiring": expiring,
+          "errored": errored,
+      }
+    depends: [check_each_host]
+    output: summary
+
+  show:
+    run: |
+      echo === SSL CERT EXPIRY ===
+      echo Checked:       {{summary.total}}
+      echo OK:            {{summary.ok_count}}
+      echo Errored:       {{summary.error_count}}
+      echo Expiring soon: {{summary.expiring_count}}
+      echo Soonest host:  {{summary.soonest_host}} [{{summary.soonest_days}} days left]
+    depends: [summarize]
+    output: report_text

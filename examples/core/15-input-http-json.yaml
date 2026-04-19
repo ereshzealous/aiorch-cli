@@ -1,0 +1,175 @@
+name: input-http-json-test
+description: |
+  Second http: input variant. Fetches GitHub's public
+  repository metadata as JSON and computes a small report.
+  Pairs with 14-input-http.yaml (which used format: text)
+  to cover both response shapes the http loader supports.
+
+  What this exercises that 14 didn't:
+
+  1. format: json — HttpInputLoader calls response.json()
+     and the resolved value is a real Python dict (after
+     the LazyHttpInput wrapper resolves on first access).
+
+  2. Nested dict navigation through the wrapper — the
+     pipeline reads inputs["repo"]["owner"]["login"]
+     where the FIRST bracket call hits LazyHttpInput's
+     __getitem__ (triggers the fetch + cache), and the
+     SECOND bracket call is a normal dict access on the
+     returned sub-dict. Worth knowing because the wrapper
+     proxies only top-level access — once you've drilled
+     in, you have a real dict.
+
+  3. The fixed copy.deepcopy() path — the python primitive
+     deep-copies the input context for immutability. Until
+     today this would have stack-overflowed inside
+     LazyHttpInput.__getattr__ recursion. The
+     __deepcopy__ + __getattr__ guard fixes from the http
+     bug we just hit are exercised here too. If this test
+     runs cleanly, both fixes are confirmed.
+
+  4. Real date math on real data — parses the
+     pushed_at ISO timestamp to compute days since the
+     last commit. That value drifts with each test run,
+     which is the right kind of test to have: if it
+     stops drifting, something is caching the response.
+
+  Why anthropics/anthropic-sdk-python:
+    - Public repo, no auth needed
+    - Stable (an Anthropic-owned repo, not going away)
+    - Real activity (regular pushes → days_since_push
+      stays low and varies)
+    - GitHub Repos API has well-documented field shapes,
+      so the pipeline isn't a guess about which fields
+      exist
+
+  What to verify:
+    1. Run dialog has no input fields (http auto-resolves)
+    2. Click Run with empty form → pipeline starts
+    3. analyze step's result dict contains real values:
+       name, full_name, language, stars, forks,
+       open_issues, owner_login, owner_type,
+       license_name, days_since_push
+    4. Numbers (stars, forks, days_since_push) are real
+       integers in the trace, not strings
+    5. The report step navigates the dict via Jinja:
+       {{report.stars}}, {{report.owner_login}}, etc.
+    6. Re-running the test a day later should see
+       days_since_push change (proves no stale cache)
+
+  Expected runtime: < 800ms (mostly the network round trip
+  to api.github.com).
+
+  Caveats:
+    - Anonymous GitHub API requests are rate-limited to
+      60/hour per IP. Plenty for testing.
+    - Requires outbound HTTPS to api.github.com from the
+      executor host. Air-gapped deployments will fail.
+    - The repo's `description` field is sometimes None
+      in the API response — the pipeline normalizes
+      None → "(no description)" so the report doesn't
+      crash on a missing field.
+
+input:
+  repo:
+    type: http
+    url: https://api.github.com/repos/anthropics/anthropic-sdk-python
+    method: GET
+    format: json
+    description: GitHub repository metadata for the public Anthropic Python SDK. Returns a real dict via response.json(), navigable through LazyHttpInput.
+
+steps:
+  analyze:
+    python: |
+      from datetime import datetime, timezone
+
+      repo = inputs["repo"]
+
+      # First bracket call triggers LazyHttpInput.__getitem__ →
+      # _resolve() → real httpx GET + json.loads. The wrapper
+      # caches after the first call, so subsequent reads hit
+      # in-memory, not the network.
+      name = repo["name"]
+      full_name = repo["full_name"]
+
+      # description can legitimately be None for repos without
+      # a tagline. Normalize so the report step doesn't echo
+      # the literal string "None".
+      description = repo["description"] or "(no description set)"
+
+      language = repo["language"] or "Unknown"
+      stars = repo["stargazers_count"]
+      forks = repo["forks_count"]
+      open_issues = repo["open_issues_count"]
+      created_at = repo["created_at"]
+      pushed_at = repo["pushed_at"]
+
+      # repo["owner"] returns the owner sub-dict via the
+      # wrapper's __getitem__. From there it's a normal dict.
+      owner = repo["owner"]
+      owner_login = owner["login"]
+      owner_type = owner["type"]
+
+      # license can be None for unlicensed repos
+      license_obj = repo["license"]
+      license_name = license_obj["name"] if license_obj else "no license"
+      license_spdx = license_obj["spdx_id"] if license_obj else None
+
+      # Real date math: parse the pushed_at ISO 8601 timestamp
+      # (GitHub returns Z-suffixed UTC) and compute days since
+      # the last commit. fromisoformat doesn't accept "Z" until
+      # Python 3.11 — replace with "+00:00" to keep this
+      # portable across the executor's Python version.
+      pushed_dt = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
+      now_dt = datetime.now(timezone.utc)
+      days_since_push = (now_dt - pushed_dt).days
+
+      result = {
+          "name": name,
+          "full_name": full_name,
+          "description": description,
+          "language": language,
+          "stars": stars,
+          "forks": forks,
+          "open_issues": open_issues,
+          "created_at": created_at,
+          "pushed_at": pushed_at,
+          "days_since_push": days_since_push,
+          "owner_login": owner_login,
+          "owner_type": owner_type,
+          "license_name": license_name,
+          "license_spdx": license_spdx,
+      }
+    output: report
+
+  show:
+    # Bare-Jinja navigation of the structured result. Every
+    # {{ }} reference is in bare position so the shell-safe
+    # resolver passes them through shlex.quote automatically.
+    #
+    # Note on punctuation: square brackets [...] are used as
+    # the secondary-attribute separator, NOT parentheses. Bare
+    # `(` and `)` characters in a run: template are interpreted
+    # as shell subshell syntax by /bin/sh — `echo X (Y)` parses
+    # as `echo X` followed by a subshell trying to execute the
+    # command `Y`, which crashes with a syntax error. The square
+    # brackets have no shell-syntax meaning in this position so
+    # they pass straight through to echo as literal characters.
+    run: |
+      echo === GITHUB REPO REPORT ===
+      echo Repo:           {{report.full_name}}
+      echo Description:    {{report.description}}
+      echo Language:       {{report.language}}
+      echo
+      echo Stars:          {{report.stars}}
+      echo Forks:          {{report.forks}}
+      echo Open issues:    {{report.open_issues}}
+      echo
+      echo Owner:          {{report.owner_login}} [{{report.owner_type}}]
+      echo License:        {{report.license_name}} [{{report.license_spdx}}]
+      echo
+      echo Created:        {{report.created_at}}
+      echo Last push:      {{report.pushed_at}}
+      echo Days since push: {{report.days_since_push}}
+    depends: [analyze]
+    output: report_text

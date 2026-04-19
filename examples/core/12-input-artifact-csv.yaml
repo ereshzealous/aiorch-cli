@@ -1,0 +1,170 @@
+name: input-artifact-csv-test
+description: |
+  Artifact format: csv — third of four artifact format
+  variants. Tests the csv.DictReader path of the artifact
+  loader and the new python: primitive working together
+  for tabular aggregation.
+
+  What the artifact loader does for format: csv:
+    1. Fetches bytes from MinIO
+    2. UTF-8 decodes
+    3. Runs csv.DictReader(io.StringIO(text), delimiter=",")
+    4. Returns list(reader) — a list of dicts, one per row,
+       keyed by column name from the header row
+
+  Real-world gotcha worth flagging up front: csv.DictReader
+  returns EVERY value as a string. quantity="2", price="9.99",
+  not 2 and 9.99. The first thing the python step does is
+  cast quantity → int and price → float so the math works.
+  Skip the cast and you get TypeError on the very first
+  arithmetic op.
+
+  What to verify:
+    1. Run dialog shows the artifact drop zone with the
+       file picker hinting `text/csv` (greys out non-CSV
+       files in the OS picker — drag-drop still works)
+    2. Uploading a CSV, the analyze step receives
+       inputs["sales"] as a list[dict], NOT a string
+    3. The aggregations match what you'd compute by hand
+       from the input file (see expected output below)
+    4. Uploading a non-CSV file (e.g. /tmp/note.txt) still
+       parses — csv.DictReader is permissive — but will
+       produce nonsense rows. The runtime accepts the
+       upload because format-mismatch detection is the
+       runtime parser's job, not the upload's
+    5. Trace input panel shows the artifact metadata
+       (id, name, size), not the row data
+    6. Downstream shell `report` step navigates the
+       Python dict via Jinja: {{summary.total_revenue}},
+       {{summary.top_category}}, etc.
+
+  Expected runtime: < 100ms.
+
+  Sample file to upload — a sales transactions CSV:
+
+    cat > sales.csv <<'EOF'
+    date,product,category,quantity,price
+    2026-04-01,Widget,Tools,2,9.99
+    2026-04-01,Gadget,Electronics,1,49.99
+    2026-04-02,Widget,Tools,3,9.99
+    2026-04-02,Gizmo,Toys,1,14.99
+    2026-04-03,Doohickey,Electronics,2,29.99
+    EOF
+
+  Expected output for that input:
+    rows                = 5
+    total_units         = 9
+    total_revenue       = 174.91
+    unique_products     = 4
+    unique_categories   = 3 (Electronics, Tools, Toys)
+    top_product         = Doohickey @ 59.98
+    top_category        = Electronics @ 109.97
+    by_category:
+      Electronics  109.97
+      Tools         49.95
+      Toys          14.99
+
+input:
+  sales:
+    type: artifact
+    format: csv
+    content_type: text/csv
+    max_size_mb: 5
+    description: Sales transactions CSV with header row. Columns expected - date, product, category, quantity (int), price (float).
+
+steps:
+  analyze:
+    python: |
+      from collections import defaultdict
+
+      # inputs["sales"] is ALREADY a list of dicts because the
+      # artifact loader called csv.DictReader before we got here.
+      # No file IO, no parsing — just iterate.
+      rows = inputs["sales"]
+
+      # ── Shape check (best practice for CSV inputs) ──────────────
+      # csv.DictReader is permissive: it'll happily parse a non-CSV
+      # file as one weird-looking row, then a downstream KeyError
+      # tells the user "missing column 'quantity'" — technically
+      # accurate but useless. Validate the columns up front so the
+      # error names the actual problem: this is not a valid sales
+      # CSV.
+      if not rows:
+          raise ValueError(
+              "Uploaded file appears to be empty or has no data rows. "
+              "Expected a CSV with header row and at least one data row."
+          )
+      required_cols = {"product", "category", "quantity", "price"}
+      first_row_cols = set(rows[0].keys())
+      missing = required_cols - first_row_cols
+      if missing:
+          raise ValueError(
+              f"Uploaded file is not a valid sales CSV — missing required "
+              f"column(s): {sorted(missing)}. "
+              f"Got columns: {sorted(first_row_cols)}. "
+              f"Expected: {sorted(required_cols)} (plus optional 'date'). "
+              f"Did you upload a file with a different schema, or a "
+              f"non-CSV file that csv.DictReader misparsed as one row?"
+          )
+
+      # csv.DictReader returns every value as a string. Cast the
+      # numeric columns once, up front, so the rest of the step
+      # can do real arithmetic. Skip this and the first
+      # `quantity * price` raises TypeError.
+      for r in rows:
+          r["quantity"] = int(r["quantity"])
+          r["price"] = float(r["price"])
+
+      total_units = sum(r["quantity"] for r in rows)
+      total_revenue = round(sum(r["quantity"] * r["price"] for r in rows), 2)
+
+      # Per-product revenue, summed across rows
+      by_product = defaultdict(float)
+      for r in rows:
+          by_product[r["product"]] += r["quantity"] * r["price"]
+      by_product = {k: round(v, 2) for k, v in by_product.items()}
+
+      # Per-category revenue
+      by_category = defaultdict(float)
+      for r in rows:
+          by_category[r["category"]] += r["quantity"] * r["price"]
+      by_category = {k: round(v, 2) for k, v in by_category.items()}
+
+      # Top product / category by revenue
+      top_product = max(by_product.items(), key=lambda kv: kv[1])
+      top_category = max(by_category.items(), key=lambda kv: kv[1])
+
+      result = {
+          "rows": len(rows),
+          "total_units": total_units,
+          "total_revenue": total_revenue,
+          "unique_products": len(by_product),
+          "unique_categories": len(by_category),
+          "top_product_name": top_product[0],
+          "top_product_revenue": top_product[1],
+          "top_category_name": top_category[0],
+          "top_category_revenue": top_category[1],
+          "by_category": by_category,
+      }
+    output: summary
+
+  report:
+    # Bare-Jinja navigation of the python dict — every reference
+    # is in bare position so the shell-safe resolver passes them
+    # through shlex.quote automatically. No quoting around any
+    # {{ }} expression.
+    run: |
+      echo === SALES SUMMARY ===
+      echo Rows ingested:        {{summary.rows}}
+      echo Total units sold:     {{summary.total_units}}
+      echo Total revenue:        {{summary.total_revenue}}
+      echo Unique products:      {{summary.unique_products}}
+      echo Unique categories:    {{summary.unique_categories}}
+      echo
+      echo Top product:          {{summary.top_product_name}} at {{summary.top_product_revenue}}
+      echo Top category:         {{summary.top_category_name}} at {{summary.top_category_revenue}}
+      echo
+      echo By category breakdown:
+      echo {{summary.by_category}}
+    depends: [analyze]
+    output: report

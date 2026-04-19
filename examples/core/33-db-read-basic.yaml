@@ -1,0 +1,82 @@
+name: db-read-basic
+description: |
+  Simplest possible database read pipeline for CLI mode.
+  Uses Python's stdlib `sqlite3` module from a `python:`
+  step — no aiorch connector needed, no Platform mode
+  required.
+
+  This is the warmup for pipelines 34 and 35. Run this
+  first to confirm your sample DB is set up correctly.
+
+  Why sqlite3 inside python: instead of `type: connector`?
+    - Connectors require Platform mode (Postgres-backed
+      connector store + workspace context). CLI mode has
+      neither.
+    - `python:` steps run in the executor's interpreter
+      with full access to whatever's on the executor's
+      Python path. sqlite3 is stdlib so it always works.
+    - The same trick works for asyncpg (Postgres),
+      psycopg, mysql.connector, redis, anything else
+      with a Python driver. Just import inside the step.
+
+  Prerequisites:
+    1. Run inputs/setup-sample-db.sh once to create the
+       sample database. The script is idempotent — safe
+       to re-run anytime.
+
+  Run it:
+    aiorch run 33-db-read-basic.yaml
+    aiorch run 33-db-read-basic.yaml -i limit=5
+    aiorch run 33-db-read-basic.yaml -i limit=20
+
+input:
+  limit:
+    type: integer
+    default: 10
+    minimum: 1
+    maximum: 100
+    description: Maximum number of orders to fetch.
+
+steps:
+  fetch:
+    python: |
+      import sqlite3
+      from pathlib import Path
+
+      # The DB lives next to this YAML in inputs/sample.db.
+      # Use an absolute path resolved against the script's
+      # location so the pipeline works regardless of cwd.
+      db_path = Path("inputs/sample.db").resolve()
+      if not db_path.exists():
+          raise FileNotFoundError(
+              f"Sample DB not found at {db_path}. "
+              f"Run inputs/setup-sample-db.sh first."
+          )
+
+      conn = sqlite3.connect(str(db_path))
+      conn.row_factory = sqlite3.Row  # rows as dict-like
+      cursor = conn.execute(
+          "SELECT id, customer_id, sku, quantity, order_date "
+          "FROM orders ORDER BY order_date DESC, id DESC LIMIT ?",
+          (inputs["limit"],),
+      )
+      rows = [dict(r) for r in cursor.fetchall()]
+      conn.close()
+
+      result = {
+          "row_count": len(rows),
+          "limit": inputs["limit"],
+          "rows": rows,
+      }
+    output: query
+
+  show:
+    run: |
+      echo === RECENT ORDERS ===
+      echo Limit:  {{query.limit}}
+      echo Rows:   {{query.row_count}}
+      echo
+      echo First row: id={{query.rows[0].id}} customer={{query.rows[0].customer_id}} sku={{query.rows[0].sku}}
+      echo Last row:  id={{query.rows[-1].id}} customer={{query.rows[-1].customer_id}} sku={{query.rows[-1].sku}}
+    depends: [fetch]
+    output: report

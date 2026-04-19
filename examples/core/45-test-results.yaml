@@ -1,0 +1,161 @@
+name: test-results
+description: |
+  Parse a JUnit XML test report (the standard output of
+  `pytest --junitxml=...` and most other CI runners) and
+  produce a structured summary: totals by outcome, every
+  failure with its class + test name, and the top N
+  slowest tests by duration.
+
+  Use case:
+    CI posts a junit.xml alongside every build. Pointing
+    this pipeline at that file gives a stable JSON shape
+    you can feed into a Slack post, a dashboard, or a
+    flaky-test detector. The failure list + slowest list
+    is usually the two things a human cares about from a
+    raw junit dump.
+
+  DAG shape:
+    parse_junit → [extract_failures || extract_slowest] → build_report → show
+
+  extract_failures and extract_slowest run in parallel in
+  the same DAG layer — they're independent reducers over
+  the same parsed test list.
+
+  Parser choice:
+    xml.etree.ElementTree from stdlib. No external deps.
+    JUnit XML is a small, well-defined format so stdlib
+    works fine at any realistic scale.
+
+  Run it:
+    aiorch run 45-test-results.yaml
+    aiorch run 45-test-results.yaml -i junit_path=./ci/pytest.xml
+
+input:
+  junit_path:
+    type: string
+    default: inputs/sample-junit.xml
+    description: Path to a JUnit XML file. Default ships with the catalog.
+
+steps:
+  parse_junit:
+    # Walk all <testcase> elements across all <testsuite>
+    # blocks. Each case becomes a dict with class, name,
+    # time, outcome, and (if failed) the failure message.
+    python: |
+      import xml.etree.ElementTree as ET
+      from pathlib import Path
+
+      tree = ET.parse(Path(inputs["junit_path"]))
+      root = tree.getroot()
+
+      tests = []
+      for suite in root.iter("testsuite"):
+          for case in suite.iter("testcase"):
+              failure = case.find("failure")
+              error   = case.find("error")
+              skipped = case.find("skipped")
+
+              if failure is not None:
+                  outcome = "failed"
+                  message = failure.get("message", "")
+              elif error is not None:
+                  outcome = "error"
+                  message = error.get("message", "")
+              elif skipped is not None:
+                  outcome = "skipped"
+                  message = skipped.get("message", "")
+              else:
+                  outcome = "passed"
+                  message = ""
+
+              tests.append({
+                  "classname": case.get("classname", ""),
+                  "name": case.get("name", ""),
+                  "time": float(case.get("time", "0") or "0"),
+                  "outcome": outcome,
+                  "message": message,
+              })
+
+      counts = {"passed": 0, "failed": 0, "error": 0, "skipped": 0}
+      for t in tests:
+          counts[t["outcome"]] += 1
+
+      result = {
+          "total": len(tests),
+          "counts": counts,
+          "total_time": round(sum(t["time"] for t in tests), 3),
+          "tests": tests,
+      }
+    output: parsed
+
+  extract_failures:
+    # Pull out just the failed/errored cases with their
+    # messages. Parallel with extract_slowest.
+    python: |
+      failures = [
+          {
+              "classname": t["classname"],
+              "name": t["name"],
+              "outcome": t["outcome"],
+              "message": t["message"][:120],
+          }
+          for t in inputs["parsed"]["tests"]
+          if t["outcome"] in ("failed", "error")
+      ]
+      result = {"count": len(failures), "failures": failures}
+    depends: [parse_junit]
+    output: failures
+
+  extract_slowest:
+    # Top 5 slowest tests regardless of outcome. Parallel
+    # with extract_failures.
+    python: |
+      tests = inputs["parsed"]["tests"]
+      slowest = sorted(tests, key=lambda t: t["time"], reverse=True)[:5]
+      result = {
+          "slowest": [
+              {"classname": t["classname"], "name": t["name"], "time": t["time"]}
+              for t in slowest
+          ],
+      }
+    depends: [parse_junit]
+    output: slowest
+
+  build_report:
+    # Fan-in: combine counts + failures + slowest into a
+    # single summary dict and persist as JSON.
+    python: |
+      import json
+      from pathlib import Path
+      from datetime import datetime, timezone
+
+      parsed = inputs["parsed"]
+      report = {
+          "generated_at": datetime.now(timezone.utc).isoformat(),
+          "junit_path": inputs["junit_path"],
+          "total": parsed["total"],
+          "counts": parsed["counts"],
+          "total_time_sec": parsed["total_time"],
+          "failure_count": inputs["failures"]["count"],
+          "failures": inputs["failures"]["failures"],
+          "slowest": inputs["slowest"]["slowest"],
+      }
+      out = Path("inputs/test-results-report.json").resolve()
+      out.write_text(json.dumps(report, indent=2))
+      result = {**report, "path": str(out)}
+    depends: [extract_failures, extract_slowest]
+    output: report
+
+  show:
+    run: |
+      echo === TEST RESULTS ===
+      echo Total:    {{report.total}}
+      echo Passed:   {{report.counts.passed}}
+      echo Failed:   {{report.counts.failed}}
+      echo Skipped:  {{report.counts.skipped}}
+      echo Duration: {{report.total_time_sec}}s
+      echo Failures: {{report.failure_count}}
+      echo Slowest:  {{report.slowest[0].name}} [{{report.slowest[0].time}}s]
+      echo Report:   {{report.path}}
+    depends: [build_report]
+    output: report_text

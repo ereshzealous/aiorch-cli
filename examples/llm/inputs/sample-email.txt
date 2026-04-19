@@ -1,0 +1,20 @@
+From: mei@acme-corp.com
+To: support@aiorch.io
+Subject: billing
+
+Hi team,
+
+We got charged twice this month for the Business plan. First on April 2,
+then again on April 17. I see both charges on my Stripe receipt. Our
+account email is mei@acme-corp.com. We're running a quarterly launch and
+this is going to blow through our ops budget if it happens again — please
+confirm which charge is the real one and credit the duplicate.
+
+Also, while I have you — is there any way to export the audit log as CSV?
+I need to attach it to our SOC 2 evidence submission by Friday, and the UI
+export seems to only give me JSON. If I need to talk to a different team
+about that, just let me know.
+
+Thanks,
+Mei
+VP Engineering, Acme Corp

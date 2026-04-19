@@ -1,0 +1,149 @@
+name: diamond-dependency
+description: |
+  The canonical "harder than it looks" DAG shape:
+
+       source
+        /  \
+       A    B
+        \  /
+       merge
+
+  One source step, two parallel branches that each
+  transform the same data differently, joined back into
+  one merge step. Tests:
+
+    - aiorch's DAG layering: A and B run in PARALLEL
+      (one DAG layer), merge runs after both finish
+    - Jinja navigation across BOTH branch outputs in
+      the merge step
+    - Each branch sees the SAME source output, but
+      transforms it independently
+
+  Real workflows that have this shape:
+    - Statistical reports (raw data → [chart, table] → page)
+    - Data pipelines (source → [normalized, summarized] → output)
+    - ML feature engineering (raw → [scaled, encoded] → model_input)
+
+  No connectors, no external services, no LLM. Pure
+  python. Open the Trace timeline after running and you
+  should see the two branches overlap visibly.
+
+  What to verify:
+    1. The two branches run in PARALLEL, not sequentially
+       (visible in the Execution Timeline)
+    2. Both branches read the same source dict
+    3. The merge step references both branch outputs
+    4. The final report shows both transforms
+
+input:
+  data_size:
+    type: integer
+    default: 1000
+    minimum: 10
+    maximum: 100000
+    description: How many random integers to generate as the source dataset.
+
+steps:
+  source:
+    # The single source. Generates a synthetic dataset
+    # that both branches will consume.
+    python: |
+      import random
+      random.seed(42)  # deterministic so each run is comparable
+      data = [random.randint(1, 1000) for _ in range(inputs["data_size"])]
+      result = {
+          "size": len(data),
+          "data": data,
+      }
+    output: source_data
+
+  branch_normalize:
+    # Branch A: normalize values to 0.0-1.0 range
+    python: |
+      import time
+      time.sleep(0.3)  # simulated work, makes parallelism visible
+
+      raw = inputs["source_data"]["data"]
+      lo = min(raw)
+      hi = max(raw)
+      span = hi - lo if hi != lo else 1
+      normalized = [(v - lo) / span for v in raw]
+
+      result = {
+          "branch": "normalize",
+          "min": lo,
+          "max": hi,
+          "first_5": [round(x, 4) for x in normalized[:5]],
+          "mean": round(sum(normalized) / len(normalized), 4),
+      }
+    depends: [source]
+    output: normalized
+
+  branch_summary:
+    # Branch B: statistical summary (count, mean, stddev,
+    # quartiles). Independent of branch A — both read the
+    # same source.
+    python: |
+      import time
+      import statistics
+      time.sleep(0.3)  # simulated work
+
+      raw = inputs["source_data"]["data"]
+      sorted_data = sorted(raw)
+      n = len(sorted_data)
+
+      result = {
+          "branch": "summary",
+          "count": n,
+          "mean": round(statistics.mean(raw), 2),
+          "stdev": round(statistics.stdev(raw), 2) if n > 1 else 0,
+          "median": sorted_data[n // 2],
+          "p25": sorted_data[n // 4],
+          "p75": sorted_data[(3 * n) // 4],
+      }
+    depends: [source]
+    output: summary
+
+  merge:
+    # The fan-in. References both branch outputs by their
+    # declared variable names (normalized + summary). The
+    # DAG runner won't dispatch this step until both
+    # branches complete, so by the time this runs both
+    # values are guaranteed to be in the context.
+    python: |
+      norm = inputs["normalized"]
+      summ = inputs["summary"]
+
+      result = {
+          "data_size": inputs["source_data"]["size"],
+          "normalized_mean": norm["mean"],
+          "normalized_min": norm["min"],
+          "normalized_max": norm["max"],
+          "raw_mean": summ["mean"],
+          "raw_stdev": summ["stdev"],
+          "raw_median": summ["median"],
+          "raw_p25": summ["p25"],
+          "raw_p75": summ["p75"],
+          "first_5_normalized": norm["first_5"],
+      }
+    depends: [branch_normalize, branch_summary]
+    output: report
+
+  show:
+    run: |
+      echo === DIAMOND MERGE REPORT ===
+      echo Data size:       {{report.data_size}}
+      echo
+      echo Raw stats [from branch_summary]:
+      echo   mean:   {{report.raw_mean}}
+      echo   stdev:  {{report.raw_stdev}}
+      echo   median: {{report.raw_median}}
+      echo   p25:    {{report.raw_p25}}
+      echo   p75:    {{report.raw_p75}}
+      echo
+      echo Normalized [from branch_normalize]:
+      echo   range:  [{{report.normalized_min}}, {{report.normalized_max}}]
+      echo   mean:   {{report.normalized_mean}}
+      echo   first 5: {{report.first_5_normalized}}
+    depends: [merge]
+    output: report_text

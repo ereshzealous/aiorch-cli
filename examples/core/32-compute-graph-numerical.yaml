@@ -1,0 +1,183 @@
+name: compute-graph-numerical
+description: |
+  Wide DAG that simulates a small numerical compute
+  graph. Four scalar inputs feed three layers of
+  parallel transforms that join into one final summary.
+
+  Layer structure:
+
+    Layer 0 (inputs):    a, b, c, d  (user-supplied scalars)
+    Layer 1 (4 ops):     a+b, c+d, a*c, b*d   (parallel)
+    Layer 2 (3 ops):     max(L1), sum(L1), product(L1)  (parallel)
+    Layer 3 (output):    final  (depends on all of L2)
+
+  Visually:
+                    a   b   c   d
+                    │   │   │   │
+              ┌─────┴─┬─┴─┬─┴───┘
+              ▼       ▼   ▼     ▼
+            a+b     c+d a*c   b*d        ← Layer 1 (4 parallel)
+              │       │   │     │
+              └───┬───┴─┬─┴─────┘
+                  ▼     ▼     ▼
+                 max   sum   prod        ← Layer 2 (3 parallel)
+                  │     │     │
+                  └─────┼─────┘
+                        ▼
+                      final              ← Layer 3 (single)
+
+  This shape comes up in:
+    - Numerical pipelines (tensor ops with branching)
+    - Feature engineering (raw → derived → aggregated)
+    - Rules engines (atoms → conjunctions → decisions)
+
+  Tests aiorch's DAG layering across multiple parallel
+  layers — Layer 1's four steps run concurrently, then
+  Layer 2's three steps run concurrently after L1 finishes,
+  then Layer 3 runs alone. Open the trace timeline and
+  you'll see the layering clearly.
+
+  No connectors, no LLM. Pure local arithmetic.
+
+input:
+  a:
+    type: number
+    default: 3.0
+    description: First scalar input
+  b:
+    type: number
+    default: 4.0
+    description: Second scalar input
+  c:
+    type: number
+    default: 5.0
+    description: Third scalar input
+  d:
+    type: number
+    default: 2.0
+    description: Fourth scalar input
+
+# ──────────── Layer 1 ─────────────────────────────────
+# Four parallel binary ops on the four scalar inputs.
+# Each step depends on no other step, so they all
+# dispatch concurrently.
+steps:
+  l1_add_ab:
+    python: |
+      result = {"name": "a+b", "value": float(inputs["a"]) + float(inputs["b"])}
+    output: l1_add_ab
+
+  l1_add_cd:
+    python: |
+      result = {"name": "c+d", "value": float(inputs["c"]) + float(inputs["d"])}
+    output: l1_add_cd
+
+  l1_mul_ac:
+    python: |
+      result = {"name": "a*c", "value": float(inputs["a"]) * float(inputs["c"])}
+    output: l1_mul_ac
+
+  l1_mul_bd:
+    python: |
+      result = {"name": "b*d", "value": float(inputs["b"]) * float(inputs["d"])}
+    output: l1_mul_bd
+
+  # ──────────── Layer 2 ───────────────────────────────
+  # Three parallel reductions over Layer 1 outputs.
+  # Each L2 step depends on all four L1 outputs, so
+  # the runtime won't dispatch L2 until L1 completes.
+
+  l2_max:
+    python: |
+      vals = [
+          inputs["l1_add_ab"]["value"],
+          inputs["l1_add_cd"]["value"],
+          inputs["l1_mul_ac"]["value"],
+          inputs["l1_mul_bd"]["value"],
+      ]
+      result = {"op": "max", "value": max(vals)}
+    depends: [l1_add_ab, l1_add_cd, l1_mul_ac, l1_mul_bd]
+    output: l2_max
+
+  l2_sum:
+    python: |
+      vals = [
+          inputs["l1_add_ab"]["value"],
+          inputs["l1_add_cd"]["value"],
+          inputs["l1_mul_ac"]["value"],
+          inputs["l1_mul_bd"]["value"],
+      ]
+      result = {"op": "sum", "value": sum(vals)}
+    depends: [l1_add_ab, l1_add_cd, l1_mul_ac, l1_mul_bd]
+    output: l2_sum
+
+  l2_product:
+    python: |
+      vals = [
+          inputs["l1_add_ab"]["value"],
+          inputs["l1_add_cd"]["value"],
+          inputs["l1_mul_ac"]["value"],
+          inputs["l1_mul_bd"]["value"],
+      ]
+      from functools import reduce
+      result = {"op": "product", "value": reduce(lambda x, y: x * y, vals, 1.0)}
+    depends: [l1_add_ab, l1_add_cd, l1_mul_ac, l1_mul_bd]
+    output: l2_product
+
+  # ──────────── Layer 3 ───────────────────────────────
+  # Final fan-in. Combines all three L2 outputs into
+  # one summary.
+
+  final:
+    python: |
+      l2_vals = [
+          inputs["l2_max"],
+          inputs["l2_sum"],
+          inputs["l2_product"],
+      ]
+      result = {
+          "inputs": {
+              "a": float(inputs["a"]),
+              "b": float(inputs["b"]),
+              "c": float(inputs["c"]),
+              "d": float(inputs["d"]),
+          },
+          "layer1": {
+              "a+b": inputs["l1_add_ab"]["value"],
+              "c+d": inputs["l1_add_cd"]["value"],
+              "a*c": inputs["l1_mul_ac"]["value"],
+              "b*d": inputs["l1_mul_bd"]["value"],
+          },
+          "layer2": {
+              "max":     inputs["l2_max"]["value"],
+              "sum":     inputs["l2_sum"]["value"],
+              "product": inputs["l2_product"]["value"],
+          },
+          "summary_value": (
+              inputs["l2_max"]["value"]
+              + inputs["l2_sum"]["value"]
+              + inputs["l2_product"]["value"]
+          ),
+      }
+    depends: [l2_max, l2_sum, l2_product]
+    output: report
+
+  show:
+    run: |
+      echo === COMPUTE GRAPH RESULT ===
+      echo Inputs:    a={{report.inputs.a}} b={{report.inputs.b}} c={{report.inputs.c}} d={{report.inputs.d}}
+      echo
+      echo Layer 1 [parallel]:
+      echo   a+b = {{report.layer1['a+b']}}
+      echo   c+d = {{report.layer1['c+d']}}
+      echo   a*c = {{report.layer1['a*c']}}
+      echo   b*d = {{report.layer1['b*d']}}
+      echo
+      echo Layer 2 [parallel]:
+      echo   max     = {{report.layer2.max}}
+      echo   sum     = {{report.layer2.sum}}
+      echo   product = {{report.layer2.product}}
+      echo
+      echo Final summary value: {{report.summary_value}}
+    depends: [final]
+    output: report_text

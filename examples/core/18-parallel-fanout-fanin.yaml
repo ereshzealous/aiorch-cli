@@ -1,0 +1,122 @@
+name: parallel-fanout-fanin
+description: |
+  Demonstrates the canonical parallel fan-out / fan-in DAG
+  shape — a single setup step, four independent workers
+  that run concurrently, then a final aggregator.
+
+  Why this shape matters:
+    - Multi-source dashboards (read N sources, merge once)
+    - Map/reduce jobs at small scale
+    - Anything where N independent computations need to
+      finish before a final report
+
+  This pipeline uses ZERO connectors and NO LLM. Every
+  step is a `python:` block doing synthetic work + a
+  small time.sleep so you can SEE the parallelism in the
+  Trace timeline (the four worker steps should overlap
+  visibly, not stack).
+
+  How aiorch parallelizes:
+    Steps in the same DAG layer (i.e. all steps whose
+    declared `depends:` are satisfied at the same time)
+    are submitted to asyncio.gather and run concurrently.
+    The four workers below all `depends: [stage]`, so
+    they form one DAG layer and dispatch in parallel.
+
+  What to verify:
+    1. Run the pipeline manually (no inputs needed).
+    2. Open the Trace page → Execution Timeline.
+    3. The four `worker_*` bars should OVERLAP each
+       other along the time axis, not stack sequentially.
+    4. Total wall-clock duration should be ~0.5s
+       (one worker's sleep), NOT ~2s (4 workers serial).
+    5. The `aggregate` step's report shows all four
+       branches contributed.
+
+  Expected runtime: ~600ms total (one ~500ms parallel
+  block + ~100ms of overhead).
+
+steps:
+  stage:
+    # Single setup step — produces a small dataset that
+    # all four workers will consume from a different angle.
+    python: |
+      import time
+      result = {
+          "started_at": time.time(),
+          "dataset": list(range(1, 101)),  # 1..100
+          "config": {"label": "demo-run"},
+      }
+    output: stage_data
+
+  worker_sum:
+    python: |
+      import time
+      time.sleep(0.5)
+      data = inputs["stage_data"]["dataset"]
+      result = {"branch": "sum", "value": sum(data)}
+    depends: [stage]
+    output: branch_sum
+
+  worker_max:
+    python: |
+      import time
+      time.sleep(0.5)
+      data = inputs["stage_data"]["dataset"]
+      result = {"branch": "max", "value": max(data)}
+    depends: [stage]
+    output: branch_max
+
+  worker_mean:
+    python: |
+      import time
+      time.sleep(0.5)
+      data = inputs["stage_data"]["dataset"]
+      result = {"branch": "mean", "value": sum(data) / len(data)}
+    depends: [stage]
+    output: branch_mean
+
+  worker_count_evens:
+    python: |
+      import time
+      time.sleep(0.5)
+      data = inputs["stage_data"]["dataset"]
+      evens = [n for n in data if n % 2 == 0]
+      result = {"branch": "count_evens", "value": len(evens)}
+    depends: [stage]
+    output: branch_evens
+
+  aggregate:
+    # Final fan-in step. Depends on all four workers, so
+    # the DAG runner won't dispatch this until they all
+    # complete. The four worker outputs are available in
+    # the context as their declared `output:` variables.
+    python: |
+      import time
+      branches = [
+          inputs["branch_sum"],
+          inputs["branch_max"],
+          inputs["branch_mean"],
+          inputs["branch_evens"],
+      ]
+      total_duration = time.time() - inputs["stage_data"]["started_at"]
+      result = {
+          "branch_count": len(branches),
+          "branches": branches,
+          "wall_clock_seconds": round(total_duration, 3),
+      }
+    depends: [worker_sum, worker_max, worker_mean, worker_count_evens]
+    output: report
+
+  show:
+    run: |
+      echo === FAN-OUT / FAN-IN REPORT ===
+      echo Wall clock:   {{report.wall_clock_seconds}}s
+      echo Branches:     {{report.branch_count}}
+      echo
+      echo - {{report.branches[0].branch}} = {{report.branches[0].value}}
+      echo - {{report.branches[1].branch}} = {{report.branches[1].value}}
+      echo - {{report.branches[2].branch}} = {{report.branches[2].value}}
+      echo - {{report.branches[3].branch}} = {{report.branches[3].value}}
+    depends: [aggregate]
+    output: report_text

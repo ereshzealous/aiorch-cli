@@ -1,0 +1,12 @@
+main|1776124800|Priya Natarajan|chore(release): cut 0.6.1 tag
+develop|1776211200|Aiko Tanaka|feat(ui): webhook management page skeleton
+feature/webhooks-v2|1775952000|Jonas Eriksen|feat(api): inbound webhook triggers with hmac verification
+feature/llm-retry-policy|1775779200|Priya Natarajan|feat(executor): llm retry policy step option
+feature/scheduler-cleanup|1775174400|Marcus Weller|refactor(scheduler): drop apscheduler dep
+bugfix/null-trace|1774656000|Rosa Delgado|fix(runtime): null deref on skipped step trace
+feature/connector-sftp|1773187200|Aiko Tanaka|feat(connectors): sftp source/sink draft
+hotfix/issue-412|1772323200|Jonas Eriksen|fix(api): reject empty hmac secret at registration
+feature/db-partitioning|1770595200|Marcus Weller|wip(db): monthly partitioning for trace table
+wip/old-prototype|1768003200|Priya Natarajan|wip: playground multi-tenant spike
+feature/abandoned-dag-ui|1764115200|Aiko Tanaka|wip(ui): alternate dag canvas prototype
+archive/pre-v0.1|1757203200|Marcus Weller|chore: pre-v0.1 snapshot

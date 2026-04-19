@@ -1,0 +1,60 @@
+name: json-normalizer
+description: |
+  Read messy JSON where fields are inconsistently named (full_name vs
+  name vs fullName, email_address vs email, etc.), ask the LLM to
+  normalize each record into a clean canonical schema, write the
+  cleaned JSON back to disk.
+
+  Pattern for: "I'm ingesting data from 5 partners who each name
+  their fields differently." Doing this with regex gets painful
+  fast; an LLM with an explicit target schema is the right tool.
+
+  Usage:
+    aiorch run 21-json-normalizer.yaml -i messy=@./inputs/messy-users.json
+
+input:
+  messy:
+    type: artifact
+    format: json
+    description: JSON array of records with inconsistent field naming
+
+steps:
+  normalize_each:
+    prompt: |
+      Normalize this record into the canonical schema. Map synonyms
+      to the canonical key (full_name/fullName/name → "name";
+      email_address/email_addr/e_mail → "email"; phone/phone_number/
+      tel → "phone"; city/location/town → "city"). Drop any key that
+      doesn't fit. Reply with JSON using ONLY these keys:
+        name, email, phone, city
+
+      Record: {{item}}
+    format: json
+    schema:
+      type: object
+      required: [name, email, phone, city]
+      properties:
+        name:  { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        phone: { type: [string, "null"] }
+        city:  { type: [string, "null"] }
+    retry_on_invalid: 2
+    foreach: "{{messy}}"
+    output: cleaned
+
+  write_json:
+    python: |
+      import json, pathlib
+      normalized = inputs["cleaned"]
+      out = pathlib.Path("./inputs/users-normalized.json")
+      out.write_text(json.dumps(normalized, indent=2))
+      print(f"==== Normalized {len(normalized)} records ====")
+      for r in normalized[:5]:
+          print(f"  name={r.get('name')!r:25} email={r.get('email')!r:25} "
+                f"city={r.get('city')!r}")
+      if len(normalized) > 5:
+          print(f"  ... and {len(normalized) - 5} more.")
+      print(f"\nWrote {out.resolve()}")
+      result = {"output_path": str(out), "count": len(normalized)}
+    depends: [normalize_each]
+    output: report

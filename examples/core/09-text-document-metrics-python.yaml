@@ -1,0 +1,103 @@
+name: text-document-metrics-python
+description: |
+  Same workflow as 08-text-document-metrics.yaml, rewritten
+  around the first-class `python:` primitive. Uploads a text
+  artifact, runs a single Python analyzer step inline in the
+  executor's own interpreter, and emits a structured result
+  plus a human-readable report.
+
+  Why this is the clean version (compare to the pre-primitive
+  shell hack we started with):
+    - No mktemp + printf + redirect dance just to get text
+      into a Python script.
+    - No shell-quote-then-Python-double-quote dodging.
+    - No `python3 -c` subprocess startup cost (~30-100ms).
+    - Structured result flows through Jinja as a real dict:
+      `{{report.chars}}` just works.
+    - Exceptions in the body come back with full Python
+      traceback in the Trace stderr panel.
+
+  What to verify:
+    1. Run dialog shows the same artifact drop zone as the
+       08 shell version
+    2. The single `analyze` step produces structured output:
+       chars, words, lines, longest_line, top_words, todos
+    3. Trace timeline shows one python step + one report
+       step — no stage/plumbing overhead
+    4. `summary` uses `{{report.top_words[0]}}` etc. to prove
+       the dict and list structures are navigable through
+       Jinja from the Python step output
+    5. Upload a file with unicode (e.g. "café, naïve") and
+       the `\w+` regex counts them correctly — the shell
+       version couldn't without switching tools
+
+  Expected runtime: < 100ms for files up to ~100KB.
+
+  Sample files to try:
+      printf "The quick brown fox jumps over the lazy dog.\nThe fox is very quick.\n# TODO: verify dog species\nLorem ipsum dolor sit amet.\n" > /tmp/prose.txt
+      printf "def foo():\n    # TODO: refactor this\n    return 1\n\n# FIXME: remove\ndef bar(): pass\n" > /tmp/code.txt
+      echo "café naïve résumé" > /tmp/unicode.txt
+
+input:
+  document:
+    type: artifact
+    format: text
+    content_type: text/plain
+    max_size_mb: 5
+    description: Plaintext document to analyze. UTF-8 decoded before Python sees it — unicode-safe word counting with the \w+ regex.
+
+steps:
+  analyze:
+    python: |
+      import re
+      from collections import Counter
+
+      text = inputs["document"]
+
+      # \w+ is unicode-aware in Python 3, so café, naïve, résumé
+      # all count as real words. The 08 shell version couldn't
+      # do this without switching off `tr -cs 'a-zA-Z'`.
+      words = re.findall(r"\w+", text, flags=re.UNICODE)
+      chars = len(text)
+      lines = text.count("\n") + (0 if text.endswith("\n") or not text else 1)
+
+      freq = Counter(w.lower() for w in words).most_common(10)
+
+      # max() with key=len finds the longest line in one pass.
+      # Fall back to empty string on an empty document.
+      longest = max(text.split("\n"), key=len) if text else ""
+
+      todos = len(re.findall(r"(?i)todo|fixme|hack|xxx", text))
+
+      result = {
+          "chars": chars,
+          "words": len(words),
+          "lines": lines,
+          "longest_line_length": len(longest),
+          "longest_line_text": longest,
+          "todos": todos,
+          "top_words": [{"word": w, "count": c} for w, c in freq],
+      }
+    output: report
+
+  report:
+    # Human-readable composition from the structured result.
+    # Uses Jinja dict / list navigation — no parsing of strings,
+    # no splitting on newlines, no awk. The dict came straight
+    # from Python and stays a dict in the Jinja context.
+    #
+    # Remember the rule: Jinja expressions NEVER go inside shell
+    # quotes. shlex.quote handles the whole value automatically,
+    # so `echo {{var}}` is safe even when `var` contains spaces
+    # or special chars. `echo "{{var}}"` would be flagged by the
+    # shell-safe scanner.
+    run: |
+      echo === DOCUMENT METRICS REPORT ===
+      echo Chars:         {{report.chars}}
+      echo Words:         {{report.words}}
+      echo Lines:         {{report.lines}}
+      echo TODO markers:  {{report.todos}}
+      echo Longest line length: {{report.longest_line_length}}
+      echo Top 3 words: {{report.top_words[0].word}} {{report.top_words[1].word}} {{report.top_words[2].word}}
+    depends: [analyze]
+    output: summary

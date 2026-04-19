@@ -1,0 +1,79 @@
+__AIORCH_COMMIT__a1b2c3d4e5f6|Priya Natarajan|priya@example.com|1776124800|feat(executor): parallel step dispatch with bounded worker pool
+12	3	src/executor/dispatch.py
+48	0	src/executor/pool.py
+35	2	tests/test_executor_pool.py
+
+__AIORCH_COMMIT__b2c3d4e5f6a1|Priya Natarajan|priya@example.com|1776038400|fix(executor): drain in-flight tasks on shutdown
+6	2	src/executor/lifecycle.py
+22	0	tests/test_lifecycle.py
+
+__AIORCH_COMMIT__c3d4e5f6a1b2|Marcus Weller|marcus@example.com|1775952000|feat(scheduler): cron-free schedule table backed by postgres
+150	4	src/scheduler/table.py
+89	0	src/scheduler/runner.py
+62	5	tests/test_scheduler_table.py
+
+__AIORCH_COMMIT__d4e5f6a1b2c3|Marcus Weller|marcus@example.com|1775865600|refactor(scheduler): drop apscheduler dep
+2	120	src/scheduler/legacy.py
+0	40	src/scheduler/cron_shim.py
+
+__AIORCH_COMMIT__e5f6a1b2c3d4|Marcus Weller|marcus@example.com|1775779200|docs(scheduler): note postgres-coordination model
+40	0	docs/scheduler.md
+
+__AIORCH_COMMIT__f6a1b2c3d4e5|Aiko Tanaka|aiko@example.com|1775692800|feat(ui): webhooks management page skeleton
+210	0	web/pages/webhooks.tsx
+90	0	web/components/webhook_table.tsx
+55	0	web/api/webhooks.ts
+
+__AIORCH_COMMIT__1a2b3c4d5e6f|Aiko Tanaka|aiko@example.com|1775606400|fix(ui): webhook header form cleared on save
+9	4	web/components/webhook_form.tsx
+
+__AIORCH_COMMIT__2b3c4d5e6f1a|Aiko Tanaka|aiko@example.com|1775520000|feat(ui): connectors pipeline polish pass
+44	18	web/pages/connectors.tsx
+15	6	web/pages/pipelines.tsx
+
+__AIORCH_COMMIT__3c4d5e6f1a2b|Aiko Tanaka|aiko@example.com|1775433600|chore(ui): upgrade tailwind to 3.5
+1	1	web/package.json
+18	4	web/tailwind.config.js
+
+__AIORCH_COMMIT__4d5e6f1a2b3c|Jonas Eriksen|jonas@example.com|1775347200|feat(api): inbound webhook triggers with hmac verification
+180	0	src/api/webhooks.py
+72	0	src/api/hmac.py
+60	0	tests/test_webhooks.py
+
+__AIORCH_COMMIT__5e6f1a2b3c4d|Jonas Eriksen|jonas@example.com|1775260800|test(api): webhook integration suite
+120	0	tests/test_webhook_integration.py
+
+__AIORCH_COMMIT__6f1a2b3c4d5e|Jonas Eriksen|jonas@example.com|1775174400|fix(api): reject empty hmac secret at registration
+8	1	src/api/webhooks.py
+15	0	tests/test_webhooks.py
+
+__AIORCH_COMMIT__7a2b3c4d5e6f|Rosa Delgado|rosa@example.com|1775088000|feat(runtime): surface condition-skipped steps in trace
+28	4	src/runtime/trace.py
+18	2	src/runtime/status.py
+40	0	tests/test_trace_skipped.py
+
+__AIORCH_COMMIT__8b3c4d5e6f7a|Rosa Delgado|rosa@example.com|1775001600|refactor(runtime): pull status enum into shared module
+3	3	src/runtime/executor.py
+3	3	src/runtime/scheduler.py
+45	0	src/runtime/status_enum.py
+0	18	src/runtime/_status_local.py
+
+__AIORCH_COMMIT__9c4d5e6f7a8b|Rosa Delgado|rosa@example.com|1774915200|docs(runtime): trace semantics for skipped
+22	0	docs/trace.md
+
+__AIORCH_COMMIT__0d5e6f7a8b9c|Priya Natarajan|priya@example.com|1774828800|chore(deps): bump httpx 0.27 -> 0.28
+1	1	requirements.txt
+2	2	src/clients/http.py
+
+__AIORCH_COMMIT__1e6f7a8b9c0d|Priya Natarajan|priya@example.com|1774742400|test(executor): cancellation racer regression test
+60	0	tests/test_cancel_race.py
+
+__AIORCH_COMMIT__2f7a8b9c0d1e|Marcus Weller|marcus@example.com|1774656000|fix(scheduler): avoid double-fire when schedule row updated mid-tick
+14	2	src/scheduler/runner.py
+35	0	tests/test_scheduler_double_fire.py
+
+__AIORCH_COMMIT__3a8b9c0d1e2f|Jonas Eriksen|jonas@example.com|1774569600|chore(ci): pin ruff 0.5.7
+1	1	.pre-commit-config.yaml
+
+__AIORCH_COMMIT__4b9c0d1e2f3a|Aiko Tanaka|aiko@example.com|1774483200|docs(ui): connector auth picker walkthrough
+62	0	docs/ui/connector-auth.md

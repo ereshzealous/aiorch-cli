@@ -1,0 +1,62 @@
+[
+  {
+    "number": 218,
+    "title": "fix(auth): token refresh race on parallel tabs",
+    "user": {"login": "alice"},
+    "body": "Two browser tabs opened in quick succession both fire /auth/refresh concurrently. Only one request carries a valid rotation target; the second gets a 401 and logs the user out. Adding an in-memory mutex around the refresh path so only the first caller races Redis; subsequent callers await the same promise."
+  },
+  {
+    "number": 217,
+    "title": "feat(webhooks): signed delivery retry on 5xx",
+    "user": {"login": "bob"},
+    "body": "When an outbound webhook gets a 5xx from the target, aiorch currently drops the delivery. This PR adds exponential backoff up to 5 retries with jitter. Config via new WEBHOOK_RETRY_ATTEMPTS env var (default 5)."
+  },
+  {
+    "number": 216,
+    "title": "docs: clarify SMTP connector TLS mode options",
+    "user": {"login": "carol"},
+    "body": "The connector form accepted tls_mode=starttls but docs only mentioned use_tls. Adding a table of valid values with examples for Gmail (starttls) vs SendGrid (starttls) vs raw (none)."
+  },
+  {
+    "number": 215,
+    "title": "perf(executor): batch stream flush on high-QPS runs",
+    "user": {"login": "dave"},
+    "body": "SSE stream writes 1 message per step_done. On pipelines firing 50+ steps/sec, this hits the event loop enough to show up on p99 latency graphs. Batching 20ms-windowed flushes cuts the overhead to ~15 percent of prior."
+  },
+  {
+    "number": 214,
+    "title": "fix(scheduler): prevent duplicate fire on leader transition",
+    "user": {"login": "eve"},
+    "body": "When the scheduler's advisory lock transitions between replicas (e.g. rolling deploy), both old and new leaders briefly hold the lock for ~100ms. If a cron boundary falls in that window, the schedule can fire twice. Fix: capture last_fired_at as lock-acquisition time, not wall clock, so the second fire deduplicates."
+  },
+  {
+    "number": 213,
+    "title": "feat(mcp): workspace-scoped MCP server enable/disable",
+    "user": {"login": "frank"},
+    "body": "Currently MCP servers are enabled org-wide. Adding per-workspace enable flag so one workspace can opt out without affecting others. New column workspace_mcp_servers.enabled (default true for BC)."
+  },
+  {
+    "number": 212,
+    "title": "fix(ui): dark-mode contrast on secondary buttons",
+    "user": {"login": "grace"},
+    "body": "User report: secondary button text is barely readable on dark background (#404040 on #2a2a2a = 2.1:1 contrast, below WCAG AA). Raising to #d4d4d4 for 11:1 ratio. Also fixing warning badge's amber on amber-muted."
+  },
+  {
+    "number": 211,
+    "title": "refactor(storage): replace manual connection pool with asyncpg built-in",
+    "user": {"login": "henry"},
+    "body": "We have a hand-rolled connection pool in storage/postgres.py that predates asyncpg's create_pool being stable. Swapping to asyncpg.create_pool gets us proper health checks, automatic reconnection on network blip, and drops ~200 LOC."
+  },
+  {
+    "number": 210,
+    "title": "feat(api): bulk archive endpoint for pipelines",
+    "user": {"login": "iris"},
+    "body": "UI already has a 'select multiple → archive' control but does it via N sequential DELETE calls. Adding POST /api/workspaces/{ws}/pipelines/archive-bulk that takes a list of names and processes them in one transaction."
+  },
+  {
+    "number": 209,
+    "title": "security: redact api_key values in step_runs.params_json",
+    "user": {"login": "jack"},
+    "body": "audit step_runs rows currently log the full step params, which includes HTTP headers. When a pipeline has `action: http` with `headers: {Authorization: ...}`, the key lands in the DB. Fix: redact any key matching /authorization|api.?key|token|secret/i before persisting."
+  }
+]

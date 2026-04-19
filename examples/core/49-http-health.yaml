@@ -1,0 +1,115 @@
+name: http-health
+description: |
+  Hit a list of URLs in parallel and report per-URL
+  status, latency, content-length, and TLS validity. Roll
+  up an up/down summary at the end. The dev-laptop
+  equivalent of a stripped-down uptime checker.
+
+  Why parallel foreach:
+    Sequential health checks against N URLs scale
+    linearly in wall clock. A parallel fan-out hits them
+    all at once and the total wall clock is dominated by
+    the slowest single URL. For a 10-URL list that's the
+    difference between ~10s and ~1s.
+
+  DAG shape:
+    check_each_url (foreach) → summarize → show
+
+  Per-URL failure isolation:
+    Each check is wrapped in try/except so a DNS failure
+    or TLS error on one URL never breaks the roll-up. The
+    failing URL comes back with status="down" and the
+    exception class captured.
+
+  TLS validity:
+    httpx verifies TLS certs by default. If the cert is
+    bad, httpx raises `ssl.SSLError` inside a transport
+    exception. We catch that and mark ssl_valid=False.
+
+  Run it:
+    aiorch run 49-http-health.yaml
+
+input:
+  urls:
+    type: list
+    default:
+      - https://github.com
+      - https://pypi.org
+      - https://httpbin.org/status/200
+      - https://httpbin.org/status/500
+      - https://example.com
+    description: URLs to probe. Defaults to a mixed set including a guaranteed 500 for demonstration.
+
+steps:
+  check_each_url:
+    # One httpx.Client per iteration. A short timeout
+    # keeps a single slow URL from dominating wall clock.
+    python: |
+      import httpx
+      import time
+
+      url = inputs["item"]
+      entry = {"url": url}
+
+      start = time.perf_counter()
+      try:
+          with httpx.Client(timeout=5.0, follow_redirects=True) as client:
+              r = client.get(url)
+          elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
+          entry.update({
+              "status": "up" if r.status_code < 400 else "degraded",
+              "http_status": r.status_code,
+              "response_ms": elapsed_ms,
+              "content_length": len(r.content),
+              "ssl_valid": url.startswith("https://"),
+              "error": None,
+          })
+      except Exception as e:
+          elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
+          entry.update({
+              "status": "down",
+              "http_status": None,
+              "response_ms": elapsed_ms,
+              "content_length": None,
+              "ssl_valid": False,
+              "error": f"{type(e).__name__}: {e}",
+          })
+
+      result = entry
+    foreach: "{{urls}}"
+    output: checks
+
+  summarize:
+    # Count up/down/degraded and find the slowest responder
+    # that actually returned a result.
+    python: |
+      checks = inputs["checks"]
+      up        = [c for c in checks if c["status"] == "up"]
+      degraded  = [c for c in checks if c["status"] == "degraded"]
+      down      = [c for c in checks if c["status"] == "down"]
+
+      responded = [c for c in checks if c.get("response_ms") is not None and c["status"] != "down"]
+      slowest = max(responded, key=lambda c: c["response_ms"]) if responded else None
+
+      result = {
+          "total": len(checks),
+          "up_count": len(up),
+          "degraded_count": len(degraded),
+          "down_count": len(down),
+          "slowest_url": slowest["url"] if slowest else None,
+          "slowest_ms": slowest["response_ms"] if slowest else None,
+          "down_urls": [c["url"] for c in down],
+      }
+    depends: [check_each_url]
+    output: summary
+
+  show:
+    run: |
+      echo === HTTP HEALTH ===
+      echo Total:     {{summary.total}}
+      echo Up:        {{summary.up_count}}
+      echo Degraded:  {{summary.degraded_count}}
+      echo Down:      {{summary.down_count}}
+      echo Slowest:   {{summary.slowest_url}} [{{summary.slowest_ms}} ms]
+    depends: [summarize]
+    output: report_text

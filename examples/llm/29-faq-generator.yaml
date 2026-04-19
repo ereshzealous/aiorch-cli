@@ -1,0 +1,85 @@
+name: faq-generator
+description: |
+  Read a block of documentation, ask the LLM to synthesize the 10
+  most likely questions a first-time user would ask, plus a concise
+  answer per question. Writes a markdown FAQ to disk.
+
+  Pattern for: "We have docs but no FAQ, and our support inbox keeps
+  answering the same 10 questions." The LLM is particularly good at
+  this because it naturally simulates "what would a confused reader
+  ask here?" — which is what a FAQ needs to anticipate.
+
+  Usage:
+    aiorch run 29-faq-generator.yaml -i doc=@./inputs/long-article.txt
+    aiorch run 29-faq-generator.yaml -i doc=@./inputs/sample-readme.md
+
+input:
+  doc:
+    type: artifact
+    format: text
+    description: Docs / README / prose the FAQ should be grounded in
+  n:
+    type: integer
+    default: 10
+    minimum: 3
+    maximum: 25
+
+steps:
+  generate:
+    prompt: |
+      Below is the full documentation. Generate the {{n}} most likely
+      FAQ questions a first-time reader would ask + a concise answer
+      per question (≤ 3 sentences).
+
+      Guidelines:
+        - Answers must be GROUNDED in the doc. Don't make up facts
+          the doc doesn't support.
+        - Prefer questions the doc doesn't DIRECTLY answer (i.e.,
+          reader would have to piece it together). Those are the
+          most valuable.
+        - Order by likely frequency: the most-common question first.
+
+      Reply with JSON: { faqs: [ { question, answer }, ... ] }
+
+      Documentation:
+      ---
+      {{doc}}
+      ---
+    format: json
+    schema:
+      type: object
+      required: [faqs]
+      properties:
+        faqs:
+          type: array
+          items:
+            type: object
+            required: [question, answer]
+            properties:
+              question: { type: string }
+              answer:   { type: string }
+    retry_on_invalid: 2
+    output: generated
+
+  write_md:
+    python: |
+      import pathlib
+      faqs = inputs["generated"]["faqs"]
+
+      lines = ["# Frequently Asked Questions", ""]
+      for i, item in enumerate(faqs, 1):
+          lines.append(f"### {i}. {item['question']}")
+          lines.append("")
+          lines.append(item["answer"])
+          lines.append("")
+
+      out = pathlib.Path("./inputs/FAQ-draft.md")
+      out.write_text("\n".join(lines))
+
+      print(f"==== FAQ draft ({len(faqs)} questions) ====")
+      for i, item in enumerate(faqs, 1):
+          print(f"  Q{i}: {item['question']}")
+      print(f"\nFull FAQ: {out.resolve()}")
+      result = {"output_path": str(out), "count": len(faqs)}
+    depends: [generate]
+    output: report
