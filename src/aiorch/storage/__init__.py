@@ -220,7 +220,15 @@ def init_storage() -> None:
     if database_url:
         from aiorch.core.config import get_config
         cfg = get_config()
-        from aiorch.storage.postgres import PostgresStore
+        try:
+            from aiorch.storage.postgres import PostgresStore
+        except ImportError as e:
+            raise RuntimeError(
+                "DATABASE_URL is set but the Postgres backend "
+                "(aiorch.storage.postgres) is not available. Install "
+                "aiorch-platform alongside aiorch-cli, or unset "
+                "DATABASE_URL to run in CLI-only (SQLite) mode."
+            ) from e
         _store = PostgresStore(
             url=database_url,
             pool_size=cfg.storage.pool_size,

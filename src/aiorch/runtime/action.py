@@ -436,7 +436,6 @@ async def _action_write_file(step: Step, context: dict[str, Any]) -> str:
 
     # Detect deployment mode via the artifact store implementation
     from aiorch.artifacts import Artifact, get_artifact_store, init_artifact_store
-    from aiorch.artifacts.minio import MinIOArtifactStore
 
     try:
         artifact_store = get_artifact_store()
@@ -445,7 +444,14 @@ async def _action_write_file(step: Step, context: dict[str, Any]) -> str:
         init_artifact_store()
         artifact_store = get_artifact_store()
 
-    is_platform = isinstance(artifact_store, MinIOArtifactStore)
+    try:
+        from aiorch.artifacts.minio import MinIOArtifactStore
+        is_platform = isinstance(artifact_store, MinIOArtifactStore)
+    except ImportError:
+        # CLI-only install: the MinIO backend lives in aiorch-platform
+        # and is not shipped with aiorch-cli. No Platform here — fall
+        # through to the local-disk write path.
+        is_platform = False
 
     # Common: figure out the content type from the path extension
     import mimetypes
