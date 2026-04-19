@@ -23,7 +23,7 @@ examples/
 
 ---
 
-## 🧩 DAG shapes in this catalog
+## DAG shapes in this catalog
 
 Every pipeline is one of these shapes (or a combination). Knowing which you need is half the battle.
 
@@ -131,7 +131,7 @@ Examples: [`llm/09-sentiment-scoring.yaml`](llm/09-sentiment-scoring.yaml), [`ll
 
 ---
 
-## 🔑 Handling secrets
+## Handling secrets
 
 aiorch **never wants a secret hardcoded in a YAML file.** Every example expects provider keys to come from environment variables and references them via `${VAR_NAME}` interpolation.
 
@@ -164,7 +164,7 @@ If `${OPENROUTER_API_KEY}` is unset, aiorch fails fast with a clear error rather
 
 ---
 
-## 🤖 Choosing a model
+## Choosing a model
 
 Three places model can be set, in precedence order (highest wins):
 
@@ -209,7 +209,7 @@ Useful for multi-model comparisons (see `llm/04-multi-model-compare.yaml`) or co
 
 ---
 
-## 📥 Passing inputs
+## Passing inputs
 
 aiorch accepts inputs three ways. They compose — `-i` beats `--input` beats the YAML's `input:` defaults.
 
@@ -262,7 +262,7 @@ aiorch run core/27-multi-input-typed-dashboard.yaml \
 
 ---
 
-## 🚀 Running the examples
+## Running the examples
 
 From the repo root (or anywhere you've exported the required env vars):
 
@@ -296,7 +296,7 @@ aiorch trace <run-id>                       # step-by-step timeline for one run
 
 ---
 
-## 📚 Per-pipeline walkthroughs
+## Per-pipeline walkthroughs
 
 - [`examples/llm/README.md`](llm/README.md) — every LLM pipeline explained, grouped by tier (basic primitives → DAG shapes → hybrid LLM+Python → developer workflows).
 - [`examples/core/README.md`](core/README.md) — every core pipeline explained, grouped by concern (basic primitives & inputs → DAG shapes → database access → production-shaped patterns → developer utilities).
@@ -305,7 +305,7 @@ Each walkthrough has runnable commands, expected outputs, and notes on what each
 
 ---
 
-## 🧪 One-time setup for database examples
+## One-time setup for database examples
 
 Three of the core pipelines (`33`, `34`, `35`) read from a SQLite fixture. Run the setup script once:
 
@@ -318,7 +318,7 @@ This creates `examples/core/inputs/sample.db` with 8 customers, 6 products, and 
 
 ---
 
-## 💡 Tips
+## Tips
 
 - **LLM response caching is on by default** in CLI mode. Re-running a pipeline step with identical inputs hits `~/.aiorch/history.db` instead of re-calling the model — great for iterating on a downstream step without paying for the upstream ones again.
 - **Estimate cost before a big run:** `aiorch plan 11-map-reduce-summarize.yaml -i document=@./inputs/long-article.txt` shows the DAG layers and a rough token/cost estimate.

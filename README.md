@@ -1,24 +1,35 @@
-# aiorch
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img alt="aiorch" src="assets/logo-light.svg" width="380">
+  </picture>
+</p>
 
-**YAML-driven pipelines for LLMs, Python, and shell — runnable from the command line.**
+<p align="center">
+  <strong>YAML-driven pipelines for LLMs, Python, and shell — runnable from the command line.</strong>
+</p>
 
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](#-roadmap)
+<p align="center">
+  <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue.svg"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-green.svg"></a>
+  <a href="#roadmap"><img alt="Status" src="https://img.shields.io/badge/status-alpha-orange.svg"></a>
+</p>
+
+---
 
 aiorch turns a YAML file into a runnable pipeline. Declare your steps — LLM prompts, Python snippets, shell commands, MCP tool calls — and `aiorch run` executes the DAG. No server, no scheduler, no database setup.
 
 ```bash
 pip install aiorch
 export OPENROUTER_API_KEY=sk-or-v1-...
-aiorch run examples/01-hello-llm.yaml
+aiorch run examples/llm/01-hello-llm.yaml
 ```
 
 Works with any provider [LiteLLM](https://docs.litellm.ai/) supports — OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Bedrock, and more.
 
 ---
 
-## ⚙️ How it works
+## How it works
 
 aiorch turns a YAML file into an executable DAG. The full lifecycle of `aiorch run`:
 
@@ -90,19 +101,19 @@ Each step declares what it needs (`depends:`) and what it produces (implicit via
 
 ---
 
-## ✨ Features
+## Features
 
-- 🤖 **LLM primitives** — prompt, schema-extract, classify-and-branch, multi-model compare
-- 🧩 **DAG shapes** — chain, parallel + merge, foreach, conditional flows
-- 🐍 **LLM + Python hybrid** — an LLM for reasoning, deterministic Python for side effects
-- 🛠️ **Agents + MCP** — function-calling LLMs with MCP tools over stdio or Streamable HTTP
-- 🔌 **Real connectors** — Postgres, S3, Kafka, SMTP, webhooks (`aiorch[connectors]`)
-- 💰 **Cost tracking** — prompt / completion tokens and USD per provider per run, persisted to `~/.aiorch/history.db`
-- 🧪 **Dry-run + validation** — catch schema errors and unresolved templates before spending tokens
+- **LLM primitives** — prompt, schema-validated extraction, classify-and-branch, multi-model comparison.
+- **DAG shapes** — chain, parallel + merge, foreach, diamond, conditional routing.
+- **LLM + Python hybrid** — the LLM for reasoning, deterministic Python for side effects.
+- **Agents + MCP** — function-calling LLMs with MCP tools over stdio or Streamable HTTP.
+- **Real connectors** — Postgres, S3, Kafka, SMTP, webhooks (via `aiorch[connectors]`).
+- **Cost tracking** — prompt / completion tokens and USD per provider per run, persisted to `~/.aiorch/history.db`.
+- **Dry-run + validation** — catch schema errors and unresolved templates before spending tokens.
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 ```yaml
 # hello.yaml
@@ -127,13 +138,13 @@ $ aiorch run hello.yaml
 Override inputs at runtime:
 
 ```bash
-$ aiorch run examples/20-csv-to-markdown-report.yaml \
-    --input data=@./inputs/sample-projects.csv
+$ aiorch run examples/llm/20-csv-to-markdown-report.yaml \
+    -i data=@./examples/llm/inputs/sample-projects.csv
 ```
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 pip install aiorch                    # core CLI
@@ -146,7 +157,7 @@ Requires **Python 3.11+**.
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 aiorch looks for `aiorch.yaml` in the current directory.
 
@@ -164,7 +175,7 @@ No `aiorch.yaml`? aiorch falls back to standard environment variables (`OPENAI_A
 
 ---
 
-## 🖥️ CLI reference
+## CLI reference
 
 | Command | Purpose |
 |---|---|
@@ -182,7 +193,7 @@ Run `aiorch --help` for the full list of flags.
 
 ---
 
-## 🧠 MCP support
+## MCP support
 
 aiorch ships a built-in MCP client — both **stdio** (subprocess) and **Streamable HTTP** (MCP 2025 spec). Attach tools to any `agent:` step:
 
@@ -200,7 +211,7 @@ steps:
 
 ---
 
-## 📚 Examples
+## Examples
 
 **72 runnable pipelines** shipped under [`examples/`](examples), organized into two tracks:
 
@@ -209,11 +220,11 @@ steps:
 | [`examples/llm/`](examples/llm) | 30 | LLM pipelines — prompts, extraction, chains, fan-out, agents, hybrid LLM + Python |
 | [`examples/core/`](examples/core) | 42 | Zero-LLM pipelines — every primitive, every DAG shape, input types, DB access, developer utilities |
 
-Each track has its own README with per-pipeline walkthroughs:
+Each track has its own walkthrough:
 
-- [`examples/README.md`](examples/README.md) — **start here** for the full guide on secrets, model selection, and passing inputs
-- [`examples/llm/README.md`](examples/llm/README.md) — LLM pipelines by tier (basic → DAG shapes → hybrid → developer workflows)
-- [`examples/core/README.md`](examples/core/README.md) — core pipelines by group (primitives → DAG shapes → DB access → production patterns → utilities)
+- [`examples/README.md`](examples/README.md) — **start here** for the full guide on secrets, model selection, and passing inputs.
+- [`examples/llm/README.md`](examples/llm/README.md) — LLM pipelines by tier (basic → DAG shapes → hybrid → developer workflows).
+- [`examples/core/README.md`](examples/core/README.md) — core pipelines by group (primitives → DAG shapes → DB access → production patterns → utilities).
 
 ```bash
 # Core pipelines — no API key required
@@ -226,24 +237,25 @@ cd examples/llm && aiorch run 01-hello-llm.yaml
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 This is **v0.1 alpha** — YAML schema and CLI flags may change. Pin an exact version in CI.
 
 Planned:
-- Additional LLM primitives (structured output schemas, streaming sinks)
-- Broader connector catalog
-- Pipeline composition (one pipeline imports another)
-- First-class Windows support
+
+- Additional LLM primitives (structured output schemas, streaming sinks).
+- Broader connector catalog.
+- Pipeline composition (one pipeline imports another).
+- First-class Windows support.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Issues and PRs welcome at [github.com/ereshzealous/aiorch-cli](https://github.com/ereshzealous/aiorch-cli).
+Issues and pull requests welcome at [github.com/ereshzealous/aiorch-cli](https://github.com/ereshzealous/aiorch-cli).
 
 ---
 
-## 📄 License
+## License
 
 Apache 2.0 — see [`LICENSE`](LICENSE).
