@@ -1,0 +1,44 @@
+name: chain-refine
+description: |
+  Classic two-stage LLM chain: first call drafts an outline, second
+  call refines it against specific criteria. The second prompt
+  interpolates the first step's output via Jinja — the aiorch
+  pattern for "feed one LLM's output into another LLM's input."
+
+  Usage:
+    aiorch run 05-chain-refine.yaml
+    aiorch run 05-chain-refine.yaml -i topic="onboarding docs for a new backend hire"
+
+input:
+  topic:
+    type: string
+    default: "a 30-minute incident retrospective template"
+
+steps:
+  draft:
+    prompt: |
+      Write a short outline for: {{topic}}.
+      4-6 bullets, no elaboration — just the bullet headings.
+    output: outline
+
+  refine:
+    prompt: |
+      Here is a draft outline:
+
+      {{outline}}
+
+      Rewrite it so each bullet is more specific and actionable.
+      Replace vague verbs (discuss, cover, review, talk about)
+      with concrete ones (demo, ship, ask, decide, assign). Keep
+      the same number of bullets.
+    depends: [draft]
+    output: refined
+
+  show:
+    run: |
+      echo "==== DRAFT ===="
+      echo {{outline}}
+      echo ""
+      echo "==== REFINED ===="
+      echo {{refined}}
+    depends: [refine]

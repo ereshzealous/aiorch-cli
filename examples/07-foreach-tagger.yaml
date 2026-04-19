@@ -1,0 +1,41 @@
+name: foreach-tagger
+description: |
+  Tag each item in a list via a separate LLM call. Demonstrates
+  foreach with LLM steps — one LLM request per list element, all
+  running concurrently through aiorch's parallel foreach dispatch.
+
+  The classify_each step emits a list of one-word category strings
+  (one per headline). The show step zips them back onto the
+  original headlines in Python.
+
+  Usage:
+    aiorch run 07-foreach-tagger.yaml --input ./inputs/headlines.json
+
+input:
+  headlines:
+    type: list
+    description: List of news-style headlines to tag with a category
+
+steps:
+  classify_each:
+    prompt: |
+      Classify this headline into exactly ONE of:
+        POLITICS, TECH, SPORTS, BUSINESS, ENTERTAINMENT, OTHER
+
+      Reply with ONLY the category word — no punctuation, no
+      explanation, no quotes.
+
+      Headline: {{item}}
+    foreach: "{{headlines}}"
+    output: tags
+
+  show:
+    python: |
+      headlines = inputs["headlines"]
+      tags = inputs["tags"]
+      print("==== Tagged headlines ====")
+      for h, t in zip(headlines, tags):
+          label = str(t).strip().strip('"').strip("'")
+          print(f"  [{label:13}] {h}")
+      result = {"count": len(headlines)}
+    depends: [classify_each]

@@ -1,0 +1,27 @@
+# description: PR review — git diff with parallel bug and security analysis
+name: pr-review
+
+steps:
+  diff:
+    run: git diff HEAD~1
+    output: changes
+
+  review:
+    prompt: |
+      Review this code diff for:
+      - Bugs and logic errors
+      - Security vulnerabilities
+      - Performance issues
+      - Style and readability
+
+      Be concise and actionable.
+    input: "{{changes}}"
+    model: claude-sonnet-4-20250514
+    depends: [diff]
+    output: review
+
+  summary:
+    prompt: "Summarize the review in 2-3 bullet points"
+    input: "{{review}}"
+    model: gpt-4o-mini
+    depends: [review]

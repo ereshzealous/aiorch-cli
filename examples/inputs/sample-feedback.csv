@@ -1,0 +1,11 @@
+id,customer,comment
+1,alice@example.com,"Love the new dashboard — finally a simple way to see all my runs at once."
+2,bob@example.com,"Logs are useful but scrolling through 500 lines to find one error is painful."
+3,carol@example.com,"The webhook trigger feature is great. Worked first try."
+4,dave@example.com,"Billing is confusing. Got charged twice last month and support took 5 days to respond."
+5,eve@example.com,"When will there be a Python SDK? The HTTP API is fine but an SDK would be faster."
+6,frank@example.com,"Great tool overall. No complaints yet."
+7,grace@example.com,"Archive button is in a weird spot and I've hit delete twice by accident."
+8,henry@example.com,"Just wanted to say thanks — this replaced three cron jobs and saved my weekend."
+9,iris@example.com,"Docs could be more specific about how secrets interact with pipelines."
+10,jack@example.com,"I really dislike the dark theme's contrast on small text. Please add a high-contrast option."

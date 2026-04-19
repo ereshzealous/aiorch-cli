@@ -1,0 +1,103 @@
+name: diff-explainer
+description: |
+  Read a git diff, ask the LLM to produce a plain-English summary of
+  what changed + a risk assessment (what COULD break, what to
+  review carefully). Writes a per-diff explanation markdown file
+  to disk.
+
+  Pattern for: "Generate release notes or PR summaries from the diff
+  itself." The LLM reads the diff, groups changes semantically (not
+  file-by-file), and writes both a user-facing summary and an
+  engineer-facing risk note.
+
+  Usage:
+    aiorch run 30-diff-explainer.yaml -i diff_path=./inputs/sample.diff
+    aiorch run 30-diff-explainer.yaml -i diff_path=/tmp/my.diff
+
+  To make a diff:
+    git diff main...feature-branch > /tmp/my.diff
+
+input:
+  diff_path:
+    type: string
+    default: ./inputs/sample.diff
+
+steps:
+  load:
+    python: |
+      import pathlib
+      p = pathlib.Path(inputs["diff_path"])
+      diff = p.read_text()
+      # Basic stats for the prompt
+      added   = sum(1 for ln in diff.splitlines() if ln.startswith("+") and not ln.startswith("+++"))
+      removed = sum(1 for ln in diff.splitlines() if ln.startswith("-") and not ln.startswith("---"))
+      files   = len({ln[6:].split()[0] for ln in diff.splitlines()
+                     if ln.startswith("+++ b/") or ln.startswith("--- a/")})
+      print(f"Loaded diff: {len(diff)} chars, {files} files, "
+            f"+{added} / -{removed}")
+      result = {"diff": diff, "added": added, "removed": removed,
+                "files": files}
+    output: d
+
+  explain:
+    prompt: |
+      You are reviewing a git diff.
+
+      Stats: {{d.files}} files changed, +{{d.added}} / -{{d.removed}}.
+
+      Diff:
+      ---
+      {{d.diff}}
+      ---
+
+      Produce a two-part markdown summary:
+
+      ## What changed
+      3-5 bullets in plain English grouping related changes.
+      Focus on user-visible or behavioral changes. Avoid "renamed
+      variable X to Y" unless it affects behavior.
+
+      ## Risk assessment
+      2-4 bullets naming concrete things a reviewer should double-check
+      before merging. Call out: potential backwards-compat breaks,
+      missing test coverage, obvious performance risk, or anything
+      suspicious. If the diff looks low-risk, say so and why.
+
+      Reply with JSON: { what_changed, risk_assessment }
+      Both values are markdown strings (with the bullets inline).
+    format: json
+    schema:
+      type: object
+      required: [what_changed, risk_assessment]
+      properties:
+        what_changed:    { type: string }
+        risk_assessment: { type: string }
+    retry_on_invalid: 2
+    depends: [load]
+    output: summary
+
+  write_md:
+    python: |
+      import pathlib
+      s = inputs["summary"]
+      d = inputs["d"]
+
+      # Single-line-concat instead of a triple-quoted f-string so YAML's
+      # block-scalar parser doesn't see markdown (** / ##) at column 1
+      # and break out of the Python body.
+      md = (
+          "# Diff summary\n\n"
+          f"**Stats:** {d['files']} files changed · "
+          f"+{d['added']} / -{d['removed']}\n\n"
+          "## What changed\n"
+          f"{s['what_changed']}\n\n"
+          "## Risk assessment\n"
+          f"{s['risk_assessment']}\n"
+      )
+      out = pathlib.Path("./inputs/diff-summary.md")
+      out.write_text(md)
+      print(md)
+      print(f"\nWrote {out.resolve()}")
+      result = {"output_path": str(out)}
+    depends: [explain]
+    output: report

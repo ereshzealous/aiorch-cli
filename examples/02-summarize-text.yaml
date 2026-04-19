@@ -1,0 +1,32 @@
+name: summarize-text
+description: |
+  Read a text file from disk, ask the LLM to summarize in three
+  bullet points, display the result. First pipeline that exercises
+  the file-as-input artifact path with an LLM step downstream.
+
+  Usage:
+    aiorch run 02-summarize-text.yaml -i document=@./inputs/sample-prose.txt
+
+input:
+  document:
+    type: artifact
+    format: text
+    description: Text to summarize
+
+steps:
+  summarize:
+    prompt: |
+      Summarize the following text in exactly 3 bullet points.
+      Each bullet ≤ 15 words. Lead with the single most important
+      takeaway. No preamble, no conclusion — just the 3 bullets.
+
+      ---
+      {{document}}
+      ---
+    output: summary
+
+  show:
+    run: |
+      echo "==== Summary ===="
+      echo {{summary}}
+    depends: [summarize]

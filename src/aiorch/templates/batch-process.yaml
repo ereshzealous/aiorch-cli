@@ -1,0 +1,21 @@
+# description: Batch processing — foreach loop over items with parallel execution
+name: batch-process
+
+steps:
+  summarize:
+    prompt: |
+      Summarize the following item in one sentence:
+      {{item}}
+    foreach:
+      - "Python is a high-level programming language known for readability."
+      - "Rust is a systems language focused on safety and performance."
+      - "Go is a statically typed language designed for simplicity and concurrency."
+    parallel: true
+    output: summaries
+
+  combine:
+    prompt: |
+      Combine these summaries into a comparison table:
+      {{summaries}}
+    depends: [summarize]
+    output: comparison

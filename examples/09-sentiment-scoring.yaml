@@ -1,0 +1,71 @@
+name: sentiment-scoring
+description: |
+  Read a CSV of customer comments, ask the LLM to score each row's
+  sentiment in parallel via foreach, then aggregate in Python into
+  a positive / neutral / negative rollup. Demonstrates LLM + CSV
+  input + foreach + python aggregation in one pipeline.
+
+  Usage:
+    aiorch run 09-sentiment-scoring.yaml -i feedback=@./inputs/sample-feedback.csv
+
+input:
+  feedback:
+    type: artifact
+    format: csv
+    description: CSV with at least a 'comment' column
+
+steps:
+  extract_comments:
+    # The foreach below needs a plain list of strings. csv.DictReader
+    # gives us a list of dicts, so lift the comments column out into
+    # its own top-level variable.
+    python: |
+      rows = inputs["feedback"]
+      comments = [str(r.get("comment", "")).strip() for r in rows if r.get("comment")]
+      result = comments
+    output: comments
+
+  score_each:
+    prompt: |
+      Classify the sentiment of this customer comment as exactly ONE
+      of: POSITIVE, NEUTRAL, NEGATIVE.
+      Reply with ONLY that word — no punctuation, no explanation.
+
+      Comment: {{item}}
+    foreach: "{{comments}}"
+    depends: [extract_comments]
+    output: scores
+
+  aggregate:
+    python: |
+      from collections import Counter
+      comments = inputs["comments"]
+      scores = [str(s).strip().strip('"').strip("'").upper() for s in inputs["scores"]]
+
+      counts = Counter(scores)
+      total = len(scores)
+
+      print("==== Sentiment rollup ====")
+      print(f"  Total comments: {total}")
+      for label in ("POSITIVE", "NEUTRAL", "NEGATIVE"):
+          n = counts.get(label, 0)
+          pct = round(100 * n / total, 1) if total else 0
+          print(f"  {label:10} {n:3}  ({pct}%)")
+
+      # Show a sample comment per label so the report is grounded.
+      print()
+      print("==== Sample per label ====")
+      for label in ("POSITIVE", "NEUTRAL", "NEGATIVE"):
+          for c, s in zip(comments, scores):
+              if s == label:
+                  print(f"  {label:10} {c[:80]}")
+                  break
+
+      result = {
+          "total": total,
+          "positive": counts.get("POSITIVE", 0),
+          "neutral":  counts.get("NEUTRAL", 0),
+          "negative": counts.get("NEGATIVE", 0),
+      }
+    depends: [score_each]
+    output: rollup

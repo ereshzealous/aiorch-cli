@@ -1,0 +1,22 @@
+name: hello-llm
+description: |
+  Simplest possible LLM pipeline — no inputs, one prompt, one echo.
+  Good first test for "is my LLM provider wired correctly from the CLI?"
+
+  Usage:
+    aiorch run 01-hello-llm.yaml
+
+  Requires OPENAI_API_KEY (or equivalent) in the environment.
+
+steps:
+  explain:
+    prompt: |
+      In exactly 2 sentences, what is aiorch? Be concrete — what does
+      it actually do — not marketing language.
+    output: answer
+
+  show:
+    run: |
+      echo "==== Answer ===="
+      echo {{answer}}
+    depends: [explain]

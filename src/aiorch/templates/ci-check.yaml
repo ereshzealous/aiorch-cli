@@ -1,0 +1,27 @@
+# description: CI integration — run tests, analyze failures, post summary
+name: ci-check
+
+steps:
+  tests:
+    run: python -m pytest --tb=short -q 2>&1 || true
+    output: test_output
+
+  analyze:
+    prompt: |
+      Analyze this test output. Report:
+      1. How many tests passed/failed
+      2. Root cause of any failures
+      3. Suggested fixes (be specific)
+
+      If all tests pass, say "All tests passing" and stop.
+    input: "{{test_output}}"
+    depends: [tests]
+    output: analysis
+
+  gate:
+    prompt: |
+      Based on this analysis, should we proceed with the release?
+      Answer YES or NO with a one-line reason.
+    input: "{{analysis}}"
+    depends: [analyze]
+    output: decision

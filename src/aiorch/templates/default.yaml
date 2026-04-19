@@ -1,0 +1,14 @@
+# description: Simple hello world — shell command + LLM prompt
+name: my-pipeline
+
+steps:
+  hello:
+    run: echo "Hello from Aiorch!"
+    output: greeting
+
+  analyze:
+    prompt: "What is a creative response to this greeting?"
+    input: "{{greeting}}"
+    model: gpt-4o-mini
+    depends: [hello]
+    output: response

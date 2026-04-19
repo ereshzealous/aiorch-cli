@@ -1,0 +1,84 @@
+name: csv-to-markdown-report
+description: |
+  Read a CSV of project data, Python computes deterministic rollups
+  (totals, averages, top-N), LLM writes a narrative markdown report
+  that weaves the numbers into readable prose. Python writes the
+  final markdown to disk.
+
+  Pattern for "I have a CSV, I want a written report, not just a
+  table." The LLM gets the PRE-AGGREGATED stats (cheap + accurate),
+  not the raw rows (expensive + prone to hallucinating numbers).
+
+  Usage:
+    aiorch run 20-csv-to-markdown-report.yaml -i data=@./inputs/sample-projects.csv
+
+input:
+  data:
+    type: artifact
+    format: csv
+    description: CSV with project data (columns projecT/status/budget/hours)
+
+steps:
+  aggregate:
+    python: |
+      from collections import Counter, defaultdict
+      rows = inputs["data"]
+      total_budget = sum(float(r.get("budget", 0) or 0) for r in rows)
+      total_hours  = sum(float(r.get("hours",  0) or 0) for r in rows)
+      by_status    = Counter(r.get("status", "unknown") for r in rows)
+      by_owner     = Counter(r.get("owner",  "unknown") for r in rows)
+      # Top 3 projects by budget
+      top = sorted(rows, key=lambda r: float(r.get("budget", 0) or 0), reverse=True)[:3]
+      stats = {
+          "count": len(rows),
+          "total_budget": round(total_budget, 2),
+          "total_hours":  round(total_hours, 2),
+          "by_status":    dict(by_status),
+          "by_owner":     dict(by_owner),
+          "top_by_budget": [
+              {"project": r.get("project"), "budget": float(r.get("budget", 0) or 0),
+               "status": r.get("status"), "owner": r.get("owner")}
+              for r in top
+          ],
+      }
+      print(f"Aggregated {len(rows)} rows")
+      result = stats
+    output: stats
+
+  narrate:
+    prompt: |
+      You are writing a weekly project-status narrative for a tech lead.
+      Here are the pre-computed stats:
+
+      - Total projects: {{stats.count}}
+      - Total budget: ${{stats.total_budget}}
+      - Total hours logged: {{stats.total_hours}}
+      - By status: {{stats.by_status}}
+      - By owner: {{stats.by_owner}}
+      - Top 3 by budget:
+      {% for p in stats.top_by_budget %}
+        - {{p.project}} (${{p.budget}}, status={{p.status}}, owner={{p.owner}})
+      {% endfor %}
+
+      Write a 4-paragraph markdown report:
+      1. One-sentence headline (what's the state of the portfolio?)
+      2. Where the money and hours are going
+      3. Call out any concerning concentration or imbalance
+      4. One concrete next-step suggestion for the lead
+
+      Do NOT invent numbers not in the stats above. Markdown only.
+    depends: [aggregate]
+    output: narrative
+
+  write_md:
+    python: |
+      import pathlib
+      from datetime import date
+      md = f"# Project status — {date.today().isoformat()}\n\n{inputs['narrative']}\n"
+      out = pathlib.Path("./inputs/project-report.md")
+      out.write_text(md)
+      print(md)
+      print(f"\nWrote {out.resolve()}")
+      result = {"output_path": str(out)}
+    depends: [narrate]
+    output: report

@@ -1,0 +1,20 @@
+Pipeline orchestration has evolved in three distinct waves. First came cron and
+shell scripts — simple, reliable, and deeply operator-hostile the moment you
+needed retries, dependencies, or any kind of structured output. Then came the
+first generation of workflow engines — Airflow, Luigi, Prefect — which moved
+the DAG into code and gave you a UI, but left you writing Python for everything
+and buying into a heavyweight deployment model.
+
+The third wave is YAML-first pipelines that can orchestrate BOTH deterministic
+steps (shell, SQL, HTTP, file I/O) AND AI steps (LLM calls, embeddings,
+agentic tool use) in the same DAG. The win isn't that YAML is magical — it's
+that operators who understand their own business can now describe the workflow
+without writing and maintaining a Python codebase.
+
+The interesting technical question this raises is where the boundary goes
+between the declarative layer (YAML) and the escape hatch (Python / shell).
+The failure mode of "too much YAML" is that you end up encoding Turing-complete
+logic in Jinja templates. The failure mode of "too much escape hatch" is that
+every pipeline becomes bespoke Python again. The sweet spot is YAML for the
+DAG shape, retry policies, and input/output contracts, and short Python (or
+shell) bodies for the actual per-step logic. That's the model aiorch ships.

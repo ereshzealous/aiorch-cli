@@ -1,0 +1,64 @@
+# aiorch.yaml — config for the cli_llm pipelines.
+#
+# aiorch CLI auto-discovers this file by walking up from the current
+# directory (filenames tried: aiorch.yaml, aiorch.yml, .aiorch.yaml).
+# Every LLM pipeline in this folder picks up the settings below
+# automatically. Override any field per-step via the pipeline YAML
+# (e.g. `model: gpt-4o` on a specific step).
+#
+# The llm: block only needs three fields in practice:
+#   model    — required; provider is auto-detected from the string
+#   api_key  — use ${ENV_VAR} so no secret lands in the file
+#   base_url — optional; set it when pointing at OpenRouter / Azure /
+#              Ollama / any other non-default endpoint
+#
+# temperature and max_tokens are optional LLMConfig knobs; leave them
+# unset here and each pipeline/step can override as needed.
+
+llm:
+  # Any litellm-supported model string works. Examples:
+  #   gpt-4o-mini                    → OpenAI
+  #   gpt-4o                         → OpenAI
+  #   claude-sonnet-4-20250514       → Anthropic
+  #   google/gemini-2.5-flash        → Google (direct or via OpenRouter)
+  #   google/gemini-2.5-pro
+  #   anthropic/claude-3-5-haiku     → via OpenRouter
+  #   ollama/llama3                  → local Ollama
+  model: google/gemini-2.5-flash
+
+  # Read the key from env — never hardcode. Swap the variable name
+  # to match your actual provider:
+  #   OPENAI_API_KEY      → direct OpenAI
+  #   ANTHROPIC_API_KEY   → direct Anthropic
+  #   OPENROUTER_API_KEY  → OpenRouter (multi-provider)
+  #   GOOGLE_API_KEY      → direct Google AI
+  api_key: ${OPENROUTER_API_KEY}
+
+  # Set base_url when the model string's default endpoint isn't what
+  # you want. For OpenRouter with a "google/..." model the routing
+  # requires the explicit endpoint since the default for "google/..."
+  # would be Google Direct.
+  base_url: https://openrouter.ai/api/v1/
+
+  # Leave unset — each step can set its own via `temperature:` /
+  # `max_tokens:` in the pipeline YAML.
+  # temperature: 0.3
+  # max_tokens: 1024
+
+defaults:
+  # No implicit retry — pipelines opt in explicitly per step.
+  retry: 0
+
+logging:
+  # WARNING is the terminal-friendly default. Bump to INFO to see
+  # step summaries + cache hits, or DEBUG to see full prompts and
+  # model responses. JSONL trace files capture everything regardless.
+  level: DEBUG
+  sink: file
+
+storage:
+  # Local SQLite for CLI runs — zero config, no Postgres needed.
+  # Run history, step logs, and the LLM response cache all live
+  # in ~/.aiorch/history.db by default.
+  type: sqlite
+  path: ~/.aiorch/history.db

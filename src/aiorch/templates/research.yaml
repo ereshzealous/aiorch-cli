@@ -1,0 +1,40 @@
+# description: Multi-step research with parallel analysis perspectives
+name: research
+
+steps:
+  gather:
+    prompt: |
+      List 5 key facts about the topic below.
+      Be specific and cite sources where possible.
+
+      Topic: "The impact of large language models on software engineering"
+    output: facts
+
+  technical:
+    prompt: |
+      From a technical perspective, analyze these facts.
+      Focus on architecture, tooling, and developer workflow changes.
+    input: "{{facts}}"
+    depends: [gather]
+    output: technical_view
+
+  business:
+    prompt: |
+      From a business perspective, analyze these facts.
+      Focus on productivity, cost, and competitive advantage.
+    input: "{{facts}}"
+    depends: [gather]
+    parallel: technical
+    output: business_view
+
+  synthesis:
+    prompt: |
+      Synthesize these two perspectives into a balanced summary.
+
+      Technical view: {{technical_view}}
+
+      Business view: {{business_view}}
+
+      Write 3-5 key takeaways.
+    depends: [technical, business]
+    output: summary

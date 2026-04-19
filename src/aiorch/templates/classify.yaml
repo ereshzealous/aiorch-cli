@@ -1,0 +1,38 @@
+# description: Typed classification — JSON schema validation with retry
+name: classify-issue
+
+steps:
+  classify:
+    prompt: |
+      Classify the following text. Respond with JSON only.
+
+      Text: "The login page crashes on Safari when the password field
+      is empty and the user clicks submit."
+    schema:
+      type: object
+      required:
+        - category
+        - severity
+        - summary
+      properties:
+        category:
+          type: string
+          enum: [bug, feature, docs, ops]
+        severity:
+          type: string
+          enum: [low, medium, high]
+        summary:
+          type: string
+    retry_on_invalid: 2
+    assertions:
+      - "len(summary) > 10"
+    output: classification
+
+  report:
+    prompt: |
+      Write a one-sentence triage summary:
+      Category: {{classification.category}}
+      Severity: {{classification.severity}}
+      Summary: {{classification.summary}}
+    depends: [classify]
+    output: triage

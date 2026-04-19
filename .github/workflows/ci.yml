@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e .
+      - name: Import smoke test
+        run: python -c "import aiorch; print(aiorch.__version__)"
+      - name: CLI --help
+        run: aiorch --help
+      - name: Validate every example
+        run: |
+          for f in examples/*.yaml; do
+            [ "$(basename "$f")" = "aiorch.yaml" ] && continue
+            aiorch validate "$f"
+          done

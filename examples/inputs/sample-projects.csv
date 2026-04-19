@@ -1,0 +1,11 @@
+project,status,budget,hours,owner
+Webhook redesign,completed,12500,140,alice
+MCP catalog expansion,in_progress,18000,160,bob
+Auth secure-by-default,completed,4500,55,carol
+Scheduler reconcile loop,in_progress,9000,95,dave
+UI review pass,completed,7500,80,eve
+Startup task registry,completed,3500,38,alice
+Observability metrics,in_progress,14000,130,bob
+CLI LLM pipeline catalog,completed,6000,60,carol
+Logging silence fix,completed,1500,18,dave
+API docs hardening,completed,8500,85,eve

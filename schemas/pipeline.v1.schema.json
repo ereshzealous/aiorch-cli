@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aiorch.dev/schemas/pipeline.v1.schema.json",
+  "title": "aiorch Pipeline v1",
+  "description": "Schema for aiorch YAML pipeline definitions. Validates structure and field types. Semantic validation (DAG cycles, dependency references, template variables) is handled by the Python runtime.",
+  "type": "object",
+  "required": ["name", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Pipeline spec version. Currently '1'.",
+      "default": "1",
+      "enum": ["1"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Pipeline name. Used as identifier across the system.",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable pipeline description."
+    },
+    "env": {
+      "type": "object",
+      "description": "Environment variables injected into all steps.",
+      "additionalProperties": { "type": "string" }
+    },
+    "input": {
+      "type": "object",
+      "description": "Pipeline input parameters. Values can be simple defaults or rich typed definitions.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "array" },
+          { "$ref": "#/$defs/inputField" }
+        ]
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Pipeline output declarations. 'result' names the primary output variable, 'artifacts' lists saved file outputs.",
+      "properties": {
+        "result": { "type": "string" },
+        "artifacts": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "logging": {
+      "type": "object",
+      "description": "Per-pipeline logging overrides.",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"]
+        },
+        "sink": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "steps": {
+      "type": "object",
+      "description": "Pipeline steps. Each key is the step name, each value is a step definition with exactly one primitive (run, prompt, agent, action, flow).",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+
+  "$defs": {
+
+    "inputField": {
+      "type": "object",
+      "description": "Rich input field definition with type, default, and metadata.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "list", "artifact", "http", "connector"],
+          "default": "string",
+          "description": "Input type. Retired types (file, json, csv, env) are rejected — use 'artifact' with the appropriate 'format' for files, or workspace_secrets / workspace_configs for environment values. Connector inputs are Platform-only."
+        },
+        "default": {
+          "description": "Default value if not provided at runtime."
+        },
+        "description": { "type": "string" },
+        "required": { "type": "boolean", "default": false },
+
+        "minimum": {
+          "type": "number",
+          "description": "Inclusive lower bound for integer / number inputs. Values below this are rejected by validate_inputs() at run start."
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Inclusive upper bound for integer / number inputs. Values above this are rejected by validate_inputs() at run start."
+        },
+
+        "format": {
+          "type": "string",
+          "enum": ["text", "json", "csv", "binary"],
+          "default": "text",
+          "description": "How to interpret artifact bytes. Also used by http type for response parsing (text|json)."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "MIME type hint for artifact inputs (e.g., 'text/plain', 'application/json'). Used for upload validation."
+        },
+        "max_size_mb": {
+          "type": "number",
+          "description": "Per-input size cap override. Falls back to workspace default."
+        },
+        "delimiter": {
+          "type": "string",
+          "description": "CSV delimiter for artifact inputs with format: csv."
+        },
+
+        "url": { "type": "string", "description": "URL for http input type." },
+        "method": { "type": "string", "description": "HTTP method for http input type." },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": { "type": "string", "description": "HTTP request body." },
+
+        "uses": {
+          "type": "string",
+          "description": "Connector name for type: connector inputs and action: connector steps. Resolved at run time via the scope chain (pipeline -> workspace -> org)."
+        },
+        "operation": {
+          "type": "string",
+          "description": "Canonical operation name for connector inputs (query, read, list, etc.)."
+        },
+        "sql": { "type": "string", "description": "SQL statement for connector database operations. Parameterized — values go in 'params', NOT in the string." },
+        "params": {
+          "type": "array",
+          "description": "Parameter values for $1/$2/... placeholders in 'sql'."
+        },
+        "max_rows": {
+          "type": "integer",
+          "description": "Row cap for connector database query results."
+        },
+        "key": {
+          "type": "string",
+          "description": "Object store key for connector read/write/delete operations."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Object store prefix for connector list operations."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Result cap for connector list operations."
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+
+    "step": {
+      "type": "object",
+      "description": "A single pipeline step. Must contain exactly one primitive field: run, prompt, agent, action, or flow.",
+
+      "properties": {
+
+        "run": {
+          "type": "string",
+          "description": "Shell command to execute. Supports Jinja2 templates."
+        },
+        "prompt": {
+          "type": "string",
+          "description": "LLM prompt text. Supports Jinja2 templates."
+        },
+        "agent": {
+          "description": "Agent definition — string (system prompt) or object with system, tools, mcp.",
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "system": { "type": "string" },
+                "tools": { "type": "array" },
+                "mcp": {}
+              },
+              "additionalProperties": true
+            }
+          ]
+        },
+        "action": {
+          "type": "string",
+          "description": "Action type: slack, webhook, github-comment, github-issue, write-file, email, s3, kafka, teams, discord."
+        },
+        "flow": {
+          "type": "string",
+          "description": "Path to sub-pipeline YAML file."
+        },
+        "python": {
+          "type": "string",
+          "description": "Inline Python source. Runs in the executor's own interpreter (not a subprocess). The body has access to `inputs` (dict of all in-scope context vars) and should assign a JSON-serializable value to `result` to emit a step output. Captured stdout falls through as the output when `result` is not set."
+        },
+
+        "input": {
+          "description": "Step input — file path, variable reference, or list of inputs.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "vars": {
+          "type": "object",
+          "description": "Step-local variables merged into template context.",
+          "additionalProperties": true
+        },
+
+        "model": {
+          "type": "string",
+          "description": "LLM model override for this step (e.g. 'gpt-4o', 'claude-sonnet-4-20250514')."
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "system": {
+          "type": "string",
+          "description": "System prompt for LLM calls."
+        },
+
+        "tools": {
+          "type": "array",
+          "description": "Tool definitions for agent steps.",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ]
+          }
+        },
+        "mcp": {
+          "description": "MCP server configuration for agent tool access.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array" },
+            { "type": "object" }
+          ]
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        },
+        "goal": {
+          "type": "string",
+          "description": "Goal description for agent steps."
+        },
+
+        "config": {
+          "type": "object",
+          "description": "Action-specific parameters. Each action type defines its own config shape. Examples: {channel, message} for slack, {url, method, headers, body} for webhook, {path, body} for write-file, {to, subject, body} for email, {topic, value, key} for kafka, {operation, url, body} for s3.",
+          "additionalProperties": true
+        },
+
+        "depends": {
+          "type": "array",
+          "description": "Step names this step depends on. All must complete before this step runs.",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "parallel": {
+          "description": "Run in parallel with another step (string name) or boolean for foreach.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "boolean" }
+          ]
+        },
+        "condition": {
+          "type": "string",
+          "description": "Jinja2 expression. Step is skipped if this evaluates to false."
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 0,
+          "description": "Number of retry attempts on failure."
+        },
+        "retry_delay": {
+          "type": "string",
+          "description": "Delay between retries (e.g. '5s', '1m')."
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Maximum execution time (e.g. '30s', '5m')."
+        },
+        "cache": {
+          "type": "boolean",
+          "default": false,
+          "description": "Cache LLM responses for identical prompts."
+        },
+
+        "foreach": {
+          "description": "Iterate over a list. Each iteration gets 'item' in context.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+
+        "output": {
+          "type": "string",
+          "description": "Variable name to store this step's result. Available to downstream steps as {{name}}."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["text", "json"],
+          "default": "text",
+          "description": "Output format. 'json' parses LLM response as JSON."
+        },
+        "save": {
+          "type": "string",
+          "description": "File path to save output to."
+        },
+
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema to validate prompt output against. Implies format: json."
+        },
+        "retry_on_invalid": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Re-prompt LLM with validation errors this many times."
+        },
+        "assertions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Python-like assertion expressions evaluated against output."
+        },
+
+        "max_cost": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum cost in USD for this step."
+        },
+        "on_failure": {
+          "type": "string",
+          "description": "Step name to run if this step fails."
+        },
+        "trigger": {
+          "type": "string",
+          "description": "When to run: 'on_failure' means only run as error handler."
+        }
+      },
+
+      "oneOf": [
+        { "required": ["run"] },
+        { "required": ["prompt"] },
+        { "required": ["agent"] },
+        { "required": ["action"] },
+        { "required": ["flow"] },
+        { "required": ["python"] }
+      ],
+
+      "additionalProperties": true
+    }
+  }
+}

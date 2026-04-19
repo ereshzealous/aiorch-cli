@@ -1,0 +1,74 @@
+[project]
+name = "aiorch"
+dynamic = ["version"]
+description = "YAML-driven LLM + Python + shell pipelines, runnable from the CLI."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Eresh Gorantla" }]
+keywords = ["ai", "llm", "workflow", "pipeline", "agent", "yaml", "cli", "orchestration", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+]
+
+# Runtime deps for the CLI.
+#
+# litellm is the LLM fan-out layer — required, not optional, because
+# every non-trivial example pipeline calls an LLM. Bringing litellm into
+# base deps also means ``pip install aiorch`` just works against
+# OpenRouter / OpenAI / Anthropic / Gemini without extras.
+dependencies = [
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "pydantic>=2.0",
+    "httpx>=0.27",
+    "rich>=13.0",
+    "litellm>=1.40,<2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# Structured-input validation (--input schema checks)
+validation = ["jsonschema>=4.0"]
+
+# Real connectors for CLI pipelines that need them
+connectors = [
+    "boto3>=1.28",
+    "aiokafka>=0.10",
+    "aiosmtplib>=3.0",
+    "kafka-python>=2.0",
+]
+
+# Optional Prometheus export — enabled by AIORCH_METRICS_ENABLED=true
+metrics = ["prometheus-client>=0.20"]
+
+[project.scripts]
+aiorch = "aiorch.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ereshzealous/aiorch-cli"
+Repository = "https://github.com/ereshzealous/aiorch-cli"
+Issues = "https://github.com/ereshzealous/aiorch-cli/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/aiorch/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aiorch"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100

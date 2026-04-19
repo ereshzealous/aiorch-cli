@@ -1,0 +1,92 @@
+diff --git a/src/aiorch/server/routes/webhook_triggers.py b/src/aiorch/server/routes/webhook_triggers.py
+index 1234567..abcdefa 100644
+--- a/src/aiorch/server/routes/webhook_triggers.py
++++ b/src/aiorch/server/routes/webhook_triggers.py
+@@ -45,6 +45,7 @@ class CreateWebhookTriggerRequest(BaseModel):
+     slug: str | None = None
+     description: str | None = None
+     require_signature: bool = True
++    max_per_minute: int = 60
+
+
+ class UpdateWebhookTriggerRequest(BaseModel):
+@@ -53,6 +54,7 @@ class UpdateWebhookTriggerRequest(BaseModel):
+     description: str | None = None
+     require_signature: bool | None = None
+     is_active: bool | None = None
++    max_per_minute: int | None = None
+
+
+ def _check_rate_limit(trigger_id: str, max_per_minute: int) -> tuple[bool, int]:
+@@ -72,6 +74,19 @@ def _check_rate_limit(trigger_id: str, max_per_minute: int) -> tuple[bool, int]:
+     return (count <= max_per_minute, int(count))
+
+
++def _record_delivery(store, *, trigger_id, workspace_id, source, source_ip,
++                    method, signature_status, response_status, response_outcome,
++                    run_id=None, error_detail=None, headers_preview=None,
++                    body_preview=None):
++    """Insert a webhook_deliveries row. Never raises — recording failure must
++    not break the fire path."""
++    try:
++        store.execute_sql(
++            "INSERT INTO webhook_deliveries (...) VALUES (...)",
++            (...),
++        )
++    except Exception:
++        pass
++
+ @router.post("/webhook/{workspace_id}/{slug}")
+ async def fire_webhook(workspace_id: str, slug: str, request: Request):
+     trigger = store.query_one("SELECT * FROM webhook_triggers WHERE ...", (...))
+@@ -88,7 +103,15 @@ async def fire_webhook(workspace_id: str, slug: str, request: Request):
+         raise HTTPException(status_code=404, detail="No trigger found")
+
++    # Rate limit check. Fixed-window in Redis, degrades open on outage.
++    allowed, current = _check_rate_limit(trigger["id"], trigger.get("max_per_minute", 60))
++    if not allowed:
++        _record_delivery(store, trigger_id=trigger["id"], ...,
++                        response_status=429, response_outcome="rate_limited")
++        raise HTTPException(status_code=429, detail="Rate limit exceeded")
++
+     # Signature verification (unchanged)
+     if trigger.get("require_signature", True):
+         _verify_signature_or_raise(request, trigger)
+
+diff --git a/alembic/versions/u6v7w8x9y0z1_add_webhook_deliveries.py b/alembic/versions/u6v7w8x9y0z1_add_webhook_deliveries.py
+new file mode 100644
+index 0000000..9876543
+--- /dev/null
++++ b/alembic/versions/u6v7w8x9y0z1_add_webhook_deliveries.py
+@@ -0,0 +1,32 @@
++"""Add webhook_deliveries table + max_per_minute column."""
++from alembic import op
++import sqlalchemy as sa
++
++revision = "u6v7w8x9y0z1"
++down_revision = "t5u6v7w8x9y0"
++
++def upgrade():
++    op.add_column(
++        "webhook_triggers",
++        sa.Column("max_per_minute", sa.Integer, nullable=False,
++                  server_default=sa.text("60")),
++    )
++    op.create_table(
++        "webhook_deliveries",
++        sa.Column("id", sa.String(36), primary_key=True),
++        sa.Column("trigger_id", sa.String(36),
++                  sa.ForeignKey("webhook_triggers.id", ondelete="CASCADE"),
++                  nullable=False),
++        sa.Column("received_at", sa.DateTime, nullable=False),
++        sa.Column("response_outcome", sa.String(24), nullable=False),
++        sa.Column("run_id", sa.Integer, nullable=True),
++    )
++    op.create_index("ix_webhook_deliveries_trigger_time",
++                    "webhook_deliveries", ["trigger_id", "received_at"])
++
++def downgrade():
++    op.drop_index("ix_webhook_deliveries_trigger_time",
++                  table_name="webhook_deliveries")
++    op.drop_table("webhook_deliveries")
++    op.drop_column("webhook_triggers", "max_per_minute")

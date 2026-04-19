@@ -1,0 +1,34 @@
+# description: Agent-based security audit with file reading tools
+name: code-audit
+
+steps:
+  files:
+    run: find . -name "*.py" -not -path "./.venv/*" | head -20
+    output: file_list
+
+  audit:
+    agent:
+      name: security-auditor
+      system: |
+        You are a security auditor. Review the codebase for:
+        - SQL injection
+        - Command injection
+        - Hardcoded secrets
+        - Insecure file operations
+        - Missing input validation
+      tools:
+        - file_read
+        - file_search
+    input: "{{file_list}}"
+    goal: "Audit these files for security issues. Read each file and report findings."
+    max_iterations: 5
+    depends: [files]
+    output: findings
+
+  summary:
+    prompt: |
+      Summarize the security audit findings in a brief report.
+      Include severity and recommended fixes.
+    input: "{{findings}}"
+    depends: [audit]
+    output: report

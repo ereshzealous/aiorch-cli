@@ -1,0 +1,65 @@
+name: parallel-perspectives
+description: |
+  Three parallel LLM calls, each arguing a different perspective on
+  the same topic, then a fourth call synthesizes them into a single
+  balanced recommendation. Exercises fan-out + fan-in DAG shape
+  with LLM steps. All three perspective calls run concurrently —
+  the synthesize step waits for all three to finish.
+
+  Usage:
+    aiorch run 06-parallel-perspectives.yaml
+    aiorch run 06-parallel-perspectives.yaml -i topic="requiring tests on every PR"
+
+input:
+  topic:
+    type: string
+    default: "requiring Slack notifications on every production deploy"
+
+steps:
+  pov_engineer:
+    prompt: |
+      Argue the case FOR "{{topic}}" from a senior engineer's
+      perspective. 3 sentences, no hedging, no "on the other hand."
+    output: engineer_view
+
+  pov_manager:
+    prompt: |
+      Argue AGAINST "{{topic}}" from an engineering manager's
+      perspective balancing velocity vs quality. 3 sentences, no
+      hedging.
+    output: manager_view
+
+  pov_pm:
+    prompt: |
+      Argue the nuanced middle position on "{{topic}}" from a
+      product manager's perspective. 3 sentences, no hedging.
+    output: pm_view
+
+  synthesize:
+    prompt: |
+      Three perspectives on "{{topic}}":
+
+      ENGINEER: {{engineer_view}}
+      MANAGER:  {{manager_view}}
+      PM:       {{pm_view}}
+
+      Write a single balanced conclusion (2 sentences) that respects
+      all three but lands on a concrete recommendation someone could
+      actually implement next sprint.
+    depends: [pov_engineer, pov_manager, pov_pm]
+    output: conclusion
+
+  show:
+    run: |
+      echo "==== Engineer view ===="
+      echo {{engineer_view}}
+      echo ""
+      echo "==== Manager view ===="
+      echo {{manager_view}}
+      echo ""
+      echo "==== PM view ===="
+      echo {{pm_view}}
+      echo ""
+      echo "==== Conclusion ===="
+      echo {{conclusion}}
+    depends: [synthesize]
