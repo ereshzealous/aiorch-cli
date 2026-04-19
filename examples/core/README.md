@@ -470,6 +470,20 @@ Confirms your SQLite DB is set up correctly before you try the bigger pipelines.
 
 The centerpiece. Five independent aggregation queries, each in its own `python:` step, all in the same DAG layer so the runtime dispatches them concurrently:
 
+```mermaid
+flowchart LR
+    DB[(sample.db)] --> Q1[top_customers]
+    DB --> Q2[revenue_by_region]
+    DB --> Q3[category_counts]
+    DB --> Q4[orders_per_day]
+    DB --> Q5[top_products]
+    Q1 --> A[aggregate]
+    Q2 --> A
+    Q3 --> A
+    Q4 --> A
+    Q5 --> A
+```
+
 1. Top customers by total order volume
 2. Per-region revenue (joined with customers + products)
 3. Per-category sales counts (joined with products)
@@ -632,6 +646,19 @@ The flaky steps use random failures, so run it 3-4 times to see different behavi
 ### 39-pipeline-as-orchestrator.yaml — production-shaped 10-step chain
 
 Long sequential workflow that mirrors what real production pipelines look like:
+
+```mermaid
+flowchart LR
+    F[fetch<br>retry] --> V[validate_response]
+    V --> E[extract_records]
+    E --> En[enrich]
+    En --> P[partition_by_type]
+    P --> Pe[process_each_partition<br>foreach]
+    Pe --> R[reconcile]
+    R --> Fo[format_report]
+    Fo --> W[write_report]
+    W --> N[notify]
+```
 
 1. **fetch** — pull from external API (with retry)
 2. **validate_response** — schema check, fail loud

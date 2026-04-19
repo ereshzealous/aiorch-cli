@@ -18,6 +18,78 @@ Works with any provider [LiteLLM](https://docs.litellm.ai/) supports — OpenAI,
 
 ---
 
+## ⚙️ How it works
+
+aiorch turns a YAML file into an executable DAG. The full lifecycle of `aiorch run`:
+
+```mermaid
+flowchart LR
+    Y[pipeline.yaml] --> P[Parser]
+    P --> D[DAG builder]
+    D --> E[Executor]
+    E --> X{Primitive<br>dispatcher}
+    X --> F1[prompt<br>LiteLLM]
+    X --> F2[agent<br>LiteLLM + MCP tools]
+    X --> F3[python<br>subprocess]
+    X --> F4[run<br>shell]
+    X --> F5[foreach<br>fan out]
+    F1 --> H[(SQLite<br>~/.aiorch/history.db)]
+    F2 --> H
+    F3 --> H
+    F4 --> H
+    F5 --> H
+    H --> R[aiorch history<br>aiorch trace]
+```
+
+1. **Parse** — `aiorch.core.parser` reads your YAML into a typed pipeline object (steps, inputs, dependencies).
+2. **DAG build** — `aiorch.core.dag` resolves `depends:` and `foreach:` into a layered DAG. Independent steps land on the same layer so they run in parallel.
+3. **Execute** — the runtime walks the DAG layer by layer. Each step is dispatched to its primitive handler.
+4. **Primitives:**
+   - `prompt` / `agent` — LLM calls via LiteLLM, response-cached by hash of `(prompt, model, temperature, max_tokens)`.
+   - `python` — a Python body runs in an isolated subprocess with `inputs` and `result` bindings.
+   - `run` — shell command via `subprocess`, Jinja-resolved against the context.
+   - `foreach` — per-item fan-out with optional `parallel: true`.
+5. **Persist** — every run and step is logged to SQLite. LLM responses are cached so re-running a step with identical inputs is free.
+6. **Replay** — `aiorch history` / `aiorch trace <run-id>` reads back exactly what happened.
+
+### A pipeline is a DAG, not a script
+
+Three steps — extract data, summarise with an LLM, write to disk:
+
+```mermaid
+flowchart LR
+    In([input.csv]) --> Ex[extract<br>python]
+    Ex --> Su[summarise<br>prompt]
+    Su --> Wr[write<br>run]
+    Wr --> Out([report.md])
+```
+
+```yaml
+steps:
+  extract:
+    python: |
+      import csv
+      rows = list(csv.DictReader(open(inputs["file"])))
+      result = [r["comment"] for r in rows]
+
+  summarise:
+    prompt: |
+      Summarise these customer comments in 3 bullets:
+      {% for c in extract %}- {{c}}
+      {% endfor %}
+    depends: [extract]
+
+  write:
+    run: cat > report.md <<EOF
+{{summarise}}
+EOF
+    depends: [summarise]
+```
+
+Each step declares what it needs (`depends:`) and what it produces (implicit via its name). aiorch figures out the order, the parallelism, and the retries.
+
+---
+
 ## ✨ Features
 
 - 🤖 **LLM primitives** — prompt, schema-extract, classify-and-branch, multi-model compare
@@ -98,7 +170,9 @@ No `aiorch.yaml`? aiorch falls back to standard environment variables (`OPENAI_A
 |---|---|
 | `aiorch run <file>` | Execute a pipeline |
 | `aiorch validate <file>` | Schema + template lint, no execution |
-| `aiorch list-steps <file>` | Inspect a pipeline's DAG |
+| `aiorch list <file>` | List all steps in a pipeline |
+| `aiorch visualize <file>` | ASCII DAG diagram |
+| `aiorch plan <file>` | DAG layers + cost estimate |
 | `aiorch init <template>` | Scaffold a new pipeline from a template |
 | `aiorch history` | List recent runs and their status |
 | `aiorch history <run-id>` | Show details of one run |

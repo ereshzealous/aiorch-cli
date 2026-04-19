@@ -218,6 +218,239 @@ Output: `inputs/CHANGELOG-draft.md`
 
 ---
 
+### Tier 5 — LLM craft: cache, temperature, max_tokens, personas (16-19)
+
+Four minimal demos, one concept each. Useful when you want to understand an LLM knob in isolation before wiring it into a real pipeline.
+
+#### `16-prompt-cache-demo.yaml` — identical prompts are free on second call
+
+Two steps fire the same prompt + model. The first pays for a call; the second comes back in <50ms at $0.0000 because aiorch fingerprints `(prompt, model, temperature, max_tokens)` and short-circuits duplicates against the SQLite cache.
+
+```bash
+aiorch run 16-prompt-cache-demo.yaml
+aiorch run 16-prompt-cache-demo.yaml    # second run — BOTH calls are cache hits
+```
+
+The trace shows `cache hit` + `$0.0000` on `second_call`. This is why iterating on a downstream step never re-bills you for the upstream LLM work.
+
+---
+
+#### `17-temperature-sweep.yaml` — same prompt at 5 temperatures, in parallel
+
+Fires the same prompt at `T=0.0`, `0.3`, `0.6`, `0.9`, `1.2`. All five steps share a DAG layer so they run concurrently.
+
+```mermaid
+flowchart LR
+    P[topic] --> T0[t_zero<br>T=0.0]
+    P --> T3[t_cool<br>T=0.3]
+    P --> T6[t_mid<br>T=0.6]
+    P --> T9[t_warm<br>T=0.9]
+    P --> T12[t_wild<br>T=1.2]
+    T0 --> S[show]
+    T3 --> S
+    T6 --> S
+    T9 --> S
+    T12 --> S
+```
+
+```bash
+aiorch run 17-temperature-sweep.yaml
+aiorch run 17-temperature-sweep.yaml -i topic="three fictional startup names for a fintech"
+```
+
+Good intuition-builder: run this once on any new prompt before committing to a temperature value. Sometimes the answer barely changes; sometimes it's dramatic.
+
+---
+
+#### `18-max-tokens-guardrail.yaml` — truncation vs room to breathe
+
+Same prompt, two `max_tokens` budgets (40 vs 600). The tight budget truncates mid-sentence; the generous one finishes. Demonstrates the cost-cap knob on a step where an over-explainer model could blow budget.
+
+```bash
+aiorch run 18-max-tokens-guardrail.yaml
+```
+
+---
+
+#### `19-system-persona.yaml` — how `system:` prompts shape tone
+
+Same user question, two different `system:` prompts ("staff engineer, direct" vs "patient coach, encouraging"). Shows where `system:` belongs (sticky voice / format / forbidden-topic rules) versus `prompt:` (the per-request question).
+
+```bash
+aiorch run 19-system-persona.yaml
+aiorch run 19-system-persona.yaml -i question="Why does my Python code leak memory?"
+```
+
+---
+
+### Tier 6 — Structured-output pipelines (20-24)
+
+Each pipeline in this tier uses `format: json` + a JSON `schema:` + `retry_on_invalid: 2` so downstream steps get guaranteed-parseable output. Canonical shape for "I need the LLM to produce data, not prose."
+
+#### `20-csv-to-markdown-report.yaml` — CSV → Python aggregate → LLM narrative → markdown
+
+Reads a projects CSV, Python computes deterministic rollups (totals, averages, top-3 by budget), LLM writes a 4-paragraph narrative weaving those numbers into prose, Python writes the final markdown. The LLM never sees raw rows — that keeps it cheap and prevents it from inventing numbers.
+
+```mermaid
+flowchart LR
+    D[projects.csv] --> A[aggregate<br>python]
+    A --> N[narrate<br>prompt]
+    N --> W[write_md<br>python]
+    W --> O[project-report.md]
+```
+
+```bash
+aiorch run 20-csv-to-markdown-report.yaml -i data=@./inputs/sample-projects.csv
+```
+
+Output: `inputs/project-report.md`.
+
+---
+
+#### `21-json-normalizer.yaml` — unify messy field names into a canonical schema
+
+JSON array where partners use inconsistent field names (`full_name` / `name` / `fullName`, `email_address` / `email`, …). A `foreach` runs an LLM call per record, each returning `{name, email, phone, city}` against a strict schema. Python writes the normalized array.
+
+```bash
+aiorch run 21-json-normalizer.yaml -i messy=@./inputs/messy-users.json
+```
+
+Output: `inputs/users-normalized.json`. Reach for this pattern the moment you're ingesting from more than two sources.
+
+---
+
+#### `22-email-to-ticket.yaml` — unstructured text → structured ticket
+
+Free-text customer email in → validated JSON ticket out (`subject`, `category`, `priority ∈ {p1,p2,p3,p4}`, `urgency_reason`, `suggested_response`, `tags`). The schema's enum on `priority` means downstream routing code can trust its input.
+
+```bash
+aiorch run 22-email-to-ticket.yaml -i email=@./inputs/sample-email.txt
+```
+
+Generalises to any "unstructured text → ticket" surface — Slack threads, PagerDuty pages, chat transcripts.
+
+---
+
+#### `23-code-port.yaml` — translate source to another language
+
+Python snippet in, idiomatic Go (default) or any language via `-i target_lang=Rust` out. Returns `{ported_code, notes}` — the notes capture idiom differences and missing stdlib equivalents the LLM noticed while porting.
+
+```bash
+aiorch run 23-code-port.yaml -i source=@./inputs/sample-code.py
+aiorch run 23-code-port.yaml -i source=@./inputs/sample-code.py -i target_lang=Rust
+```
+
+---
+
+#### `24-sql-query-generator.yaml` — natural-language question + schema → SQL
+
+Plain-English question + a `CREATE TABLE` dump → `{sql, explanation}`. Deliberately stops at "generate + explain" so you review before executing. Passing the real schema in the prompt keeps hallucinated column names rare.
+
+```bash
+aiorch run 24-sql-query-generator.yaml
+aiorch run 24-sql-query-generator.yaml -i question="Which products have the lowest stock and need reordering?"
+```
+
+---
+
+### Tier 7 — LLM-as-engineer utilities (25-30)
+
+The most practical pipelines in the catalog — the ones that earn their keep in a real workflow. Every one ships with a hermetic fixture so the default run works offline; override the `*_path` input to point at real data.
+
+#### `25-pytest-failure-triage.yaml` — CI red → grouped root causes
+
+Python parses `pytest -v` output into `(test, error_type, short_msg)` triples. LLM groups them by apparent root cause and suggests one concrete next step per group. Python writes the sorted triage report.
+
+```mermaid
+flowchart LR
+    P[pytest output] --> Pa[parse<br>python]
+    Pa --> Tr[triage<br>prompt]
+    Tr --> W[write_report<br>python]
+    W --> O[pytest-triage.json]
+```
+
+```bash
+aiorch run 25-pytest-failure-triage.yaml
+aiorch run 25-pytest-failure-triage.yaml -i log_path=./my-pytest.txt
+```
+
+The LLM is unusually good at finding common roots across different-looking stacktraces; the deterministic parser guarantees we only pass signal lines, not 5000 lines of noise.
+
+---
+
+#### `26-openapi-from-routes.yaml` — routes file → OpenAPI 3.0 draft
+
+Flask / FastAPI routes file in → OpenAPI path objects out (path, method, summary, parameters, request body, responses). Python writes the JSON spec.
+
+```bash
+aiorch run 26-openapi-from-routes.yaml -i source=@./inputs/sample-routes.py
+```
+
+Output: `inputs/openapi-draft.json`. Imperfect but dramatically better than writing the spec from scratch.
+
+---
+
+#### `27-regex-builder.yaml` — NL description → regex + empirical verification
+
+LLM generates a candidate regex + 3 should-match + 2 should-not-match examples. Python compiles the regex and actually runs it against those examples, scoring whether the LLM's claims hold.
+
+```mermaid
+flowchart LR
+    D[description] --> B[build<br>prompt]
+    B --> V[verify<br>python<br>runs the regex]
+    V --> R[score:<br>matches /<br>disagreements]
+```
+
+```bash
+aiorch run 27-regex-builder.yaml
+aiorch run 27-regex-builder.yaml -i description="Match a 6-to-12 character password with at least one digit and one uppercase"
+```
+
+The right integration shape for generative tasks: LLM proposes, deterministic code verifies.
+
+---
+
+#### `28-doc-gap-finder.yaml` — which of my features are documented?
+
+README + list of features in → per-feature `{documented: bool, evidence}` out. LLM does semantic matching (the README might discuss feature Y using different words than the feature label) and supplies a short quoted evidence snippet when it claims the feature is covered.
+
+```bash
+aiorch run 28-doc-gap-finder.yaml
+```
+
+Typical workflow: feed your product spec list + your README, get back the list of undocumented features to write up next.
+
+---
+
+#### `29-faq-generator.yaml` — docs → 10-question FAQ
+
+LLM synthesises the N most likely first-time-reader questions (default: 10) from your docs plus concise answers grounded in the doc. Python writes `inputs/FAQ-draft.md`.
+
+```bash
+aiorch run 29-faq-generator.yaml -i doc=@./inputs/long-article.txt
+aiorch run 29-faq-generator.yaml -i doc=@./inputs/sample-readme.md -i n=15
+```
+
+The LLM is naturally good at this — it simulates "what would a confused reader ask here?", which is exactly what an FAQ anticipates.
+
+---
+
+#### `30-diff-explainer.yaml` — git diff → plain-English changelog + risk note
+
+Python computes diff stats (files, +/−). LLM produces a two-part markdown: "What changed" (3-5 behaviour-focused bullets, not variable renames) and "Risk assessment" (2-4 bullets naming concrete reviewer checks — compat breaks, missing tests, perf).
+
+```bash
+aiorch run 30-diff-explainer.yaml
+aiorch run 30-diff-explainer.yaml -i diff_path=/tmp/my.diff
+
+# Make a real diff:
+git diff main...feature-branch > /tmp/my.diff
+```
+
+Output: `inputs/diff-summary.md`. Drop this into a PR description or a release notes draft.
+
+---
+
 ## Useful CLI flags
 
 ```bash
@@ -256,5 +489,20 @@ aiorch plan pipeline.yaml                # show DAG layers + cost estimate
 | 13 | `13-error-log-triage.yaml` | log file | Python parse + LLM root-cause per pattern |
 | 14 | `14-csv-enricher.yaml` | csv | foreach LLM + write enriched csv |
 | 15 | `15-changelog-drafter.yaml` | text | LLM grouping + markdown changelog |
+| 16 | `16-prompt-cache-demo.yaml` | — | Two identical prompts; second call is a cache hit |
+| 17 | `17-temperature-sweep.yaml` | string | Same prompt at 5 temperatures in parallel |
+| 18 | `18-max-tokens-guardrail.yaml` | — | Budget-capped vs generous `max_tokens` side-by-side |
+| 19 | `19-system-persona.yaml` | string | Two `system:` personas, same user question |
+| 20 | `20-csv-to-markdown-report.yaml` | csv | Python aggregate → LLM narrative → markdown |
+| 21 | `21-json-normalizer.yaml` | json | foreach LLM normalize → clean JSON |
+| 22 | `22-email-to-ticket.yaml` | text | Email → structured ticket JSON (schema-validated) |
+| 23 | `23-code-port.yaml` | text + lang | Port source between languages with idiom notes |
+| 24 | `24-sql-query-generator.yaml` | string | Question + schema → SQL + explanation |
+| 25 | `25-pytest-failure-triage.yaml` | text | Python parse + LLM root-cause grouping |
+| 26 | `26-openapi-from-routes.yaml` | text | Routes file → OpenAPI 3.0 spec |
+| 27 | `27-regex-builder.yaml` | string | LLM regex + Python empirical verification |
+| 28 | `28-doc-gap-finder.yaml` | doc + list | Per-feature coverage audit of a README |
+| 29 | `29-faq-generator.yaml` | text + int | Docs → N-question FAQ markdown |
+| 30 | `30-diff-explainer.yaml` | text | git diff → what-changed + risk assessment |
 
-**Total: 15 pipelines, all CLI-runnable, SQLite storage, zero Platform dependencies.**
+**Total: 30 pipelines, all CLI-runnable, SQLite storage, zero Platform dependencies.**

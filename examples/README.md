@@ -23,6 +23,114 @@ examples/
 
 ---
 
+## 🧩 DAG shapes in this catalog
+
+Every pipeline is one of these shapes (or a combination). Knowing which you need is half the battle.
+
+### Chain
+
+One step feeds the next — linear, sequential.
+
+```mermaid
+flowchart LR
+    A[step A] --> B[step B] --> C[step C]
+```
+
+Examples: [`llm/05-chain-refine.yaml`](llm/05-chain-refine.yaml), [`core/01-smoke-test.yaml`](core/01-smoke-test.yaml).
+
+### Parallel fan-out + fan-in
+
+Independent branches run concurrently; a final step joins them.
+
+```mermaid
+flowchart LR
+    A[source] --> B1[worker 1]
+    A --> B2[worker 2]
+    A --> B3[worker 3]
+    B1 --> M[merge]
+    B2 --> M
+    B3 --> M
+```
+
+Examples: [`llm/06-parallel-perspectives.yaml`](llm/06-parallel-perspectives.yaml), [`core/18-parallel-fanout-fanin.yaml`](core/18-parallel-fanout-fanin.yaml), [`core/25-health-check-multi.yaml`](core/25-health-check-multi.yaml).
+
+### Diamond
+
+Two branches share a source and a sink.
+
+```mermaid
+flowchart LR
+    S[source] --> L[left]
+    S --> R[right]
+    L --> M[merge]
+    R --> M
+```
+
+Example: [`core/28-diamond-dependency.yaml`](core/28-diamond-dependency.yaml).
+
+### Foreach
+
+One step yields a list; a downstream step runs per item, optionally in parallel.
+
+```mermaid
+flowchart LR
+    L[list-producer] --> F{{foreach}}
+    F -->|item 1| P1[process]
+    F -->|item 2| P2[process]
+    F -->|item N| P3[process]
+    P1 --> A[aggregate]
+    P2 --> A
+    P3 --> A
+```
+
+Examples: [`llm/07-foreach-tagger.yaml`](llm/07-foreach-tagger.yaml), [`llm/14-csv-enricher.yaml`](llm/14-csv-enricher.yaml), [`core/29-nested-foreach-aggregate.yaml`](core/29-nested-foreach-aggregate.yaml).
+
+### Map / reduce
+
+Split → parallel map → reduce. The canonical pattern for handling content larger than one LLM context window.
+
+```mermaid
+flowchart LR
+    D[document] --> S[split]
+    S --> M1[map]
+    S --> M2[map]
+    S --> M3[map]
+    M1 --> R[reduce]
+    M2 --> R
+    M3 --> R
+```
+
+Examples: [`llm/11-map-reduce-summarize.yaml`](llm/11-map-reduce-summarize.yaml), [`core/30-map-reduce-text.yaml`](core/30-map-reduce-text.yaml).
+
+### Classify + branch
+
+One step classifies; only the matching branch runs. Skipped branches show as `skipped` (not `failed`) in the trace.
+
+```mermaid
+flowchart TD
+    C{classify} -->|class A| A[branch A]
+    C -->|class B| B[branch B]
+    C -->|class C| K[branch C]
+```
+
+Examples: [`llm/08-classify-then-branch.yaml`](llm/08-classify-then-branch.yaml), [`core/31-conditional-multi-branch.yaml`](core/31-conditional-multi-branch.yaml).
+
+### LLM + deterministic Python hybrid
+
+LLM does the semantic work, Python handles the deterministic post-processing.
+
+```mermaid
+flowchart LR
+    In[input] --> Py1[python<br>parse/prep]
+    Py1 --> LLM[prompt<br>LLM]
+    LLM --> Py2[python<br>validate/aggregate]
+    Py2 --> Out[output<br>file/stdout]
+```
+
+Examples: [`llm/09-sentiment-scoring.yaml`](llm/09-sentiment-scoring.yaml), [`llm/10-extract-then-validate.yaml`](llm/10-extract-then-validate.yaml), [`llm/25-pytest-failure-triage.yaml`](llm/25-pytest-failure-triage.yaml).
+
+---
+
 ## 🔑 Handling secrets
 
 aiorch **never wants a secret hardcoded in a YAML file.** Every example expects provider keys to come from environment variables and references them via `${VAR_NAME}` interpolation.
@@ -179,7 +287,9 @@ aiorch run pipeline.yaml -v                 # verbose — print each step's inpu
 aiorch run pipeline.yaml --step <name>      # run a single step
 aiorch run pipeline.yaml --from <name>      # resume from this step
 aiorch validate pipeline.yaml               # schema + template lint
-aiorch list-steps pipeline.yaml             # print the DAG
+aiorch list pipeline.yaml                   # list all steps
+aiorch visualize pipeline.yaml              # ASCII DAG diagram
+aiorch plan pipeline.yaml                   # DAG layers + cost estimate
 aiorch history                              # list recent runs
 aiorch trace <run-id>                       # step-by-step timeline for one run
 ```
