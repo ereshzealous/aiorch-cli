@@ -1,9 +1,8 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img alt="aiorch" src="assets/logo-light.svg" width="380">
-  </picture>
+  <img alt="aiorch" src="assets/icon.svg" width="128" height="128">
 </p>
+
+<h1 align="center">aiorch</h1>
 
 <p align="center">
   <strong>YAML-driven pipelines for LLMs, Python, and shell — runnable from the command line.</strong>
