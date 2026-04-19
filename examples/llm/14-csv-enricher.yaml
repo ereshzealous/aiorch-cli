@@ -14,7 +14,7 @@ description: |
 
 input:
   feedback:
-    type: artifact
+    type: file
     format: csv
     description: CSV with a 'comment' column (other columns passed through)
 

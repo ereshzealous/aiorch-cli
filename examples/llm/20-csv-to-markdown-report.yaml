@@ -14,7 +14,7 @@ description: |
 
 input:
   data:
-    type: artifact
+    type: file
     format: csv
     description: CSV with project data (columns projecT/status/budget/hours)
 

@@ -239,15 +239,21 @@ class LitellmClient:
             finish_reason,
         )
 
-        # Metrics: LLM request
-        from aiorch.metrics import observe_llm_request
-        clean_model = _strip_routing_prefix(resolved_model)
-        observe_llm_request(
-            provider=self._provider_type, model=clean_model,
-            duration=duration_ms / 1000,
-            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
-            cost=cost,
-        )
+        # Metrics are a Platform-only concern (Prometheus counters are
+        # Platform plumbing). CLI runs without aiorch.metrics — the
+        # try/except keeps the hot path intact if the Platform package
+        # happens to be installed alongside.
+        try:
+            from aiorch.metrics import observe_llm_request
+            clean_model = _strip_routing_prefix(resolved_model)
+            observe_llm_request(
+                provider=self._provider_type, model=clean_model,
+                duration=duration_ms / 1000,
+                prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+                cost=cost,
+            )
+        except ImportError:
+            pass
 
         return LLMResponse(
             content=message.content or "",

@@ -209,14 +209,6 @@ def _register_builtins() -> None:
         from aiorch.runtime import _dispatch_prompt
         return await _dispatch_prompt(step, context, None)
 
-    async def _agent_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.agent import execute_agent
-        return await execute_agent(step, context)
-
-    async def _action_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import execute_action
-        return await execute_action(step, context)
-
     async def _flow_handler(step: Step, context: dict[str, Any]) -> Any:
         from aiorch.runtime.flow import execute_flow
         return await execute_flow(step, context)
@@ -228,82 +220,19 @@ def _register_builtins() -> None:
     def _run_cost(step: Step) -> float:
         return 0.0
 
-    def _action_cost(step: Step) -> float:
-        return 0.0
-
     def _flow_cost(step: Step) -> float:
         return 0.0
 
     register_primitive("run", _run_handler, cost_estimator=_run_cost)
     register_primitive("prompt", _prompt_handler)
-    register_primitive("agent", _agent_handler)
-    register_primitive("action", _action_handler, cost_estimator=_action_cost)
     register_primitive("flow", _flow_handler, cost_estimator=_flow_cost)
     register_primitive("python", _python_handler)
-
-    # --- Actions ---
-
-    async def _slack_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import _action_slack
-        return await _action_slack(step, context)
-
-    async def _webhook_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import _action_webhook
-        return await _action_webhook(step, context)
-
-    async def _github_comment_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import _action_github_comment
-        return await _action_github_comment(step, context)
-
-    async def _github_issue_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import _action_github_issue
-        return await _action_github_issue(step, context)
-
-    async def _write_file_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.action import _action_write_file
-        return await _action_write_file(step, context)
-
-    register_action("slack", _slack_handler)
-    register_action("webhook", _webhook_handler)
-    register_action("github-comment", _github_comment_handler)
-    register_action("github_comment", _github_comment_handler)
-    register_action("github-issue", _github_issue_handler)
-    register_action("github_issue", _github_issue_handler)
-    register_action("write-file", _write_file_handler)
-    register_action("write_file", _write_file_handler)
-
-    # --- Connectors (email, S3, Kafka, Teams, Discord) ---
-
-    async def _email_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_email
-        return await connector_email(step, context)
-
-    async def _s3_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_s3
-        return await connector_s3(step, context)
-
-    async def _kafka_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_kafka
-        return await connector_kafka(step, context)
-
-    async def _teams_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_teams
-        return await connector_teams(step, context)
-
-    async def _discord_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_discord
-        return await connector_discord(step, context)
-
-    async def _connector_handler(step: Step, context: dict[str, Any]) -> Any:
-        from aiorch.runtime.connectors import connector_action
-        return await connector_action(step, context)
-
-    register_action("email", _email_handler)
-    register_action("s3", _s3_handler)
-    register_action("kafka", _kafka_handler)
-    register_action("teams", _teams_handler)
-    register_action("discord", _discord_handler)
-    register_action("connector", _connector_handler)
+    # NOTE: `agent`, `action`, and connector primitives (email/s3/kafka/
+    # teams/discord) are exclusive to the commercial aiorch Platform —
+    # see README.md §Commercial platform. The CLI here is a pure
+    # LLM-orchestration showcase: prompt, python, run, flow, foreach,
+    # condition. Pipelines that declare removed primitives will fail
+    # with a clear "Unknown primitive" error at DAG-build time.
 
 
 _register_builtins()

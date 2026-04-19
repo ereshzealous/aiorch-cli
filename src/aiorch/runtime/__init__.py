@@ -173,23 +173,6 @@ async def _dispatch(step: Step, context: dict[str, Any], resolved_input: str | N
     if ptype == "prompt":
         return await _dispatch_prompt(step, context, resolved_input)
 
-    # Agent results need unwrapping for cost/meta accumulation + validation
-    if ptype == "agent":
-        spec = get_primitive("agent")
-        result = await spec.handler(step, context)
-        content = _unwrap_result(result, context, step.name, max_cost=step.max_cost)
-
-        if step.output_schema or step.assertions:
-            from aiorch.runtime.validation import validate_output
-            errors = validate_output(content, step.output_schema, step.assertions, context)
-            if errors:
-                error_text = "\n".join(f"  - {e}" for e in errors)
-                raise RuntimeError(
-                    f"Step '{step.name}': agent output validation failed:\n{error_text}"
-                )
-
-        return content
-
     # All other primitives: look up in registry
     spec = get_primitive(ptype)
     if spec is None:
@@ -246,25 +229,13 @@ async def _dispatch_prompt(step: Step, context: dict[str, Any], resolved_input: 
             })
 
         try:
-            # Use streaming when run_id is available (Platform/executor mode)
-            run_id = context.get("__run_id__")
+            # Streaming + step-progress events require aiorch-platform
+            # (event bus, Redis pub/sub). The CLI always runs in the
+            # non-streaming path; Platform's executor sets __run_id__
+            # and overrides the primitive handler there.
+            run_id = None
             if run_id and step.name:
-                from aiorch.events import emit_step_progress, clear_step_progress
-
-                def _on_chunk(partial):
-                    emit_step_progress(run_id, step.name, partial)
-
-                result = await execute_prompt_streaming(
-                    prompt=current_prompt,
-                    model=model,
-                    system=system,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    output_format=step.format.value,
-                    context=context,
-                    on_chunk=_on_chunk,
-                )
-                clear_step_progress(run_id, step.name)
+                result = None
             else:
                 result = await execute_prompt(
                     prompt=current_prompt,

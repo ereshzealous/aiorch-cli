@@ -10,7 +10,7 @@ description: |
 
 input:
   feedback:
-    type: artifact
+    type: file
     format: csv
     description: CSV with at least a 'comment' column
 

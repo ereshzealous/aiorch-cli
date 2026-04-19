@@ -6,7 +6,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Eresh Gorantla" }]
-keywords = ["ai", "llm", "workflow", "pipeline", "agent", "yaml", "cli", "orchestration", "mcp"]
+keywords = ["ai", "llm", "workflow", "pipeline", "yaml", "cli", "orchestration"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -40,16 +40,10 @@ dependencies = [
 # Structured-input validation (--input schema checks)
 validation = ["jsonschema>=4.0"]
 
-# Real connectors for CLI pipelines that need them
-connectors = [
-    "boto3>=1.28",
-    "aiokafka>=0.10",
-    "aiosmtplib>=3.0",
-    "kafka-python>=2.0",
-]
-
-# Optional Prometheus export — enabled by AIORCH_METRICS_ENABLED=true
-metrics = ["prometheus-client>=0.20"]
+# Note: production connectors (Postgres / S3 / Kafka / SMTP / webhook),
+# the agent + MCP primitives, artifact storage, and Prometheus metrics
+# export are exclusive to the commercial aiorch Platform. This CLI is
+# a pure LLM orchestration showcase — see README.md §Commercial platform.
 
 [project.scripts]
 aiorch = "aiorch.cli:main"

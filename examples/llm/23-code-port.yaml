@@ -15,7 +15,7 @@ description: |
 
 input:
   source:
-    type: artifact
+    type: file
     format: text
     description: Source code file to port (Python assumed)
   target_lang:

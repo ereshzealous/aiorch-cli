@@ -15,7 +15,7 @@ description: |
 
 input:
   doc:
-    type: artifact
+    type: file
     format: text
     description: Docs / README / prose the FAQ should be grounded in
   n:

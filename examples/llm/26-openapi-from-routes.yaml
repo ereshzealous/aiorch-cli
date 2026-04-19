@@ -15,7 +15,7 @@ description: |
 
 input:
   source:
-    type: artifact
+    type: file
     format: text
     description: Python file containing @app.route / @router.get decorators
 

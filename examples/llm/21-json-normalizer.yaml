@@ -14,7 +14,7 @@ description: |
 
 input:
   messy:
-    type: artifact
+    type: file
     format: json
     description: JSON array of records with inconsistent field naming
 

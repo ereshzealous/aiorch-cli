@@ -18,7 +18,7 @@ description: |
        value: `{type: "artifact", artifact_id: "...",
        format: "text"}`
     4. On submit the run is created. At dispatch time the
-       runtime sees `type: artifact` and calls
+       runtime sees `type: file` and calls
        ArtifactInputLoader.load() which fetches the bytes
        back from MinIO and decodes as UTF-8 → Python str
     5. Steps see `document` as a plain string in their
@@ -55,7 +55,7 @@ description: |
 
 input:
   document:
-    type: artifact
+    type: file
     format: text
     content_type: text/plain
     max_size_mb: 1

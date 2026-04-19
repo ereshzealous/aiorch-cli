@@ -85,36 +85,22 @@ class TextInputLoader(InputLoader):
 
 
 class ArtifactInputLoader(InputLoader):
-    """Fetches content from the artifact store and parses it per format.
+    """Artifact-backed inputs are a commercial Platform feature.
 
-    Expects a config dict of the shape:
-        {"type": "artifact", "artifact_id": "<uuid>", "format": "<format>"}
-
-    The format decides how bytes are interpreted:
-        text   → str (default)
-        json   → dict or list (from json.loads)
-        csv    → list[dict]  (from csv.DictReader)
-        binary → raw bytes
-
-    The content_type on the stored artifact is informational for
-    display and validation — it does NOT drive parse dispatch.
-    Format is authoritative, so a pipeline author always knows what
-    Python type their step receives.
+    CLI users pass local files via ``type: file`` or pipe content via
+    ``type: stdin`` — there's no artifact store in the CLI runtime.
     """
 
     def load(self, config: dict) -> Any:
+        raise RuntimeError(
+            "type: artifact inputs require the commercial aiorch Platform. "
+            "In the CLI, use `type: file` with a local path, or "
+            "`type: stdin` to pipe content."
+        )
+        # Unreachable but satisfies type-checkers.
         artifact_id = config.get("artifact_id")
-        if not artifact_id:
-            raise ValueError(
-                "Artifact input requires 'artifact_id'. "
-                "Use `aiorch run ... -i key=@./file.txt` to upload via CLI, "
-                "or the Run dialog upload widget in the UI."
-            )
-
         fmt = config.get("format", "text")
-
-        from aiorch.artifacts import get_artifact_store
-        _, content = get_artifact_store().get(artifact_id)
+        _, content = None, b""
 
         if fmt == "binary":
             return content
@@ -300,26 +286,17 @@ class LazyHttpInput:
 
 
 class ConnectorInputLoader(InputLoader):
-    """Stub loader for ``type: connector`` inputs.
+    """type: connector inputs are a Platform-only feature.
 
-    Connector operations are asynchronous and require the pipeline
-    execution context (org_id / workspace_id / run_id) for scope
-    resolution, metrics and lineage. They cannot be resolved through
-    the synchronous ``load_input()`` entry point.
-
-    Resolution happens in the dag context builder (``execute_dag``),
-    which awaits ``aiorch.connectors.integration.resolve_and_execute``
-    before any step runs. This stub guards the synchronous path so a
-    stray ``load_input()`` call surfaces a clear error instead of a
-    mysterious KeyError or silent string return.
-    """
+    The CLI has no connector registry / workspace-secrets / audit
+    infrastructure. Dispatch should have caught this at DAG-build time;
+    this stub is a safety net."""
 
     def load(self, config: dict) -> Any:
-        raise ValueError(
-            "type: connector inputs must be resolved via the async dag "
-            "context builder. This error means a sync code path tried to "
-            "load a connector input directly — wire the call through "
-            "aiorch.connectors.integration.resolve_and_execute instead."
+        raise RuntimeError(
+            "type: connector inputs require the commercial aiorch Platform. "
+            "The CLI supports: text, integer, number, boolean, list, "
+            "file (local disk), http, env, stdin."
         )
 
 
@@ -357,6 +334,13 @@ def _register_builtin_loaders() -> None:
     register_input_loader("number", text_loader)
     register_input_loader("boolean", text_loader)
     register_input_loader("list", text_loader)
+    # CLI-only: `type: file` = pre-loaded file content. The CLI's
+    # parse_kv_inputs handles `@path/to/file.csv` syntax by reading
+    # and parsing the file inline, then binding the parsed value
+    # (str / list[dict] / dict / bytes) directly to the input name.
+    # The loader here just passes through. Platform overrides this
+    # at boot to route through its artifact store instead.
+    register_input_loader("file", text_loader)
 
 
 _register_builtin_loaders()
@@ -524,36 +508,26 @@ def parse_kv_inputs(pairs: tuple[str, ...] | list[str]) -> dict:
                 fmt = "text"
                 content_type = _content_type_for_ext(suffix)
 
-            # Read bytes and upload. For YAML, we pre-convert to JSON
-            # so the store holds portable content; format stays 'json'
-            # so the loader parses it back to dict/list.
-            if suffix in (".yaml", ".yml"):
+            # CLI mode: parse the file inline and bind the parsed value
+            # directly. No artifact store — that's a Platform concern.
+            # The bound value has the Python type the pipeline expects
+            # (dict for JSON/YAML, list[dict] for CSV, str for text).
+            if fmt == "json" or suffix in (".yaml", ".yml"):
                 try:
                     parsed = yaml.safe_load(path.read_text())
                 except yaml.YAMLError as e:
-                    raise ValueError(f"Invalid YAML in {path}: {e}") from e
-                content = json.dumps(parsed or {}).encode("utf-8")
+                    raise ValueError(f"Invalid YAML/JSON in {path}: {e}") from e
+                result[key] = parsed if parsed is not None else {}
+            elif fmt == "csv":
+                import io
+                text = path.read_text()
+                reader = csv_module.DictReader(io.StringIO(text))
+                result[key] = list(reader)
+            elif fmt == "text":
+                result[key] = path.read_text()
             else:
-                content = path.read_bytes()
-
-            from aiorch.artifacts import get_artifact_store, init_artifact_store
-            try:
-                store = get_artifact_store()
-            except RuntimeError:
-                init_artifact_store()
-                store = get_artifact_store()
-
-            artifact = store.put(
-                name=path.name,
-                content=content,
-                content_type=content_type,
-                role="input",
-            )
-            result[key] = {
-                "type": "artifact",
-                "artifact_id": artifact.id,
-                "format": fmt,
-            }
+                # binary — return bytes
+                result[key] = path.read_bytes()
         else:
             # Try numeric coercion
             try:

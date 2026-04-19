@@ -32,7 +32,8 @@ class OutputFormat(str, Enum):
 # --- Input schema types ---
 _INPUT_TYPES = {
     "string", "integer", "number", "boolean", "list",
-    "artifact",    # content-addressed file in the artifact store
+    "file",        # local-disk file, passed via `-i key=@./path.ext`
+    "artifact",    # content-addressed file in the artifact store (Platform)
     "http",        # live HTTP fetch (lazy via LazyHttpInput)
     "connector",   # named managed connector (Platform only)
 }
@@ -46,11 +47,11 @@ _INPUT_TYPES = {
 _AUTO_RESOLVED_INPUT_TYPES = {"connector", "http"}
 
 # Types that were removed and now surface a migration error at parse
-# time instead of a generic "unknown type" message. `env` was removed
+# time instead of a generic "unknown type" message. `json` / `csv` were
+# subsumed by `artifact` (Platform) and `file` (CLI). `env` was removed
 # because workspace_secrets + the per-step `secrets:` allowlist cover
-# the same need with audit, scope, rotation, and UI visibility — none
-# of which env reads had.
-_RETIRED_INPUT_TYPES = {"file", "json", "csv", "env"}
+# the same need with audit, scope, rotation, and UI visibility.
+_RETIRED_INPUT_TYPES = {"json", "csv", "env"}
 
 
 class InputField(BaseModel):

@@ -56,7 +56,7 @@ description: |
 
 input:
   document:
-    type: artifact
+    type: file
     format: text
     content_type: text/plain
     max_size_mb: 5

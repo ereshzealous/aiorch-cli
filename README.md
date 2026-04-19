@@ -16,7 +16,7 @@
 
 ---
 
-aiorch turns a YAML file into a runnable pipeline. Declare your steps — LLM prompts, Python snippets, shell commands, MCP tool calls — and `aiorch run` executes the DAG. No server, no scheduler, no database setup.
+aiorch turns a YAML file into a runnable pipeline. Declare your steps — LLM prompts, Python snippets, shell commands — and `aiorch run` executes the DAG. No server, no scheduler, no database setup.
 
 ```bash
 pip install aiorch
@@ -39,7 +39,7 @@ flowchart LR
     D --> E[Executor]
     E --> X{Primitive<br>dispatcher}
     X --> F1[prompt<br>LiteLLM]
-    X --> F2[agent<br>LiteLLM + MCP tools]
+    X --> F2[flow<br>sub-pipeline]
     X --> F3[python<br>subprocess]
     X --> F4[run<br>shell]
     X --> F5[foreach<br>fan out]
@@ -55,10 +55,12 @@ flowchart LR
 2. **DAG build** — `aiorch.core.dag` resolves `depends:` and `foreach:` into a layered DAG. Independent steps land on the same layer so they run in parallel.
 3. **Execute** — the runtime walks the DAG layer by layer. Each step is dispatched to its primitive handler.
 4. **Primitives:**
-   - `prompt` / `agent` — LLM calls via LiteLLM, response-cached by hash of `(prompt, model, temperature, max_tokens)`.
+   - `prompt` — LLM calls via LiteLLM, response-cached by hash of `(prompt, model, temperature, max_tokens)`.
    - `python` — a Python body runs in an isolated subprocess with `inputs` and `result` bindings.
    - `run` — shell command via `subprocess`, Jinja-resolved against the context.
+   - `flow` — invoke another pipeline as a single step.
    - `foreach` — per-item fan-out with optional `parallel: true`.
+   - `condition` — branch on a boolean expression.
 5. **Persist** — every run and step is logged to SQLite. LLM responses are cached so re-running a step with identical inputs is free.
 6. **Replay** — `aiorch history` / `aiorch trace <run-id>` reads back exactly what happened.
 
@@ -105,10 +107,11 @@ Each step declares what it needs (`depends:`) and what it produces (implicit via
 - **LLM primitives** — prompt, schema-validated extraction, classify-and-branch, multi-model comparison.
 - **DAG shapes** — chain, parallel + merge, foreach, diamond, conditional routing.
 - **LLM + Python hybrid** — the LLM for reasoning, deterministic Python for side effects.
-- **Agents + MCP** — function-calling LLMs with MCP tools over stdio or Streamable HTTP.
-- **Real connectors** — Postgres, S3, Kafka, SMTP, webhooks (via `aiorch[connectors]`).
+- **Sub-pipeline composition** — one pipeline invokes another via `flow:`.
 - **Cost tracking** — prompt / completion tokens and USD per provider per run, persisted to `~/.aiorch/history.db`.
 - **Dry-run + validation** — catch schema errors and unresolved templates before spending tokens.
+
+> **Not in the CLI:** real production connectors (Postgres / S3 / Kafka / SMTP / webhook), the `agent:` primitive with function-calling + MCP tools, artifact storage, multi-tenant workspaces, scheduling, and Prometheus metrics. Those live in the commercial aiorch Platform — see §[The commercial platform](#the-commercial-platform).
 
 ---
 
@@ -146,10 +149,8 @@ $ aiorch run examples/llm/20-csv-to-markdown-report.yaml \
 ## Installation
 
 ```bash
-pip install aiorch                    # core CLI
-pip install 'aiorch[connectors]'      # + Postgres / S3 / Kafka / SMTP
-pip install 'aiorch[metrics]'         # + Prometheus export (opt-in)
-pip install 'aiorch[validation]'      # + jsonschema input validation
+pip install aiorch                   # the CLI — all of LLM / Python / shell
+pip install 'aiorch[validation]'     # + jsonschema input validation
 ```
 
 Requires **Python 3.11+**.
@@ -192,32 +193,14 @@ Run `aiorch --help` for the full list of flags.
 
 ---
 
-## MCP support
-
-aiorch ships a built-in MCP client — both **stdio** (subprocess) and **Streamable HTTP** (MCP 2025 spec). Attach tools to any `agent:` step:
-
-```yaml
-steps:
-  analyze:
-    agent:
-      model: gpt-4o-mini
-      tools:
-        mcp:
-          - server: "npx -y @modelcontextprotocol/server-filesystem"
-            args: ["/tmp"]
-      prompt: "List files under /tmp and summarize"
-```
-
----
-
 ## Examples
 
 **72 runnable pipelines** shipped under [`examples/`](examples), organized into two tracks:
 
 | Directory | Count | What's inside |
 |---|---|---|
-| [`examples/llm/`](examples/llm) | 30 | LLM pipelines — prompts, extraction, chains, fan-out, agents, hybrid LLM + Python |
-| [`examples/core/`](examples/core) | 42 | Zero-LLM pipelines — every primitive, every DAG shape, input types, DB access, developer utilities |
+| [`examples/llm/`](examples/llm) | 30 | LLM pipelines — prompts, extraction, chains, fan-out, hybrid LLM + Python |
+| [`examples/core/`](examples/core) | 42 | Zero-LLM pipelines — every primitive, every DAG shape, input types, developer utilities |
 
 Each track has its own walkthrough:
 
@@ -243,8 +226,7 @@ This is **v0.1 alpha** — YAML schema and CLI flags may change. Pin an exact ve
 Planned:
 
 - Additional LLM primitives (structured output schemas, streaming sinks).
-- Broader connector catalog.
-- Pipeline composition (one pipeline imports another).
+- Richer `flow:` composition (parameter forwarding, outputs passthrough).
 - First-class Windows support.
 
 ---
@@ -252,6 +234,24 @@ Planned:
 ## Contributing
 
 Issues and pull requests welcome at [github.com/ereshzealous/aiorch-cli](https://github.com/ereshzealous/aiorch-cli).
+
+---
+
+## The commercial platform
+
+Everything above is the OSS CLI — LLM orchestration, YAML DAG, local SQLite history. For team-scale work you'll want the commercial **aiorch Platform**, which adds:
+
+- **Production connectors** — Postgres, S3 / MinIO / R2 / GCS, Kafka, SMTP, webhook — with workspace-scoped secrets and audit logs.
+- **`agent:` primitive with MCP** — function-calling agents over stdio + Streamable HTTP, plus a session-pooled MCP registry for cross-replica agent orchestration.
+- **Artifact store** — content-addressed file storage (local disk or S3-compatible) with dedup, quotas, and UI download.
+- **Multi-tenant workspaces + RBAC** — orgs, workspaces, roles (viewer / operator / editor / admin / owner), API keys, invitations.
+- **Scheduler + webhook triggers** — cron, HMAC-verified webhooks, per-trigger rate limits, delivery history.
+- **Executor fleet** — distributed, admission-controlled, Redis-coordinated run execution with per-workspace concurrency caps.
+- **Web UI** — full-featured dashboard, pipeline editor, trace viewer, cost analytics, health page, and coordination observability.
+- **Prometheus metrics + /api/health** — production observability for every runtime surface.
+- **Postgres storage** — run history, audit trail, and query-able run metadata across a team.
+
+[Contact](mailto:eresh.zealous@gmail.com) if that's you.
 
 ---
 

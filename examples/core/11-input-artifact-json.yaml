@@ -74,7 +74,7 @@ description: |
 
 input:
   order:
-    type: artifact
+    type: file
     format: json
     content_type: application/json
     max_size_mb: 1

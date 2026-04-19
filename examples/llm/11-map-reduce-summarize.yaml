@@ -15,7 +15,7 @@ description: |
 
 input:
   document:
-    type: artifact
+    type: file
     format: text
     description: Long text to summarize in chunks
   chunk_size:

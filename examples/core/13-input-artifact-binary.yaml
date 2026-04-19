@@ -93,7 +93,7 @@ description: |
 
 input:
   file:
-    type: artifact
+    type: file
     format: binary
     # max_size_mb cap is about MEMORY PRESSURE, not security.
     # The artifact loader reads the entire file into memory and

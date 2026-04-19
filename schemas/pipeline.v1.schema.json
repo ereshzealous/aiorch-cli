@@ -83,7 +83,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["string", "integer", "number", "boolean", "list", "artifact", "http", "connector"],
+          "enum": ["string", "integer", "number", "boolean", "list", "file", "artifact", "http", "connector"],
           "default": "string",
           "description": "Input type. Retired types (file, json, csv, env) are rejected — use 'artifact' with the appropriate 'format' for files, or workspace_secrets / workspace_configs for environment values. Connector inputs are Platform-only."
         },

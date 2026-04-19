@@ -183,16 +183,17 @@ async def execute(
                 ctx[k] = LazyHttpInput(v)
                 continue
 
-            # Connector inputs run at context-build time so that
-            # downstream steps can reference the fetched value in
-            # Jinja templates. The resolver is async, so we await
-            # inline — the dag builder already runs in an event loop.
+            # Connector inputs (Postgres / S3 / Kafka / SMTP / webhook)
+            # are a commercial aiorch Platform feature — they need the
+            # connector registry, workspace secrets, and audit logging
+            # that only Platform provides.
             if isinstance(v, dict) and v.get("type") == "connector":
-                from aiorch.connectors.integration import resolve_and_execute
-                ctx[k] = await resolve_and_execute(
-                    v, ctx, step_name=f"input:{k}"
+                raise RuntimeError(
+                    f"Input '{k}' declares type: connector — connectors are "
+                    "available only in the commercial aiorch Platform. "
+                    "The CLI supports: text/string, integer, number, boolean, "
+                    "list, file (local disk), http (GET), env, and stdin."
                 )
-                continue
 
             try:
                 ctx[k] = load_input(v)
@@ -214,8 +215,11 @@ async def execute(
 
             declared_type = schema_entry.get("type", "string")
 
-            # Scalars (incl. non-string values like int / bool / list)
-            if declared_type in ("string", "text", "integer", "number", "boolean", "list"):
+            # Scalars + pre-loaded file content (incl. non-string values
+            # like int / bool / list / parsed dict from @json). `file`
+            # carries already-parsed content that parse_kv_inputs handed
+            # us, so no further loader is needed here.
+            if declared_type in ("string", "text", "integer", "number", "boolean", "list", "file"):
                 ctx[k] = v
                 continue
 
@@ -236,54 +240,23 @@ async def execute(
             # and the run failed at the python step with a confusing
             # "expected bytes, got str" error.
             if declared_type == "artifact":
-                if isinstance(v, dict) and v.get("type") == "artifact":
-                    cfg = dict(v)
-                else:
-                    # Bare string artifact_id
-                    cfg = {"type": "artifact", "artifact_id": v}
-                # Schema-declared format wins over caller-supplied
-                # format. Falls back to caller's value (or "text")
-                # only when the schema doesn't declare one.
-                schema_format = schema_entry.get("format")
-                if schema_format:
-                    cfg["format"] = schema_format
-                else:
-                    cfg.setdefault("format", "text")
-                if "content_type" in schema_entry and "content_type" not in cfg:
-                    cfg["content_type"] = schema_entry["content_type"]
-                ctx[k] = load_input(cfg)
-
-                # Record run→artifact binding so the Artifacts page shows
-                # which pipeline consumed this input.
-                _aid = cfg.get("artifact_id")
-                _rid = ctx.get("__run_id__")
-                if _aid and _rid is not None:
-                    try:
-                        from aiorch.artifacts import get_artifact_store
-                        get_artifact_store().record_run_binding(
-                            run_id=int(_rid),
-                            artifact_id=_aid,
-                            binding_name=k,
-                            role="input",
-                        )
-                    except Exception:
-                        pass  # best-effort — don't break the run
-                continue
-
-            # Connector: merge runtime overrides with schema declaration
-            # and resolve via the central dispatcher. Runs eagerly (not
-            # lazy) so the fetched value is available to Jinja templates
-            # in every downstream step.
-            if declared_type == "connector":
-                cfg = dict(schema_entry)
-                cfg["type"] = "connector"
-                if isinstance(v, dict) and v.get("type") == "connector":
-                    cfg.update({kk: vv for kk, vv in v.items() if kk != "type"})
-                from aiorch.connectors.integration import resolve_and_execute
-                ctx[k] = await resolve_and_execute(
-                    cfg, ctx, step_name=f"input:{k}"
+                # Artifact-typed inputs (platform-managed content store)
+                # are a commercial aiorch Platform feature. CLI users
+                # should pass local files via `type: file` or pipe
+                # content via `type: stdin`.
+                raise RuntimeError(
+                    f"Input '{k}' declares type: artifact — artifact storage "
+                    "is available only in the commercial aiorch Platform. "
+                    "Use `type: file` with a local path in the CLI."
                 )
-                continue
+
+            # Connector-typed inputs are Platform-only — same as the
+            # untyped-connector branch above.
+            if declared_type == "connector":
+                raise RuntimeError(
+                    f"Input '{k}' declares type: connector — connectors are "
+                    "available only in the commercial aiorch Platform."
+                )
 
             # http: lazy fetch via LazyHttpInput. Defer the network
             # call until a step actually references the value —

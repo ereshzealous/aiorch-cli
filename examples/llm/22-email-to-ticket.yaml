@@ -15,7 +15,7 @@ description: |
 
 input:
   email:
-    type: artifact
+    type: file
     format: text
     description: Raw customer email body (plain text)
 

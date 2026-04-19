@@ -9,7 +9,7 @@ description: |
 
 input:
   document:
-    type: artifact
+    type: file
     format: text
     description: Text to summarize
 
