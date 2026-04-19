@@ -1,6 +1,6 @@
 # Changelog
 
-Generated from `/Users/ereshgorantla/Documents/Dev/Work/aiorch/cli/inputs/sample-commits.txt` (25 commits)
+Generated from `/Users/ereshgorantla/Documents/Dev/oss/aiorch-cli/examples/core/inputs/sample-commits.txt` (25 commits)
 
 ## Features
 

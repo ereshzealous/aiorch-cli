@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-19T10:39:18.626744+00:00",
-  "source": "/Users/ereshgorantla/Documents/Dev/Work/aiorch/cli/inputs/sample-prs.json",
+  "generated_at": "2026-04-19T19:25:32.038524+00:00",
+  "source": "/Users/ereshgorantla/Documents/Dev/oss/aiorch-cli/examples/core/inputs/sample-prs.json",
   "total": 10,
   "by_author_top5": [
     {
@@ -26,8 +26,8 @@
   ],
   "author_count": 5,
   "by_age": {
-    "fresh": 2,
-    "recent": 4,
+    "fresh": 1,
+    "recent": 5,
     "stale": 4
   },
   "by_review": {
@@ -50,8 +50,8 @@
       "number": 411,
       "title": "fix(ui): webhook header form cleared on save",
       "author": "aikot",
-      "age_days": 6,
-      "age_bucket": "fresh",
+      "age_days": 7,
+      "age_bucket": "recent",
       "has_reviews": true,
       "draft": false,
       "url": "https://example.com/pr/411"
@@ -60,7 +60,7 @@
       "number": 410,
       "title": "feat(api): inbound webhook triggers with hmac verification",
       "author": "jonase",
-      "age_days": 8,
+      "age_days": 9,
       "age_bucket": "recent",
       "has_reviews": true,
       "draft": false,
@@ -80,7 +80,7 @@
       "number": 405,
       "title": "refactor(runtime): pull status enum into shared module",
       "author": "rosad",
-      "age_days": 16,
+      "age_days": 17,
       "age_bucket": "recent",
       "has_reviews": true,
       "draft": true,
@@ -90,7 +90,7 @@
       "number": 401,
       "title": "feat(ui): connectors pipeline polish pass",
       "author": "aikot",
-      "age_days": 25,
+      "age_days": 26,
       "age_bucket": "recent",
       "has_reviews": false,
       "draft": false,
@@ -120,7 +120,7 @@
       "number": 372,
       "title": "wip(db): monthly partitioning for trace table",
       "author": "marcusw",
-      "age_days": 88,
+      "age_days": 89,
       "age_bucket": "stale",
       "has_reviews": false,
       "draft": true,

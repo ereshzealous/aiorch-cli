@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-19T10:39:16.078598+00:00",
+  "generated_at": "2026-04-19T19:25:30.251692+00:00",
   "source_url": "https://api.github.com/repos/anthropics/anthropic-sdk-python/issues",
   "fetched_count": 200,
   "rate_limit_remaining": "54",
@@ -11,10 +11,10 @@
       "partition": "Issues",
       "count": 10,
       "total_engagement": 4,
-      "avg_age_days": 4.7,
+      "avg_age_days": 4.4,
       "age_buckets": {
-        "fresh": 7,
-        "recent": 3
+        "fresh": 8,
+        "recent": 2
       },
       "top_3_engaged": [
         {
@@ -28,8 +28,8 @@
           "engagement": 2
         },
         {
-          "number": 1411,
-          "title": "xhigh effort capability for Opus 4.7",
+          "number": 1415,
+          "title": "\u56fe\u7247",
           "engagement": 0
         }
       ]
@@ -38,7 +38,7 @@
       "partition": "PRs",
       "count": 20,
       "total_engagement": 5,
-      "avg_age_days": 3.5,
+      "avg_age_days": 3.8,
       "age_buckets": {
         "fresh": 17,
         "recent": 3

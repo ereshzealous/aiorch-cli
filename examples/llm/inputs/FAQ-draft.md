@@ -1,41 +1,41 @@
 # Frequently Asked Questions
 
-### 1. What is aiorch and what problem does it solve?
+### 1. What are the core differences between the three waves of pipeline orchestration?
 
-aiorch is a pipeline orchestration tool that combines deterministic steps (shell, Python, HTTP, SQL) with LLM steps into a single DAG, defined in YAML. It helps operations teams build and manage AI-powered workflows rather than just prototype AI models.
+The first wave (cron + shell) offered simplicity but lacked dependency management and error handling. The second wave (Airflow, Luigi) introduced DAGs, UIs, and robust error handling but required extensive Python and heavy infrastructure. The third wave focuses on YAML-first, integrated AI steps, and a balance between declarative configuration and scripting for broader accessibility.
 
-### 2. How do I define a pipeline in aiorch?
+### 2. Why is the third wave being developed if tools like Airflow already exist?
 
-Pipelines are defined using YAML files. They consist of a `name` and a series of `steps`, where each step can specify a prompt for an LLM, a shell command to `run`, or other operations, with `depends` to define execution order.
+The third wave addresses the limitations of second-wave tools, which optimized for software engineers and excluded non-technical users like business analysts or DBAs due to their Python-centric nature and heavy deployment requirements. It aims to empower a wider range of operators.
 
-### 3. How does aiorch handle LLM integration and API keys?
+### 3. What problem does the third wave primarily aim to solve?
 
-aiorch integrates LLMs directly within pipeline steps using prompts. It expects LLM provider API keys, like `OPENAI_API_KEY`, to be set as environment variables and can be configured via an `aiorch.yaml` file.
+The third wave primarily aims to bridge the gap between technical and non-technical operators. It wants to make pipeline orchestration accessible to non-software engineers who understand business logic but are not proficient in complex programming frameworks or distributed systems.
 
-### 4. Can aiorch interact with external data sources and services?
+### 4. How does the third wave handle AI steps differently from previous methods?
 
-Yes, aiorch uses 'connectors' to interact with various external systems. This includes databases like Postgres/MySQL/SQLite, object storage like S3/MinIO/R2/GCS, Kafka topics, and communication webhooks like Slack/Discord/Teams.
+The third wave integrates AI steps as first-class primitives directly within the YAML configuration, rather than requiring Python wrappers. This allows the framework to handle specific AI failure modes (e.g., invalid JSON, context window issues) natively, benefiting pipeline authors.
 
-### 5. Does aiorch track the costs associated with LLM usage?
+### 5. What is the role of YAML in the third wave of orchestration?
 
-Yes, aiorch tracks the cost of each LLM call in USD, providing per-step and total run cost visibility. It also supports per-provider daily and monthly budget caps to prevent exceeding spending limits.
+In the third wave, YAML is used for the declarative layer, defining the DAG shape, input/output contracts, retry policies, and branching decisions. This provides a clear, operator-friendly view of the pipeline's structure and control flow.
 
-### 6. How can I trigger a pipeline from an external system?
+### 6. How does the third wave prevent repeating past failures, specifically relating to too much YAML or too much Python?
 
-Pipelines can be triggered via webhooks. External systems POST to a workspace-scoped URL, and aiorch handles signature verification and rate limiting, recording all trigger attempts for debugging.
+The third wave seeks a 'sweet spot' by using YAML for the declarative DAG shape and high-level concerns, and short Python or shell bodies for the actual per-step computation. This prevents encoding complex logic in YAML (a wave-one failure) and avoids making every pipeline bespoke Python (a wave-two failure).
 
-### 7. What kind of historical data and debugging features does aiorch offer?
+### 7. What kind of 'steps' can be orchestrated in the third wave?
 
-aiorch stores run history in a SQLite database (`~/.aiorch/history.db`), allowing users to resume failed runs, inspect execution traces, and cache LLM responses. It also logs webhook delivery history for debugging.
+The third wave can orchestrate both deterministic steps like shell commands, SQL queries, HTTP calls, and file I/O, as well as AI steps such as LLM calls, embeddings, and agentic tool use, all within the same DAG.
 
-### 8. How does aiorch manage sensitive information like API keys or database credentials?
+### 8. What are the advantages of separating the DAG layer from the step body in the third wave?
 
-Secrets associated with connectors are encrypted at rest using AES-256-GCM. The UI provides type-appropriate input fields for different connector authentication modes, ensuring secure handling of credentials.
+This separation makes pipelines more readable and maintainable for a broader audience, including those who own the business process but aren't engineers. Operators can reason about the DAG, while domain logic lives within concise step bodies, improving collaboration and understanding.
 
-### 9. What kind of access control does aiorch provide for teams?
+### 9. What is 'aiorch' and how does it relate to the third wave?
 
-aiorch supports role-based access control (RBAC) with four defined roles: admin, editor, operator, and viewer. Permissions are managed granularly per-action, such as `pipeline.view` or `secret.create`.
+Aiorch is mentioned as an early example of a tool in the third-wave space. It demonstrates the pattern of using YAML for the DAG shape and high-level policy, combined with short Python or shell for per-step computation, which is characteristic of this new approach.
 
-### 10. What is the typical deployment or operational environment for aiorch?
+### 10. Is the third wave of orchestration considered a fully mature or proven solution yet?
 
-While not explicitly stated, aiorch's focus on ops teams, webhook triggers, cost tracking, and RBAC suggests it's designed for a managed, potentially cloud-hosted environment where pipeline execution, monitoring, and team collaboration are key.
+No, the documentation states that the long-term equilibrium is still an open question, and the space is young. While early evidence is encouraging, the ultimate success of the YAML-plus-short-Python-bodies pattern depends on its generalization to real-world workflows.

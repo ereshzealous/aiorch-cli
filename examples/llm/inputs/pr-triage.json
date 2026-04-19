@@ -1,8 +1,9 @@
 {
   "total": 10,
   "by_severity": {
-    "high": 5,
-    "medium": 5
+    "high": 4,
+    "medium": 5,
+    "low": 1
   },
   "by_area": {
     "auth": 1,
@@ -22,15 +23,7 @@
       "author": "alice",
       "severity": "high",
       "area": "auth",
-      "reason": "This PR addresses a critical authentication issue that can lead to unexpected user logouts, significantly impacting user experience and application availability."
-    },
-    {
-      "number": 217,
-      "title": "feat(webhooks): signed delivery retry on 5xx",
-      "author": "bob",
-      "severity": "high",
-      "area": "connectors",
-      "reason": "This PR fixes a critical reliability issue for webhook deliveries experiencing transient errors, significantly improving data consistency and user experience for integrations."
+      "reason": "This PR addresses a critical bug in the authentication system that can lead to users being logged out, severely impacting user experience and security."
     },
     {
       "number": 215,
@@ -38,7 +31,7 @@
       "author": "dave",
       "severity": "high",
       "area": "runtime",
-      "reason": "This PR addresses a performance issue impacting p99 latency in high-QPS scenarios, which is a critical operational metric."
+      "reason": "This PR addresses a performance issue impacting p99 latency in high-QPS scenarios, which is critical for system stability and responsiveness."
     },
     {
       "number": 214,
@@ -46,7 +39,7 @@
       "author": "eve",
       "severity": "high",
       "area": "scheduler",
-      "reason": "This PR addresses a bug that can lead to duplicate job executions, which is a critical issue for a scheduler and can cause data corruption or resource waste."
+      "reason": "This PR addresses a critical bug that can lead to duplicate task execution during leader transitions, impacting data integrity and resource utilization."
     },
     {
       "number": 209,
@@ -54,15 +47,15 @@
       "author": "jack",
       "severity": "high",
       "area": "security",
-      "reason": "This PR addresses a critical security vulnerability where sensitive API keys could be persistently logged in the database, potentially leading to unauthorized access if the database is compromised."
+      "reason": "This pull request addresses a critical security vulnerability by preventing sensitive API keys and tokens from being logged in plain text in the database, which could lead to unauthorized access if the database is compromised."
     },
     {
-      "number": 216,
-      "title": "docs: clarify SMTP connector TLS mode options",
-      "author": "carol",
+      "number": 217,
+      "title": "feat(webhooks): signed delivery retry on 5xx",
+      "author": "bob",
       "severity": "medium",
-      "area": "docs",
-      "reason": "This PR fixes a documentation inconsistency that could lead to user confusion or incorrect configuration, but it's not a critical bug or security issue."
+      "area": "connectors",
+      "reason": "This PR adds important retry logic for webhook deliveries, improving reliability, but is not a critical bug fix or security patch."
     },
     {
       "number": 213,
@@ -70,7 +63,7 @@
       "author": "frank",
       "severity": "medium",
       "area": "mcp",
-      "reason": "This is a new feature (feat) that introduces a significant change in how MCP servers are managed, moving from org-wide to workspace-scoped control, with a database schema change for backward compatibility."
+      "reason": "This is a new feature that introduces a significant change to how MCP servers are managed, potentially impacting multiple workspaces. While it has a good default for backward compatibility, it requires careful consideration and testing."
     },
     {
       "number": 212,
@@ -78,7 +71,7 @@
       "author": "grace",
       "severity": "medium",
       "area": "ui",
-      "reason": "This PR addresses a user-reported accessibility issue (low contrast) on key UI elements, which impacts usability for some users."
+      "reason": "This PR addresses a user-reported accessibility issue (WCAG AA contrast failure) in the UI, making it a medium severity fix due to direct user impact and compliance."
     },
     {
       "number": 211,
@@ -86,7 +79,7 @@
       "author": "henry",
       "severity": "medium",
       "area": "runtime",
-      "reason": "This PR improves reliability and reduces code complexity by leveraging a robust built-in connection pool, which is a significant quality-of-life and maintenance enhancement, but doesn't introduce critical new features or fix an urgent bug."
+      "reason": "This PR refactors a core component (database connection pooling) which improves reliability and reduces code, impacting runtime stability and maintainability significantly, but without immediately critical user-facing issues."
     },
     {
       "number": 210,
@@ -94,7 +87,15 @@
       "author": "iris",
       "severity": "medium",
       "area": "api",
-      "reason": "This PR adds a new bulk API endpoint, improving efficiency but also requiring careful consideration for error handling and idempotency."
+      "reason": "This PR adds a new bulk API endpoint, improving efficiency but also introducing a new API surface that needs review and testing."
+    },
+    {
+      "number": 216,
+      "title": "docs: clarify SMTP connector TLS mode options",
+      "author": "carol",
+      "severity": "low",
+      "area": "docs",
+      "reason": "This PR improves existing documentation by clarifying options for a connector, which is a low-risk change."
     }
   ]
 }

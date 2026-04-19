@@ -1,38 +1,36 @@
-# v0.5.0 — 2026-04-19
+# v0.5.0 — 2026-04-20
 
 ## Features
 
-- Added webhook delivery history, test-fire functionality, and per-trigger rate limits.
-- Improved health observability with admission metrics and reconcile state.
-- Enhanced UI with dirty-form tracking, inline field errors, and accessible modals.
-- Expanded MCP registry to include Opsgenie, MongoDB, Jira, Confluence, Sentry, ClickHouse, PagerDuty, and Grafana.
-- Command-line interface now supports resuming runs from a specific step after failure.
+- Webhooks now include delivery history, test-firing, and per-trigger rate limits.
+- Improved observability with admission metrics and reconcile state for the coordination layer.
+- The UI now tracks dirty forms, shows inline field errors, and features accessible modals.
+- Expanded MCP Registry to include Opsgenie, MongoDB, Jira, Confluence, Sentry, ClickHouse, PagerDuty, and Grafana.
+- CLI now supports `--from <step>` to resume runs after failures.
 
 ## Fixes
 
+- Stopped silencing `aiorch` loggers after boot-time Alembic execution.
 - API documentation now hides internal routes and accurately describes response shapes.
-- Executor now properly guards claim tokens during heartbeat and run finalization.
-- Executor offloads synchronous store and Redis calls for improved responsiveness.
-- Scheduler correctly rolls back claims on pipeline-resolve failures.
-- Suppressed SSE on run ID change to prevent event bleed between runs.
-- Pinned pip version in CI to avoid regressions.
+- Executor heartbeat and `finish_run` now properly guard token claims.
+- Executor offloads synchronous store and Redis calls using `asyncio.to_thread` for better performance.
+- Eliminated SSE bleed across different run IDs by suppressing events on run ID changes.
 
 ## Performance
 
-- Health endpoint now batches pg_stat_activity reads for better performance.
+- Batching `pg_stat_activity` reads on the health endpoint to reduce database load.
 
 ## Security
 
-- Authentication is now secure-by-default with boot guard.
-- Resolved an issue with `.env.example` disclosure.
+- Authentication is now secure-by-default with a boot guard.
+- Removed `.env.example` disclosure vulnerability.
 
 ## Refactoring
 
-- Unified Redis access through a shared cache client for consistency.
-- Explicit startup task registry with timing for better server management.
-- Extracted admission lease helpers into a concurrency module.
-- Updated CLAUDE_HANDOFF documentation for webhook trigger redesign.
+- Unified Redis access through a shared cache client.
+- Explicitly registered startup tasks with timing information for better server management.
+- Extracted admission lease helpers into a dedicated concurrency module for cleaner storage logic.
 
 ## Docs
 
-- Updated CLAUDE_HANDOFF documentation to reflect Phase-11 webhook trigger redesign.
+- Updated CLAUDE_HANDOFF documentation with new webhook trigger redesign details.
