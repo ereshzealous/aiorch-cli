@@ -101,7 +101,13 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        # Pinned to a full commit SHA (not the moving release/v1 tag) so a
+        # compromise of the pypa/gh-action-pypi-publish org can't retroactively
+        # alter what this job runs. Update this SHA deliberately when new
+        # features or fixes from the action are needed. Resolved from:
+        #   https://github.com/pypa/gh-action-pypi-publish/tree/release/v1
+        # as of 2026-02-18 (commit cef2210).
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
 
   finalize:
     # Only runs if PyPI accepted the upload. Commits the version bump
