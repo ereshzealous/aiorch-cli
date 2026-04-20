@@ -115,7 +115,44 @@ Each step declares what it needs (`depends:`) and what it produces (implicit via
 
 ---
 
-## Quick start
+## Quick start setup
+
+### 1. Install
+
+```bash
+pip install aiorch                   # CLI — LLM / Python / shell primitives
+pip install 'aiorch[validation]'     # + jsonschema input validation
+```
+
+Requires **Python 3.11+**.
+
+### 2. Configure a provider
+
+aiorch works with any model LiteLLM supports. Export the key for whichever provider you're using:
+
+```bash
+export OPENROUTER_API_KEY=sk-or-v1-...     # OpenRouter (multi-provider, recommended)
+export OPENAI_API_KEY=sk-...                # direct OpenAI
+export ANTHROPIC_API_KEY=sk-ant-...         # direct Anthropic
+export GOOGLE_API_KEY=...                   # direct Google AI
+```
+
+Optionally, drop an `aiorch.yaml` alongside your pipelines to pin the provider, model, and storage backend:
+
+```yaml
+# aiorch.yaml
+llm:
+  api_key: ${OPENROUTER_API_KEY}
+  api_base: https://openrouter.ai/api/v1
+  model: google/gemini-2.5-flash
+
+storage:
+  type: sqlite        # default — ~/.aiorch/history.db
+```
+
+Without `aiorch.yaml`, aiorch falls back to standard env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, etc.) and a sensible default model. aiorch auto-discovers `aiorch.yaml` by walking up from the current directory, so `cd` into the folder holding it before running.
+
+### 3. Write a pipeline
 
 ```yaml
 # hello.yaml
@@ -131,47 +168,31 @@ steps:
     depends: [answer]
 ```
 
+### 4. Run it
+
 ```bash
 $ aiorch run hello.yaml
 [answer]  aiorch runs declarative YAML pipelines...
 [show]    aiorch runs declarative YAML pipelines...
 ```
 
-Override inputs at runtime:
+Override inputs at runtime with `-i KEY=VALUE` (scalars), `-i KEY=@./path` (files), or `--input file.json` (bulk):
 
 ```bash
 $ aiorch run examples/llm/20-csv-to-markdown-report.yaml \
     -i data=@./examples/llm/inputs/sample-projects.csv
 ```
 
----
-
-## Installation
+### 5. Inspect the run
 
 ```bash
-pip install aiorch                   # the CLI — all of LLM / Python / shell
-pip install 'aiorch[validation]'     # + jsonschema input validation
+aiorch history                 # list recent runs
+aiorch trace <run-id>          # step-by-step timeline for one run
+aiorch run hello.yaml --dry    # show plan without executing (skips LLM calls)
+aiorch run hello.yaml -v       # verbose — print each step's input and output
 ```
 
-Requires **Python 3.11+**.
-
----
-
-## Configuration
-
-aiorch looks for `aiorch.yaml` in the current directory.
-
-```yaml
-llm:
-  api_key: ${OPENROUTER_API_KEY}
-  model: google/gemini-2.5-flash
-  api_base: https://openrouter.ai/api/v1
-
-storage:
-  type: sqlite        # default — ~/.aiorch/history.db
-```
-
-No `aiorch.yaml`? aiorch falls back to standard environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, etc.) and a sensible default model.
+Every run is persisted to `~/.aiorch/history.db`. LLM responses are cached by hash of `(prompt, model, temperature, max_tokens)` — re-running a step with identical inputs hits the cache and costs nothing.
 
 ---
 
