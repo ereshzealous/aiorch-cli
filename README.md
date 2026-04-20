@@ -472,14 +472,14 @@ Downstream steps that `depends: [handle_bug, handle_feature]` receive output onl
 
 ## Cost tracking
 
-Every `prompt:` step records its **prompt tokens**, **completion tokens**, and **USD cost** to SQLite. Every `python:`, `run:`, and `flow:` step costs exactly `$0.00`. At the end of a run you see:
+Every `prompt:` step records its **prompt tokens**, **completion tokens**, and an **estimated USD cost** to SQLite. Every `python:`, `run:`, and `flow:` step costs exactly `$0.00`. At the end of a run you see:
 
 ```
   parallel-fanout-fanin
   7 steps, 0.5s, $0.0000
 ```
 
-That `$0.0000` is a real running total, not a placeholder.
+> **Important:** the USD number aiorch shows is **predictive, not actual.** It's computed by taking the token counts the model returned and multiplying them by a per-model rate from LiteLLM's pricing database. It is **not** pulled from your provider's billing API — aiorch never talks to the invoice. The authoritative amount your credit card gets charged lives only in your provider's dashboard (OpenAI, Anthropic, OpenRouter, etc.). Treat aiorch's number as a reliable indicator of relative cost — perfect for catching "this pipeline is 100x pricier than expected" — but not as an accounting figure. Expect ~10-20% variance vs. the real invoice.
 
 ### How cost is calculated
 
@@ -554,16 +554,16 @@ LLM responses are keyed in `~/.aiorch/history.db` on the exact hash of `(prompt,
 
 Cache is enabled by default in CLI mode. Skip it for a specific step with `cache: false`, or globally with `AIORCH_NO_CACHE=1`.
 
-### Things cost tracking does NOT measure
+### Things the cost number is NOT
 
-Worth being honest about:
+Worth spelling out so nobody treats aiorch's number as a bill:
 
-- **Infrastructure cost** — your CI runner minutes, your laptop's electricity, the S3 bucket your `run:` step writes to. aiorch only prices LLM tokens.
-- **Self-hosted model cost** — Ollama and other local providers return `cost=0` from LiteLLM. If you want to price your own GPU hours, that's a custom metric.
-- **Provider-side caching discounts** — Anthropic and OpenAI offer prompt-caching APIs that reduce their billed cost but LiteLLM doesn't always expose the discount inline. Check your provider dashboard for the real bill; aiorch's number is an upper bound.
-- **Tokens for embeddings / vision / audio endpoints** — LiteLLM prices them but aiorch's current scope is chat completions. Other endpoints may report `$0.00` in the trace until we wire them in.
-
-Treat aiorch's cost number as accurate to within ~10-20% of your actual provider invoice. Good enough to catch runaway pipelines and compare model choices; not a substitute for your provider's billing dashboard.
+- **It is not your actual invoice.** aiorch never calls a billing API. The number is `reported_tokens × known_rate`, computed locally. Your provider is the source of truth for what you actually pay.
+- **It does not include infrastructure cost.** CI runner minutes, your laptop's electricity, the S3 bucket your `run:` step writes to, network egress — none of that is priced. aiorch only prices LLM tokens.
+- **It does not reflect provider-side caching discounts.** Anthropic and OpenAI offer prompt-caching APIs that can halve your billed cost for repeat prompts. LiteLLM doesn't always surface the discount inline, so aiorch's number is an upper bound on what you'll actually pay in those cases.
+- **It does not price self-hosted models.** Ollama and other local providers return `cost=0` from LiteLLM. If you want to capture your own GPU hours, that's a custom metric outside aiorch's scope.
+- **It does not price non-chat endpoints yet.** Embeddings, vision, and audio model calls may report `$0.00` in the trace until that surface is wired in. LiteLLM has the pricing; aiorch's current scope is chat completions.
+- **It does not replace your provider dashboard.** Use aiorch's number to compare model choices, catch runaway pipelines, and sanity-check relative cost. Use the provider's dashboard when you need the actual number for accounting.
 
 ---
 
