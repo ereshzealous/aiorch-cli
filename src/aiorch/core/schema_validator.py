@@ -17,7 +17,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent.parent / "schemas" / "pipeline.v1.schema.json"
+_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schemas" / "pipeline.v1.schema.json"
 _schema_cache: dict | None = None
 
 
