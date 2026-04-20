@@ -1,0 +1,62 @@
+name: CD
+
+# Manual-trigger publish to PyPI. Builds wheel + sdist, validates
+# metadata with twine check, uploads both to the PyPI trusted
+# publisher registered for this repo (OIDC — no long-lived tokens).
+#
+# Before triggering: bump __version__ in src/aiorch/__init__.py.
+# PyPI rejects re-publishes of the same version, so the workflow
+# will fail fast if you forget.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: pip install --upgrade build twine
+
+      - name: Show version
+        run: |
+          python -c "import re, pathlib; \
+            src = pathlib.Path('src/aiorch/__init__.py').read_text(); \
+            m = re.search(r'__version__\s*=\s*\"([^\"]+)\"', src); \
+            print('aiorch version to publish:', m.group(1))"
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Validate wheel metadata
+        run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/aiorch/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
