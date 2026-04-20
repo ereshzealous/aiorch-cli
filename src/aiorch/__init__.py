@@ -13,5 +13,5 @@
 # limitations under the License.
 
 """Aiorch — Makefile for AI workflows."""
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
