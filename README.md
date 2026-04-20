@@ -181,7 +181,7 @@ steps:
 A three-step pipeline that extracts rows from a CSV, summarises them with an LLM, and writes the summary to disk looks like:
 
 <p align="center">
-  <img alt="Three-step pipeline DAG" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/pipeline-dag.svg">
+  <img alt="Three-step pipeline DAG" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/pipeline-dag.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/pipeline-dag.svg (hand-authored) -->
@@ -224,7 +224,7 @@ LLM responses are additionally cached by hash of `(prompt, model, temperature, m
 Here's the whole run lifecycle on one line, before we zoom in:
 
 <p align="center">
-  <img alt="aiorch run lifecycle — compact view" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/run-lifecycle.svg">
+  <img alt="aiorch run lifecycle — compact view" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/run-lifecycle.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/run-lifecycle.svg (hand-authored) -->
@@ -232,7 +232,7 @@ Here's the whole run lifecycle on one line, before we zoom in:
 And here's the same thing with every stage's responsibility and boundary spelled out:
 
 <p align="center">
-  <img alt="aiorch architecture" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/architecture.svg">
+  <img alt="aiorch architecture" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/architecture.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/architecture.svg (hand-authored) -->
@@ -293,7 +293,7 @@ Everything is append-only during a run. The same schema works fine under concurr
 This is the section most orchestrator docs skip. It's important.
 
 <p align="center">
-  <img alt="How aiorch primitives integrate with the host machine" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/host-integration.svg">
+  <img alt="How aiorch primitives integrate with the host machine" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/host-integration.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/host-integration.svg (hand-authored) -->
@@ -385,7 +385,7 @@ aiorch parallelises two ways.
 If four steps all depend only on step A and none depend on each other, they all run in parallel:
 
 <p align="center">
-  <img alt="Parallel layer execution" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/parallel-execution.svg">
+  <img alt="Parallel layer execution" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/parallel-execution.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/parallel-execution.svg (hand-authored) -->
@@ -414,7 +414,7 @@ steps:
 ```
 
 <p align="center">
-  <img alt="foreach fan-out" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/foreach-fanout.svg">
+  <img alt="foreach fan-out" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/foreach-fanout.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/foreach-fanout.svg (hand-authored) -->
@@ -436,7 +436,7 @@ call_flaky_api:
 ```
 
 <p align="center">
-  <img alt="Retry lifecycle" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/retry-lifecycle.svg">
+  <img alt="Retry lifecycle" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/retry-lifecycle.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/retry-lifecycle.svg (hand-authored) -->
@@ -450,7 +450,7 @@ aiorch's built-in retry uses **fixed** delay, not exponential backoff. If you ne
 A classifier step decides which branch runs; other branches are marked `skipped` in the trace (not `failed`).
 
 <p align="center">
-  <img alt="Classify and branch" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/classify-branch.svg">
+  <img alt="Classify and branch" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/classify-branch.svg?v=2">
 </p>
 
 <!-- Source: assets/diagrams/classify-branch.svg (hand-authored) -->
