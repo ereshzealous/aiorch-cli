@@ -1,19 +1,42 @@
 name: CD
 
-# Manual-trigger publish to PyPI. Builds wheel + sdist, validates
-# metadata with twine check, uploads both to the PyPI trusted
-# publisher registered for this repo (OIDC — no long-lived tokens).
+# Manual-trigger publish to PyPI. Pick the SemVer component to bump;
+# the workflow computes the new version, builds, publishes via OIDC
+# trusted publishing, and only commits the version bump + tag AFTER
+# PyPI accepts the upload — so a failed publish leaves no orphan
+# commit or tag behind.
 #
-# Before triggering: bump __version__ in src/aiorch/__init__.py.
-# PyPI rejects re-publishes of the same version, so the workflow
-# will fail fast if you forget.
+# SemVer contract for aiorch:
+#   major  — breaking change: remove/rename a YAML primitive,
+#            input-type, or CLI flag; change default behavior of an
+#            existing primitive; drop a supported Python version
+#   minor  — new primitive, new CLI command/flag, new optional YAML
+#            field — backwards compatible
+#   patch  — bug fix, docs, perf, example refresh — no observable
+#            behavior change
 
 on:
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "SemVer component to bump"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,15 +44,36 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install build tooling
-        run: pip install --upgrade build twine
-
-      - name: Show version
+      - name: Compute new version
+        id: compute
         run: |
-          python -c "import re, pathlib; \
+          current=$(python -c "import re, pathlib; \
             src = pathlib.Path('src/aiorch/__init__.py').read_text(); \
             m = re.search(r'__version__\s*=\s*\"([^\"]+)\"', src); \
-            print('aiorch version to publish:', m.group(1))"
+            print(m.group(1))")
+          echo "Current version: $current"
+
+          IFS='.' read -r major minor patch <<< "$current"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          new="${major}.${minor}.${patch}"
+          echo "New version:     $new"
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+
+      - name: Apply new version (ephemeral — committed after successful publish)
+        env:
+          VERSION: ${{ steps.compute.outputs.version }}
+        run: |
+          python -c "import re, pathlib, os; \
+            v = os.environ['VERSION']; \
+            p = pathlib.Path('src/aiorch/__init__.py'); \
+            p.write_text(re.sub(r'__version__\s*=\s*\"[^\"]+\"', f'__version__ = \"{v}\"', p.read_text()))"
+
+      - name: Install build tooling
+        run: pip install --upgrade build twine
 
       - name: Build sdist + wheel
         run: python -m build
@@ -49,8 +93,6 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/project/aiorch/
-    permissions:
-      id-token: write
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -60,3 +102,35 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  finalize:
+    # Only runs if PyPI accepted the upload. Commits the version bump
+    # back to main and pushes a matching v<version> tag, so the repo
+    # history is a faithful record of what's on PyPI.
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Commit version bump and tag release
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          python -c "import re, pathlib, os; \
+            v = os.environ['VERSION']; \
+            p = pathlib.Path('src/aiorch/__init__.py'); \
+            p.write_text(re.sub(r'__version__\s*=\s*\"[^\"]+\"', f'__version__ = \"{v}\"', p.read_text()))"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/aiorch/__init__.py
+          git commit -m "chore: release v$VERSION"
+          git tag "v$VERSION"
+          git push origin main
+          git push origin "v$VERSION"
