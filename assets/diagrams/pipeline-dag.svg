@@ -1,92 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 460" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 480"
+     font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif">
   <defs>
-    <marker id="arrInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
-    </marker>
-    <marker id="arrAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b45309"/>
-    </marker>
-    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
-      <feOffset dx="0" dy="2"/>
-      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
-      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
+    <filter id="sketch2" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="8"/>
+      <feDisplacementMap in="SourceGraphic" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <marker id="arrInk" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 1 L 12 6 L 0 11 z" fill="#1e1e1e"/>
+    </marker>
   </defs>
 
-  <rect width="1100" height="460" fill="#fbf9f3"/>
+  <rect width="1120" height="480" fill="#f4f5f7"/>
 
-  <text x="60" y="56" font-family="Charter, Georgia, serif" font-size="26" font-weight="600" fill="#1a1a1a">A pipeline is a DAG</text>
-  <text x="60" y="80" font-size="13" fill="#5c5c5c">Three steps — extract rows from a CSV, summarise with an LLM, write a markdown report.</text>
-  <line x1="60" y1="100" x2="200" y2="100" stroke="#b45309" stroke-width="2.5"/>
+  <text x="70" y="62" font-size="30" font-weight="700" fill="#1e1e1e" letter-spacing="-0.5">A pipeline is a DAG</text>
+  <path d="M 70 82 Q 160 78, 280 82" stroke="#c2410c" stroke-width="3" fill="none" filter="url(#sketch)" stroke-linecap="round"/>
+  <text x="70" y="108" font-size="14" fill="#3f3f46">Three steps — extract rows from a CSV, summarise with an LLM, write a markdown report.</text>
 
-  <!-- Input ellipse -->
-  <g transform="translate(80, 200)">
-    <ellipse cx="70" cy="24" rx="70" ry="24" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2" filter="url(#softShadow)"/>
-    <text x="70" y="20" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1a1a1a">input.csv</text>
-    <text x="70" y="34" text-anchor="middle" font-size="10.5" fill="#5c5c5c" font-style="italic">runtime input</text>
+  <!-- input ellipse -->
+  <g filter="url(#sketch)">
+    <ellipse cx="130" cy="240" rx="75" ry="30" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5"/>
   </g>
+  <text x="130" y="238" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" font-weight="600" fill="#1e1e1e" text-anchor="middle">input.csv</text>
+  <text x="130" y="254" font-size="11" fill="#71717a" text-anchor="middle">runtime input</text>
 
-  <path d="M 222 224 L 260 224" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrAccent)"/>
+  <path d="M 208 240 L 248 240" stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <!-- Step 1: extract (python) -->
-  <g transform="translate(264, 178)" filter="url(#softShadow)">
-    <rect width="180" height="92" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">extract</text>
-    <text x="16" y="42" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#b45309" font-weight="700">python</text>
-    <line x1="16" y1="50" x2="164" y2="50" stroke="#e6e1d4"/>
-    <text x="16" y="68" font-size="11" fill="#3a3a3a">read CSV</text>
-    <text x="16" y="82" font-size="11" fill="#3a3a3a">return list[dict]</text>
+  <!-- extract -->
+  <g filter="url(#sketch)">
+    <rect x="250" y="195" width="190" height="90" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+    <rect x="250" y="195" width="190" height="28" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
   </g>
+  <text x="268" y="214" font-size="15" font-weight="700" fill="#1e1e1e">extract</text>
+  <text x="418" y="214" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" font-weight="600" fill="#1e1e1e" text-anchor="end">python</text>
+  <text x="268" y="244" font-size="12" fill="#1e1e1e">read CSV</text>
+  <text x="268" y="262" font-size="12" fill="#1e1e1e">return list[dict]</text>
+  <text x="268" y="278" font-size="10" fill="#71717a">runtime.python</text>
 
-  <path d="M 446 224 L 484 224" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 442 240 L 482 240" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <!-- Step 2: summarise (prompt) -->
-  <g transform="translate(488, 178)" filter="url(#softShadow)">
-    <rect width="180" height="92" rx="8" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.5"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">summarise</text>
-    <text x="16" y="42" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#b45309" font-weight="700">prompt</text>
-    <line x1="16" y1="50" x2="164" y2="50" stroke="#d4c899"/>
-    <text x="16" y="68" font-size="11" fill="#3a3a3a">LiteLLM call</text>
-    <text x="16" y="82" font-size="11" fill="#3a3a3a">3-bullet summary</text>
+  <!-- summarise -->
+  <g filter="url(#sketch)">
+    <rect x="484" y="195" width="190" height="90" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+    <rect x="484" y="195" width="190" height="28" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
   </g>
+  <text x="502" y="214" font-size="15" font-weight="700" fill="#1e1e1e">summarise</text>
+  <text x="652" y="214" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" font-weight="600" fill="#1e1e1e" text-anchor="end">prompt</text>
+  <text x="502" y="244" font-size="12" fill="#1e1e1e">LiteLLM call</text>
+  <text x="502" y="262" font-size="12" fill="#1e1e1e">3-bullet summary</text>
+  <text x="502" y="278" font-size="10" fill="#71717a">runtime.prompt</text>
 
-  <path d="M 670 224 L 708 224" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 676 240 L 716 240" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <!-- Step 3: write (run) -->
-  <g transform="translate(712, 178)" filter="url(#softShadow)">
-    <rect width="180" height="92" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">write</text>
-    <text x="16" y="42" font-family="'SF Mono', Menlo, monospace" font-size="11" fill="#b45309" font-weight="700">run</text>
-    <line x1="16" y1="50" x2="164" y2="50" stroke="#e6e1d4"/>
-    <text x="16" y="68" font-size="11" fill="#3a3a3a">shell heredoc</text>
-    <text x="16" y="82" font-size="11" fill="#3a3a3a">persist to disk</text>
+  <!-- write -->
+  <g filter="url(#sketch)">
+    <rect x="718" y="195" width="190" height="90" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+    <rect x="718" y="195" width="190" height="28" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
   </g>
+  <text x="736" y="214" font-size="15" font-weight="700" fill="#1e1e1e">write</text>
+  <text x="886" y="214" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" font-weight="600" fill="#1e1e1e" text-anchor="end">run</text>
+  <text x="736" y="244" font-size="12" fill="#1e1e1e">shell heredoc</text>
+  <text x="736" y="262" font-size="12" fill="#1e1e1e">persist to disk</text>
+  <text x="736" y="278" font-size="10" fill="#71717a">runtime.run</text>
 
-  <path d="M 894 224 L 932 224" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrAccent)"/>
+  <path d="M 910 240 L 950 240" stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <!-- Output ellipse -->
-  <g transform="translate(934, 200)">
-    <ellipse cx="70" cy="24" rx="70" ry="24" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2" filter="url(#softShadow)"/>
-    <text x="70" y="20" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1a1a1a">report.md</text>
-    <text x="70" y="34" text-anchor="middle" font-size="10.5" fill="#5c5c5c" font-style="italic">side effect</text>
+  <!-- output ellipse -->
+  <g filter="url(#sketch)">
+    <ellipse cx="1030" cy="240" rx="65" ry="30" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5"/>
   </g>
+  <text x="1030" y="238" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" font-weight="600" fill="#1e1e1e" text-anchor="middle">report.md</text>
+  <text x="1030" y="254" font-size="11" fill="#71717a" text-anchor="middle">side effect</text>
 
-  <!-- Dependency labels under arrows -->
-  <text x="235" y="246" text-anchor="middle" font-size="10" fill="#8a8275" font-style="italic">feeds data</text>
-  <text x="465" y="246" text-anchor="middle" font-size="10" fill="#8a8275" font-style="italic">depends: [extract]</text>
-  <text x="689" y="246" text-anchor="middle" font-size="10" fill="#8a8275" font-style="italic">depends: [summarise]</text>
+  <!-- dep labels -->
+  <text x="228" y="310" font-size="11" fill="#8a8a91" font-style="italic" text-anchor="middle">feeds data</text>
+  <text x="462" y="310" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8a91" text-anchor="middle">depends: [extract]</text>
+  <text x="696" y="310" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8a91" text-anchor="middle">depends: [summarise]</text>
 
-  <!-- Bottom annotation -->
-  <g transform="translate(60, 340)">
-    <line x1="0" y1="0" x2="980" y2="0" stroke="#e6e1d4" stroke-width="1"/>
-    <text x="0" y="24" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
-      <tspan font-weight="600" fill="#1a1a1a">Three primitives, three dependencies.</tspan>
-      Each step declares what it needs via <tspan font-family="'SF Mono', Menlo, monospace" font-size="12" fill="#1a1a1a">depends:</tspan>.
-      aiorch figures out the order.
-    </text>
-    <text x="0" y="44" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
-      Two steps with no mutual dependency would land on the same DAG layer and run in parallel — but this chain is strictly sequential.
-    </text>
-  </g>
+  <!-- footer commentary -->
+  <path d="M 70 370 Q 400 366, 800 370 T 1080 370" stroke="#d4d4d8" stroke-width="1" fill="none" filter="url(#sketch2)"/>
+  <text x="70" y="400" font-size="14" fill="#1e1e1e" font-weight="600">Three primitives, three dependencies.</text>
+  <text x="70" y="424" font-size="13" fill="#3f3f46">Each step declares what it needs via <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12">depends:</tspan>. aiorch figures out the order.</text>
+  <text x="70" y="446" font-size="13" fill="#3f3f46">Two steps with no mutual dependency would land on the same DAG layer and run in parallel — this chain is strictly sequential.</text>
 </svg>

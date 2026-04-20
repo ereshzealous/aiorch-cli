@@ -1,110 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 560"
+     font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif">
   <defs>
-    <marker id="arrInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
-    </marker>
-    <marker id="arrAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b45309"/>
-    </marker>
-    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
-      <feOffset dx="0" dy="2"/>
-      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
-      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
+    <filter id="sketch2" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="8"/>
+      <feDisplacementMap in="SourceGraphic" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <marker id="arrInk" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 1 L 12 6 L 0 11 z" fill="#1e1e1e"/>
+    </marker>
   </defs>
 
-  <rect width="1200" height="540" fill="#fbf9f3"/>
+  <rect width="1220" height="560" fill="#f4f5f7"/>
 
-  <text x="60" y="56" font-family="Charter, Georgia, serif" font-size="26" font-weight="600" fill="#1a1a1a">Foreach fan-out</text>
-  <text x="60" y="80" font-size="13" fill="#5c5c5c">A step declares <tspan font-family="'SF Mono', Menlo, monospace" font-size="12">foreach: &lt;list&gt;</tspan> and expands into N sibling steps at dispatch time. With <tspan font-family="'SF Mono', Menlo, monospace" font-size="12">parallel: true</tspan>, all N overlap.</text>
-  <line x1="60" y1="100" x2="220" y2="100" stroke="#b45309" stroke-width="2.5"/>
+  <text x="70" y="62" font-size="32" font-weight="700" fill="#1e1e1e" letter-spacing="-0.5">Foreach fan-out</text>
+  <path d="M 70 82 Q 180 78, 280 82" stroke="#c2410c" stroke-width="3" fill="none" filter="url(#sketch)" stroke-linecap="round"/>
+  <text x="70" y="110" font-size="14" fill="#3f3f46">A step declares <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12">foreach: &lt;list&gt;</tspan> and expands into N sibling steps at dispatch time.</text>
+  <text x="70" y="132" font-size="14" fill="#3f3f46">With <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12">parallel: true</tspan>, all N overlap.</text>
 
-  <!-- Source step (produces list) -->
-  <g transform="translate(80, 250)" filter="url(#softShadow)">
-    <rect width="200" height="90" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">source</text>
-    <text x="16" y="42" font-size="11" fill="#8a8275" font-style="italic">any primitive</text>
-    <line x1="16" y1="52" x2="184" y2="52" stroke="#e6e1d4"/>
-    <text x="16" y="70" font-size="11.5" fill="#3a3a3a">returns a list of N items</text>
-    <text x="16" y="84" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#5c5c5c">result = [...]</text>
+  <!-- source -->
+  <g filter="url(#sketch)">
+    <rect x="80" y="250" width="210" height="100" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+  </g>
+  <text x="100" y="282" font-size="18" font-weight="700" fill="#1e1e1e">source</text>
+  <text x="100" y="304" font-size="12" fill="#3f3f46">any primitive</text>
+  <line x1="100" y1="314" x2="270" y2="314" stroke="#1e1e1e" stroke-width="1" opacity="0.3"/>
+  <text x="100" y="332" font-size="12" fill="#1e1e1e">returns a list of N items</text>
+  <text x="100" y="346" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#71717a">result = [...]</text>
+
+  <path d="M 292 300 L 328 300" stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
+
+  <!-- foreach gate -->
+  <g filter="url(#sketch)">
+    <polygon points="330,280 370,260 460,260 500,280 460,320 370,320" fill="#ffec99" stroke="#1e1e1e" stroke-width="2.5"/>
+  </g>
+  <text x="415" y="290" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="14" font-weight="700" fill="#c2410c" text-anchor="middle">foreach</text>
+  <text x="415" y="308" font-size="10.5" fill="#3f3f46" text-anchor="middle">for item in list</text>
+
+  <!-- connectors from foreach to cards -->
+  <g stroke="#1e1e1e" stroke-width="1.4" fill="none" filter="url(#sketch2)">
+    <path d="M 502 282 C 540 220, 620 195, 680 180"/>
+    <path d="M 502 290 L 680 275"/>
+    <path d="M 502 300 L 680 355"/>
+    <path d="M 502 310 C 540 380, 620 430, 680 450"/>
   </g>
 
-  <!-- Foreach gate (hexagon-ish) -->
-  <g transform="translate(330, 272)">
-    <polygon points="0,20 30,0 120,0 150,20 120,40 30,40" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.5" filter="url(#softShadow)"/>
-    <text x="75" y="20" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="12" font-weight="700" fill="#b45309">foreach</text>
-    <text x="75" y="32" text-anchor="middle" font-size="10" fill="#5c5c5c" font-style="italic">for item in list</text>
+  <!-- process cards -->
+  <g filter="url(#sketch)">
+    <rect x="680" y="160" width="200" height="70" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="696" y="186" font-size="14" font-weight="700" fill="#1e1e1e">process <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" fill="#c2410c">[0]</tspan></text>
+  <text x="696" y="208" font-size="12" fill="#3f3f46">runs with item[0]</text>
+  <text x="696" y="224" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#71717a">{{item}}</text>
+
+  <g filter="url(#sketch)">
+    <rect x="680" y="250" width="200" height="70" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="696" y="276" font-size="14" font-weight="700" fill="#1e1e1e">process <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" fill="#c2410c">[1]</tspan></text>
+  <text x="696" y="298" font-size="12" fill="#3f3f46">runs with item[1]</text>
+  <text x="696" y="314" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#71717a">parallel: true</text>
+
+  <g filter="url(#sketch)">
+    <rect x="680" y="340" width="200" height="70" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="696" y="366" font-size="14" font-weight="700" fill="#1e1e1e">process <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13" fill="#c2410c">[2]</tspan></text>
+  <text x="696" y="388" font-size="12" fill="#3f3f46">runs with item[2]</text>
+  <text x="696" y="404" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10.5" fill="#71717a">concurrency: N</text>
+
+  <g filter="url(#sketch)">
+    <rect x="680" y="430" width="200" height="60" fill="#ffffff" stroke="#1e1e1e" stroke-width="1.5" stroke-dasharray="4 3" rx="5"/>
+  </g>
+  <text x="780" y="456" font-size="13" fill="#71717a" text-anchor="middle" font-style="italic">· · ·  item N</text>
+  <text x="780" y="478" font-size="10.5" fill="#8a8a91" text-anchor="middle">trace shows each</text>
+
+  <!-- merge arrows -->
+  <g stroke="#1e1e1e" stroke-width="1.4" fill="none" filter="url(#sketch2)">
+    <path d="M 882 195 C 940 200, 980 260, 1000 290" marker-end="url(#arrInk)"/>
+    <path d="M 882 285 L 1000 300" marker-end="url(#arrInk)"/>
+    <path d="M 882 375 C 940 370, 980 320, 1000 310" marker-end="url(#arrInk)"/>
   </g>
 
-  <path d="M 282 295 L 326 292" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrAccent)"/>
-
-  <!-- Connector lines from foreach to each process card -->
-  <g stroke="#1a1a1a" stroke-width="1.2" fill="none">
-    <path d="M 484 290 C 530 180, 620 180, 660 180"/>
-    <path d="M 484 292 L 660 260"/>
-    <path d="M 484 294 L 660 340"/>
-    <path d="M 484 300 C 530 420, 620 420, 660 420"/>
+  <!-- aggregate -->
+  <g filter="url(#sketch)">
+    <rect x="1000" y="250" width="170" height="100" fill="#ffec99" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
   </g>
+  <text x="1020" y="282" font-size="18" font-weight="700" fill="#1e1e1e">aggregate</text>
+  <text x="1020" y="302" font-size="12" fill="#8b6914">downstream step</text>
+  <line x1="1020" y1="312" x2="1150" y2="312" stroke="#8b6914" stroke-width="1" opacity="0.4"/>
+  <text x="1020" y="332" font-size="12" fill="#1e1e1e">sees a list of</text>
+  <text x="1020" y="346" font-size="12" fill="#1e1e1e">all results</text>
 
-  <!-- Process cards -->
-  <g transform="translate(660, 140)">
-    <rect width="200" height="80" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2" filter="url(#softShadow)"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">process <tspan font-family="'SF Mono', Menlo, monospace" font-size="12.5" fill="#b45309">[0]</tspan></text>
-    <line x1="16" y1="34" x2="184" y2="34" stroke="#e6e1d4"/>
-    <text x="16" y="52" font-size="11.5" fill="#3a3a3a">runs once with item[0]</text>
-    <text x="16" y="68" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#5c5c5c">{{item}} · {{loop.index}}</text>
-  </g>
+  <text x="900" y="145" font-size="11" fill="#c2410c" font-style="italic">N sibling steps</text>
+  <text x="900" y="510" font-size="11" fill="#71717a" font-style="italic">trace shows each invocation separately</text>
 
-  <g transform="translate(660, 240)">
-    <rect width="200" height="80" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2" filter="url(#softShadow)"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">process <tspan font-family="'SF Mono', Menlo, monospace" font-size="12.5" fill="#b45309">[1]</tspan></text>
-    <line x1="16" y1="34" x2="184" y2="34" stroke="#e6e1d4"/>
-    <text x="16" y="52" font-size="11.5" fill="#3a3a3a">runs once with item[1]</text>
-    <text x="16" y="68" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#5c5c5c">parallel: true</text>
-  </g>
-
-  <g transform="translate(660, 340)">
-    <rect width="200" height="80" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2" filter="url(#softShadow)"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">process <tspan font-family="'SF Mono', Menlo, monospace" font-size="12.5" fill="#b45309">[2]</tspan></text>
-    <line x1="16" y1="34" x2="184" y2="34" stroke="#e6e1d4"/>
-    <text x="16" y="52" font-size="11.5" fill="#3a3a3a">runs once with item[2]</text>
-    <text x="16" y="68" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#5c5c5c">concurrency: N</text>
-  </g>
-
-  <!-- more items ellipsis -->
-  <text x="760" y="448" text-anchor="middle" font-size="16" fill="#8a8275" font-style="italic">·  ·  ·  item N</text>
-
-  <!-- Connector from each process card to aggregate -->
-  <g stroke="#1a1a1a" stroke-width="1.2" fill="none">
-    <path d="M 860 180 C 920 180, 960 260, 1000 290" marker-end="url(#arrInk)"/>
-    <path d="M 860 280 L 1000 295" marker-end="url(#arrInk)"/>
-    <path d="M 860 380 C 920 380, 960 310, 1000 300" marker-end="url(#arrInk)"/>
-  </g>
-
-  <!-- Aggregate -->
-  <g transform="translate(1000, 250)" filter="url(#softShadow)">
-    <rect width="160" height="90" rx="8" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.5"/>
-    <text x="16" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">aggregate</text>
-    <text x="16" y="42" font-size="11" fill="#8a8275" font-style="italic">downstream step</text>
-    <line x1="16" y1="52" x2="144" y2="52" stroke="#d4c899"/>
-    <text x="16" y="70" font-size="11" fill="#3a3a3a">sees a list of</text>
-    <text x="16" y="84" font-size="11" fill="#3a3a3a">all results</text>
-  </g>
-
-  <!-- Side annotations -->
-  <text x="885" y="135" font-family="Charter, Georgia, serif" font-size="11" font-style="italic" fill="#5c5c5c">N sibling steps</text>
-  <text x="885" y="455" font-family="Charter, Georgia, serif" font-size="11" font-style="italic" fill="#5c5c5c">trace shows each invocation separately</text>
-
-  <!-- Bottom footer -->
-  <g transform="translate(60, 480)">
-    <line x1="0" y1="0" x2="1080" y2="0" stroke="#e6e1d4" stroke-width="1"/>
-    <text x="0" y="22" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
-      <tspan font-weight="600" fill="#1a1a1a">Primitive that works inside foreach:</tspan>
-      prompt (tag every row),
-      python (validate every record),
-      run (call an API per item),
-      flow (run a sub-pipeline per input).
-    </text>
-  </g>
+  <!-- footer note -->
+  <line x1="70" y1="530" x2="1150" y2="530" stroke="#d4d4d8" stroke-width="1" filter="url(#sketch2)"/>
+  <text x="70" y="550" font-size="13" fill="#3f3f46">
+    <tspan font-weight="600" fill="#1e1e1e">Primitives that work inside foreach:</tspan>
+    prompt (tag every row), python (validate every record), run (call an API per item), flow (sub-pipeline per input).
+  </text>
 </svg>

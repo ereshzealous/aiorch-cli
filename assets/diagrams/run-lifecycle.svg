@@ -1,171 +1,154 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 640" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 700"
+     font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif">
   <defs>
-    <marker id="arrInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
-    </marker>
-    <marker id="arrAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b45309"/>
-    </marker>
-    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
-      <feOffset dx="0" dy="2"/>
-      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
-      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
+    <filter id="sketch2" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="8"/>
+      <feDisplacementMap in="SourceGraphic" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <marker id="arrInk" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 1 L 12 6 L 0 11 z" fill="#1e1e1e"/>
+    </marker>
   </defs>
 
-  <rect width="1240" height="640" fill="#fbf9f3"/>
+  <rect width="1260" height="700" fill="#f4f5f7"/>
 
-  <!-- Title -->
-  <text x="60" y="56" font-family="Charter, Georgia, serif" font-size="26" font-weight="600" fill="#1a1a1a">Run lifecycle</text>
-  <text x="60" y="80" font-size="13" fill="#5c5c5c">From YAML on disk to a recorded, replayable run — the six hops every invocation makes.</text>
-  <line x1="60" y1="100" x2="200" y2="100" stroke="#b45309" stroke-width="2.5"/>
+  <text x="70" y="62" font-size="32" font-weight="700" fill="#1e1e1e" letter-spacing="-0.5">Run lifecycle</text>
+  <path d="M 70 82 Q 160 78, 250 82" stroke="#c2410c" stroke-width="3" fill="none" filter="url(#sketch)" stroke-linecap="round"/>
+  <text x="70" y="108" font-size="14" fill="#3f3f46">Compact view — from YAML on disk to a recorded, replayable run.</text>
 
-  <!-- Main backbone -->
-  <g transform="translate(60, 150)">
-    <!-- pipeline.yaml -->
-    <g filter="url(#softShadow)">
-      <rect width="150" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="14" y="26" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#1a1a1a">pipeline.yaml</text>
-      <text x="14" y="46" font-size="11" fill="#5c5c5c">the declarative</text>
-      <text x="14" y="58" font-size="11" fill="#5c5c5c">description</text>
-    </g>
+  <!-- Horizontal backbone -->
+  <g filter="url(#sketch)">
+    <rect x="70" y="160" width="180" height="80" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+  </g>
+  <text x="90" y="190" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="14" font-weight="600" fill="#1e1e1e">pipeline.yaml</text>
+  <text x="90" y="212" font-size="11" fill="#3f3f46">the declaration</text>
+  <text x="90" y="228" font-size="11" fill="#3f3f46">+ CLI overrides</text>
 
-    <path d="M 152 32 L 192 32" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrAccent)"/>
+  <path d="M 252 200 L 288 200" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <!-- Parser -->
-    <g transform="translate(200, 0)" filter="url(#softShadow)">
-      <rect width="150" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="14" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">Parser</text>
-      <text x="14" y="42" font-size="11" fill="#8a8275" font-style="italic">3-layer validate</text>
-      <text x="14" y="58" font-size="11" fill="#5c5c5c">schema · types · semantics</text>
-    </g>
+  <g filter="url(#sketch)">
+    <rect x="290" y="160" width="170" height="80" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+  </g>
+  <text x="310" y="190" font-size="16" font-weight="700" fill="#1e1e1e">Parser</text>
+  <text x="310" y="210" font-size="11" fill="#3f3f46">3-layer validate</text>
+  <text x="310" y="226" font-size="11" fill="#3f3f46">schema · types · DAG</text>
 
-    <path d="M 352 32 L 392 32" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 462 200 L 498 200" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <!-- DAG builder -->
-    <g transform="translate(400, 0)" filter="url(#softShadow)">
-      <rect width="150" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="14" y="24" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">DAG builder</text>
-      <text x="14" y="42" font-size="11" fill="#8a8275" font-style="italic">resolve depends:</text>
-      <text x="14" y="58" font-size="11" fill="#5c5c5c">layers parallel steps</text>
-    </g>
+  <g filter="url(#sketch)">
+    <rect x="500" y="160" width="170" height="80" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/>
+  </g>
+  <text x="520" y="190" font-size="16" font-weight="700" fill="#1e1e1e">DAG builder</text>
+  <text x="520" y="210" font-size="11" fill="#3f3f46">resolves depends:</text>
+  <text x="520" y="226" font-size="11" fill="#3f3f46">assigns layers</text>
 
-    <path d="M 552 32 L 592 32" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 672 200 L 708 200" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <!-- Executor (highlighted) -->
-    <g transform="translate(600, -6)" filter="url(#softShadow)">
-      <rect width="170" height="76" rx="8" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.8"/>
-      <text x="14" y="26" font-family="Charter, Georgia, serif" font-size="15" font-weight="700" fill="#1a1a1a">Executor</text>
-      <text x="14" y="44" font-size="11" fill="#8a8275" font-style="italic">walks each layer</text>
-      <text x="14" y="60" font-size="11" fill="#5c5c5c">retries · timeouts · on_failure</text>
-    </g>
+  <g filter="url(#sketch)">
+    <rect x="710" y="150" width="200" height="100" fill="#ffec99" stroke="#1e1e1e" stroke-width="3" rx="6"/>
+  </g>
+  <text x="730" y="182" font-size="18" font-weight="700" fill="#1e1e1e">Executor</text>
+  <text x="730" y="205" font-size="11" fill="#8b6914">walks DAG layer by layer</text>
+  <text x="730" y="223" font-size="11" fill="#8b6914">retries, timeouts</text>
+  <text x="730" y="240" font-size="11" fill="#8b6914">on_failure cleanup</text>
 
-    <path d="M 772 32 L 815 32" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 912 200 L 948 200" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <!-- Dispatcher diamond -->
-    <g transform="translate(820, 0)">
-      <polygon points="80,0 160,32 80,64 0,32" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5" filter="url(#softShadow)"/>
-      <text x="80" y="28" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="12" font-weight="600" fill="#1a1a1a">Primitive</text>
-      <text x="80" y="44" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="12" font-weight="600" fill="#1a1a1a">dispatcher</text>
-    </g>
+  <g filter="url(#sketch)">
+    <polygon points="1030,170 1110,200 1030,230 950,200" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5"/>
+  </g>
+  <text x="1030" y="197" font-size="12" font-weight="700" fill="#1e1e1e" text-anchor="middle">Primitive</text>
+  <text x="1030" y="212" font-size="12" font-weight="700" fill="#1e1e1e" text-anchor="middle">dispatcher</text>
+
+  <!-- Primitives fan out down from dispatcher -->
+  <g stroke="#1e1e1e" stroke-width="1.4" fill="none" filter="url(#sketch2)">
+    <path d="M 990 230 C 900 260, 300 280, 170 310"/>
+    <path d="M 1005 230 C 940 260, 500 285, 350 310"/>
+    <path d="M 1025 230 L 530 310"/>
+    <path d="M 1040 230 C 1050 260, 900 290, 710 310"/>
+    <path d="M 1055 230 C 1080 260, 1010 290, 890 310"/>
+    <path d="M 1070 230 C 1100 260, 1120 290, 1070 310"/>
   </g>
 
-  <!-- Primitive fan-out -->
-  <g>
-    <!-- connector lines from dispatcher down to each primitive -->
-    <g stroke="#1a1a1a" stroke-width="1.2" fill="none">
-      <path d="M 960 246 C 960 290, 130 290, 130 310"/>
-      <path d="M 960 246 C 960 290, 320 290, 320 310"/>
-      <path d="M 960 246 C 960 290, 510 290, 510 310"/>
-      <path d="M 960 246 C 960 290, 700 290, 700 310"/>
-      <path d="M 960 246 C 960 290, 890 290, 890 310"/>
-      <path d="M 960 246 L 960 310"/>
-    </g>
-
-    <!-- prompt -->
-    <g transform="translate(60, 312)">
-      <rect width="140" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">prompt</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">LiteLLM call</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">any provider · cached</text>
-    </g>
-
-    <!-- python -->
-    <g transform="translate(250, 312)">
-      <rect width="140" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">python</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">exec in thread</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">your Python env</text>
-    </g>
-
-    <!-- run -->
-    <g transform="translate(440, 312)">
-      <rect width="140" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">run</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">shell subprocess</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">your $PATH</text>
-    </g>
-
-    <!-- flow -->
-    <g transform="translate(630, 312)">
-      <rect width="140" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">flow</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">sub-pipeline</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">parser + executor</text>
-    </g>
-
-    <!-- foreach -->
-    <g transform="translate(820, 312)">
-      <rect width="140" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">foreach</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">fan over list</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">parallel: true</text>
-    </g>
-
-    <!-- condition -->
-    <g transform="translate(1010, 312)">
-      <rect width="170" height="64" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-      <text x="12" y="22" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#b45309">condition</text>
-      <text x="12" y="40" font-size="11" fill="#3a3a3a">gate on boolean</text>
-      <text x="12" y="56" font-size="10.5" fill="#5c5c5c">skipped is not failed</text>
-    </g>
+  <!-- 6 primitive cards in a row -->
+  <g filter="url(#sketch2)">
+    <rect x="90" y="315" width="160" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="90" y="315" width="160" height="24" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2" rx="5"/>
   </g>
+  <text x="105" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">prompt</text>
+  <text x="105" y="358" font-size="11" fill="#1e1e1e">LiteLLM call</text>
+  <text x="105" y="376" font-size="10" fill="#71717a">any provider</text>
 
-  <!-- Dashed lines from primitives down to SQLite -->
-  <g stroke="#475569" stroke-width="1" stroke-dasharray="3 3" fill="none">
-    <path d="M 130 378 C 130 420, 530 430, 620 465"/>
-    <path d="M 320 378 C 320 420, 540 425, 620 465"/>
-    <path d="M 510 378 L 620 465"/>
-    <path d="M 700 378 C 700 420, 640 430, 620 465"/>
-    <path d="M 890 378 C 890 420, 700 430, 620 465"/>
-    <path d="M 1095 378 C 1095 420, 800 430, 620 465"/>
+  <g filter="url(#sketch2)">
+    <rect x="270" y="315" width="160" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="270" y="315" width="160" height="24" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="285" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">python</text>
+  <text x="285" y="358" font-size="11" fill="#1e1e1e">exec in thread</text>
+  <text x="285" y="376" font-size="10" fill="#71717a">your Python env</text>
+
+  <g filter="url(#sketch2)">
+    <rect x="450" y="315" width="160" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="450" y="315" width="160" height="24" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="465" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">run</text>
+  <text x="465" y="358" font-size="11" fill="#1e1e1e">shell subprocess</text>
+  <text x="465" y="376" font-size="10" fill="#71717a">your $PATH</text>
+
+  <g filter="url(#sketch2)">
+    <rect x="630" y="315" width="160" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="630" y="315" width="160" height="24" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="645" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">flow</text>
+  <text x="645" y="358" font-size="11" fill="#1e1e1e">sub-pipeline</text>
+  <text x="645" y="376" font-size="10" fill="#71717a">recursive</text>
+
+  <g filter="url(#sketch2)">
+    <rect x="810" y="315" width="160" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="810" y="315" width="160" height="24" fill="#ffec99" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="825" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">foreach</text>
+  <text x="825" y="358" font-size="11" fill="#1e1e1e">fan over list</text>
+  <text x="825" y="376" font-size="10" fill="#71717a">parallel: true</text>
+
+  <g filter="url(#sketch2)">
+    <rect x="990" y="315" width="170" height="80" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+    <rect x="990" y="315" width="170" height="24" fill="#ffd8a8" stroke="#1e1e1e" stroke-width="2" rx="5"/>
+  </g>
+  <text x="1005" y="332" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12" font-weight="600" fill="#1e1e1e">condition</text>
+  <text x="1005" y="358" font-size="11" fill="#1e1e1e">gate the step</text>
+  <text x="1005" y="376" font-size="10" fill="#71717a">skipped ≠ failed</text>
+
+  <!-- Dashed lines down to SQLite -->
+  <g stroke="#71717a" stroke-width="1" stroke-dasharray="4 3" fill="none" filter="url(#sketch2)">
+    <path d="M 170 395 C 200 450, 500 480, 590 500"/>
+    <path d="M 350 395 C 380 450, 560 480, 610 500"/>
+    <path d="M 530 395 L 630 500"/>
+    <path d="M 710 395 C 680 450, 660 480, 650 500"/>
+    <path d="M 890 395 C 800 450, 700 480, 670 500"/>
+    <path d="M 1075 395 C 900 450, 720 480, 690 500"/>
   </g>
 
   <!-- SQLite cylinder -->
-  <g transform="translate(480, 470)">
-    <ellipse cx="140" cy="8" rx="140" ry="8" fill="#0f4c75"/>
-    <rect x="0" y="8" width="280" height="60" fill="#0f4c75"/>
-    <ellipse cx="140" cy="68" rx="140" ry="8" fill="#0a3957"/>
-    <text x="140" y="32" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#ffffff">SQLite · history.db</text>
-    <text x="140" y="52" text-anchor="middle" font-size="11" fill="#b0d4e8">runs · steps · llm_cache</text>
+  <g filter="url(#sketch)">
+    <ellipse cx="630" cy="510" rx="140" ry="12" fill="#3f3f46" stroke="#1e1e1e" stroke-width="2"/>
+    <rect x="490" y="510" width="280" height="70" fill="#3f3f46" stroke="#1e1e1e" stroke-width="2"/>
+    <ellipse cx="630" cy="580" rx="140" ry="12" fill="#27272a" stroke="#1e1e1e" stroke-width="2"/>
   </g>
+  <text x="630" y="538" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">SQLite</text>
+  <text x="630" y="558" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" fill="#d4d4d8" text-anchor="middle">~/.aiorch/history.db</text>
+  <text x="630" y="574" font-size="10" fill="#a1a1aa" text-anchor="middle">runs · steps · llm_cache</text>
 
-  <!-- Arrow to replay -->
-  <path d="M 620 555 L 620 583" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrInk)"/>
+  <path d="M 630 592 L 630 622" stroke="#1e1e1e" stroke-width="2" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <g transform="translate(440, 586)">
-    <rect width="360" height="32" rx="5" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
-    <text x="16" y="21" font-family="'SF Mono', Menlo, monospace" font-size="12" fill="#1a1a1a">
-      <tspan font-weight="700" fill="#b45309">aiorch</tspan> history  ·  <tspan font-weight="700" fill="#b45309">aiorch</tspan> trace  ·  <tspan font-weight="700" fill="#b45309">aiorch</tspan> resume
-    </text>
+  <g filter="url(#sketch2)">
+    <rect x="400" y="625" width="460" height="46" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="5"/>
   </g>
-
-  <!-- Side annotations -->
-  <text x="1000" y="178" font-family="Charter, Georgia, serif" font-size="11.5" font-style="italic" fill="#5c5c5c">
-    <tspan x="1000" dy="0">the only stage</tspan>
-    <tspan x="1000" dy="14">that holds state</tspan>
-    <tspan x="1000" dy="14">across time</tspan>
+  <text x="420" y="654" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="14" fill="#1e1e1e">
+    <tspan font-weight="700" fill="#c2410c">aiorch</tspan> history · <tspan font-weight="700" fill="#c2410c">aiorch</tspan> trace · <tspan font-weight="700" fill="#c2410c">aiorch</tspan> resume
   </text>
-  <path d="M 990 182 Q 945 180, 785 180" fill="none" stroke="#9a9283" stroke-width="0.8"/>
 </svg>

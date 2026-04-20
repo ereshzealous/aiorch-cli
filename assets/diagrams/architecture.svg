@@ -1,401 +1,226 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 1840" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1720"
+     font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif">
   <defs>
-    <marker id="arrowInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
-    </marker>
-    <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b45309"/>
-    </marker>
-    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
-      <feOffset dx="0" dy="2" result="off"/>
-      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
-      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="sketch" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
+    <filter id="sketch2" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="8"/>
+      <feDisplacementMap in="SourceGraphic" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <marker id="arrInk" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 1 L 12 6 L 0 11 z" fill="#1e1e1e"/>
+    </marker>
+    <marker id="arrAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c2410c"/>
+    </marker>
   </defs>
 
-  <rect width="1480" height="1840" fill="#fbf9f3"/>
+  <rect width="1400" height="1720" fill="#f4f5f7"/>
 
-  <!-- Title -->
-  <text x="80" y="72" font-family="Charter, Georgia, serif" font-size="30" font-weight="600" fill="#1a1a1a">
-    aiorch  <tspan fill="#b45309" font-weight="400">·</tspan>  architecture
-  </text>
-  <text x="80" y="100" font-size="14" fill="#5c5c5c" letter-spacing="0.3">
-    What <tspan font-family="'SF Mono', Menlo, monospace" font-size="13.5" fill="#1a1a1a">aiorch run pipeline.yaml</tspan> actually does, in six deliberately narrow stages.
-  </text>
-  <line x1="80" y1="122" x2="260" y2="122" stroke="#b45309" stroke-width="2.5"/>
+  <!-- HEADER -->
+  <text x="90" y="78" font-size="40" font-weight="700" fill="#1e1e1e" letter-spacing="-0.8">How aiorch works</text>
+  <path d="M 90 98 Q 190 94, 290 98 T 440 98" stroke="#c2410c" stroke-width="3.5" fill="none" filter="url(#sketch)" stroke-linecap="round"/>
+  <text x="90" y="134" font-size="16" fill="#3f3f46">The six stages of <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" fill="#1e1e1e">aiorch run pipeline.yaml</tspan>,</text>
+  <text x="90" y="156" font-size="16" fill="#3f3f46">from YAML to a recorded, replayable run.</text>
 
-  <!-- ============= SECTION 1 — PARSE & VALIDATE ============= -->
-  <g>
-    <rect x="60" y="160" width="1360" height="200" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+  <!-- STAGE 01 INPUTS -->
+  <g filter="url(#sketch)"><circle cx="125" cy="278" r="42" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5"/></g>
+  <text x="125" y="292" font-size="32" font-weight="700" fill="#1e1e1e" text-anchor="middle">01</text>
+  <text x="90" y="348" font-size="11" font-weight="600" fill="#c2410c" letter-spacing="1.8">INPUTS</text>
 
-    <g transform="translate(100, 200)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">01</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Parse &amp; validate</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.parser</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">Fails fast — before a</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">token is spent or a</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">subprocess is started.</text>
-    </g>
+  <g filter="url(#sketch)"><rect x="240" y="220" width="290" height="120" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/></g>
+  <text x="260" y="254" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="18" font-weight="600" fill="#1e1e1e">pipeline.yaml</text>
+  <line x1="260" y1="268" x2="510" y2="268" stroke="#1e1e1e" stroke-width="1" opacity="0.3"/>
+  <text x="260" y="292" font-size="13" fill="#1e1e1e">name · input · steps</text>
+  <text x="260" y="312" font-size="12" fill="#3f3f46">The declaration.</text>
+  <text x="260" y="330" font-size="12" fill="#3f3f46">Committed to git.</text>
 
-    <g transform="translate(370, 200)" filter="url(#softShadow)">
-      <rect width="160" height="90" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="14" y="24" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#1a1a1a">pipeline.yaml</text>
-      <line x1="14" y1="34" x2="146" y2="34" stroke="#e6e1d4"/>
-      <text x="14" y="54" font-size="11.5" fill="#5c5c5c">name</text>
-      <text x="14" y="70" font-size="11.5" fill="#5c5c5c">input:</text>
-      <text x="14" y="86" font-size="11.5" fill="#5c5c5c">steps:</text>
-    </g>
+  <g filter="url(#sketch)"><rect x="590" y="220" width="290" height="120" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/></g>
+  <text x="610" y="254" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">-i KEY=VALUE</text>
+  <text x="610" y="278" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">--input file.json</text>
+  <line x1="610" y1="292" x2="860" y2="292" stroke="#1e1e1e" stroke-width="1" opacity="0.3"/>
+  <text x="610" y="314" font-size="12" fill="#3f3f46">Runtime overrides,</text>
+  <text x="610" y="330" font-size="12" fill="#3f3f46">never committed.</text>
 
-    <g transform="translate(370, 300)" filter="url(#softShadow)">
-      <rect width="160" height="40" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="80" y="24" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" font-weight="600" fill="#1a1a1a">-i KEY=VALUE</text>
-    </g>
+  <path d="M 385 342 C 420 380, 480 410, 530 438" stroke="#1e1e1e" stroke-width="1.8" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
+  <path d="M 735 342 C 700 380, 620 410, 570 438" stroke="#1e1e1e" stroke-width="1.8" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <path d="M 534 244 L 568 244" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrowAccent)"/>
-    <path d="M 534 320 C 550 320, 558 280, 568 250" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 90 388 Q 350 384, 700 388 T 1310 388" stroke="#d4d4d8" stroke-width="1" fill="none" filter="url(#sketch2)"/>
 
-    <g transform="translate(570, 200)" filter="url(#softShadow)">
-      <rect width="230" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
-      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="16" font-weight="600" fill="#1a1a1a">Parser</text>
-      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">three validation layers, in order</text>
-      <line x1="16" y1="54" x2="214" y2="54" stroke="#e6e1d4"/>
-      <g font-size="12" fill="#3a3a3a">
-        <text x="16" y="76"><tspan fill="#b45309" font-weight="700">1.</tspan>   JSON Schema · structural</text>
-        <text x="16" y="98"><tspan fill="#b45309" font-weight="700">2.</tspan>   Pydantic · type checks</text>
-        <text x="16" y="120"><tspan fill="#b45309" font-weight="700">3.</tspan>   Cross-field semantics</text>
-      </g>
-    </g>
+  <!-- STAGE 02 PARSE -->
+  <g filter="url(#sketch)"><circle cx="125" cy="540" r="42" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2.5"/></g>
+  <text x="125" y="554" font-size="32" font-weight="700" fill="#1e1e1e" text-anchor="middle">02</text>
+  <text x="90" y="610" font-size="11" font-weight="600" fill="#c2410c" letter-spacing="1.8">PARSE &amp; VALIDATE</text>
+  <text x="90" y="632" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" fill="#71717a">aiorch.core.parser</text>
 
-    <path d="M 804 270 L 858 270" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
+  <g filter="url(#sketch)"><rect x="240" y="450" width="380" height="210" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2.5" rx="6"/></g>
+  <text x="260" y="488" font-size="24" font-weight="700" fill="#1e1e1e">Parser</text>
+  <text x="260" y="510" font-size="12" font-weight="500" fill="#2b8a3e">Three layers, in order</text>
+  <line x1="260" y1="522" x2="600" y2="522" stroke="#1e1e1e" stroke-width="1" opacity="0.3"/>
+  <g filter="url(#sketch2)"><circle cx="280" cy="552" r="13" fill="none" stroke="#c2410c" stroke-width="1.8"/></g>
+  <text x="280" y="557" font-size="12" font-weight="700" fill="#c2410c" text-anchor="middle">1</text>
+  <text x="305" y="557" font-size="14" fill="#1e1e1e"><tspan font-weight="600">JSON Schema</tspan> — structural</text>
+  <g filter="url(#sketch2)"><circle cx="280" cy="586" r="13" fill="none" stroke="#c2410c" stroke-width="1.8"/></g>
+  <text x="280" y="591" font-size="12" font-weight="700" fill="#c2410c" text-anchor="middle">2</text>
+  <text x="305" y="591" font-size="14" fill="#1e1e1e"><tspan font-weight="600">Pydantic</tspan> — types &amp; migrations</text>
+  <g filter="url(#sketch2)"><circle cx="280" cy="620" r="13" fill="none" stroke="#c2410c" stroke-width="1.8"/></g>
+  <text x="280" y="625" font-size="12" font-weight="700" fill="#c2410c" text-anchor="middle">3</text>
+  <text x="305" y="625" font-size="14" fill="#1e1e1e"><tspan font-weight="600">Cross-field</tspan> — DAG semantics</text>
 
-    <g transform="translate(860, 220)" filter="url(#softShadow)">
-      <rect width="220" height="100" rx="8" fill="#fef9e7" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">Validated Agentfile</text>
-      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">typed Pydantic model</text>
-      <line x1="16" y1="54" x2="204" y2="54" stroke="#e6cfa0"/>
-      <text x="16" y="74" font-size="11.5" fill="#3a3a3a">steps · inputs · env</text>
-      <text x="16" y="90" font-size="11.5" fill="#3a3a3a">ready for the DAG builder</text>
-    </g>
+  <path d="M 640 500 Q 720 495, 820 488" stroke="#c2410c" stroke-width="1.5" fill="none" filter="url(#sketch2)" marker-end="url(#arrAccent)"/>
+  <text x="840" y="476" font-size="14" fill="#c2410c" font-weight="600">Three layers, in order.</text>
+  <text x="840" y="504" font-size="13" fill="#3f3f46">Structural issues surface before</text>
+  <text x="840" y="522" font-size="13" fill="#3f3f46">type coercion, which surfaces</text>
+  <text x="840" y="540" font-size="13" fill="#3f3f46">before DAG semantics.</text>
+  <text x="840" y="568" font-size="13" fill="#3f3f46">Localising the failure matters</text>
+  <text x="840" y="586" font-size="13" fill="#3f3f46">once a pipeline has dozens</text>
+  <text x="840" y="604" font-size="13" fill="#3f3f46">of steps.</text>
 
-    <g transform="translate(1140, 220)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
-        <tspan x="0" dy="0">Typo in field name?</tspan>
-        <tspan x="0" dy="16">Wrong input type?</tspan>
-        <tspan x="0" dy="16">Circular depends?</tspan>
-        <tspan x="0" dy="22" fill="#b45309" font-weight="600">Caught here.</tspan>
-      </text>
-    </g>
-  </g>
+  <path d="M 430 666 L 430 718" stroke="#1e1e1e" stroke-width="1.8" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <path d="M 740 363 L 740 398" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+  <path d="M 90 700 Q 350 696, 700 700 T 1310 700" stroke="#d4d4d8" stroke-width="1" fill="none" filter="url(#sketch2)"/>
 
-  <!-- ============= SECTION 2 — PLAN ============= -->
-  <g>
-    <rect x="60" y="400" width="1360" height="190" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+  <!-- STAGE 03 PLAN -->
+  <g filter="url(#sketch)"><circle cx="125" cy="818" r="42" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2.5"/></g>
+  <text x="125" y="832" font-size="32" font-weight="700" fill="#1e1e1e" text-anchor="middle">03</text>
+  <text x="90" y="888" font-size="11" font-weight="600" fill="#c2410c" letter-spacing="1.8">PLAN</text>
+  <text x="90" y="910" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" fill="#71717a">aiorch.core.dag</text>
 
-    <g transform="translate(100, 440)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">02</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Plan</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.dag</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">Builds the dependency</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">graph, detects cycles,</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">groups parallel steps.</text>
-    </g>
+  <g filter="url(#sketch)"><rect x="240" y="730" width="380" height="180" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2.5" rx="6"/></g>
+  <text x="260" y="768" font-size="24" font-weight="700" fill="#1e1e1e">DAG builder</text>
+  <text x="260" y="790" font-size="12" font-weight="500" fill="#6741d9">Dependency resolution</text>
+  <line x1="260" y1="802" x2="600" y2="802" stroke="#1e1e1e" stroke-width="1" opacity="0.3"/>
+  <text x="260" y="828" font-size="14" fill="#1e1e1e">Resolves <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13">depends:</tspan> edges</text>
+  <text x="260" y="852" font-size="14" fill="#1e1e1e">Detects cycles via <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="13">graphlib</tspan></text>
+  <text x="260" y="876" font-size="14" fill="#1e1e1e">Groups independent steps into layers</text>
 
-    <g transform="translate(370, 430)" filter="url(#softShadow)">
-      <rect width="260" height="130" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
-      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="16" font-weight="600" fill="#1a1a1a">DAG builder</text>
-      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">graphlib + depends resolver</text>
-      <line x1="16" y1="54" x2="244" y2="54" stroke="#e6e1d4"/>
-      <text x="16" y="76" font-size="12" fill="#3a3a3a">· resolves <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5">depends:</tspan> edges</text>
-      <text x="16" y="96" font-size="12" fill="#3a3a3a">· raises <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5">DAGError</tspan> on cycle</text>
-      <text x="16" y="116" font-size="12" fill="#3a3a3a">· groups steps into layers</text>
-    </g>
+  <path d="M 640 770 Q 720 765, 820 758" stroke="#c2410c" stroke-width="1.5" fill="none" filter="url(#sketch2)" marker-end="url(#arrAccent)"/>
+  <text x="840" y="742" font-size="14" fill="#c2410c" font-weight="600">Parallelism is a consequence</text>
+  <text x="840" y="762" font-size="14" fill="#c2410c" font-weight="600">of the DAG, not a flag.</text>
+  <text x="840" y="790" font-size="13" fill="#3f3f46">Steps without mutual dependencies</text>
+  <text x="840" y="808" font-size="13" fill="#3f3f46">land on the same layer and run</text>
+  <text x="840" y="826" font-size="13" fill="#3f3f46">concurrently. No <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="12">asyncio.gather()</tspan> —</text>
+  <text x="840" y="844" font-size="13" fill="#3f3f46">the executor reads the layers.</text>
 
-    <path d="M 634 495 L 690 495" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
-
-    <g transform="translate(690, 430)" filter="url(#softShadow)">
-      <rect width="360" height="130" rx="8" fill="#fef9e7" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">Layered execution plan</text>
-      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">independent steps on the same layer</text>
-
-      <g transform="translate(16, 64)">
-        <circle cx="12" cy="20" r="8" fill="#1a1a1a"/>
-        <text x="12" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L1</text>
-        <circle cx="90" cy="6" r="8" fill="#1a1a1a"/>
-        <circle cx="90" cy="20" r="8" fill="#1a1a1a"/>
-        <circle cx="90" cy="34" r="8" fill="#1a1a1a"/>
-        <text x="90" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L2 · parallel</text>
-        <circle cx="180" cy="20" r="8" fill="#b45309"/>
-        <text x="180" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L3</text>
-        <line x1="19" y1="20" x2="83" y2="6" stroke="#1a1a1a" stroke-width="1.3"/>
-        <line x1="19" y1="20" x2="83" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
-        <line x1="19" y1="20" x2="83" y2="34" stroke="#1a1a1a" stroke-width="1.3"/>
-        <line x1="97" y1="6" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
-        <line x1="97" y1="20" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
-        <line x1="97" y1="34" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
-        <text x="230" y="20" font-size="11.5" fill="#3a3a3a">3 steps on L2</text>
-        <text x="230" y="34" font-size="11.5" fill="#3a3a3a">overlap in wall time</text>
-      </g>
-    </g>
-
-    <g transform="translate(1110, 440)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
-        <tspan x="0" dy="0">Parallelism is a</tspan>
-        <tspan x="0" dy="16">consequence of the DAG,</tspan>
-        <tspan x="0" dy="16">not a separate setting.</tspan>
-      </text>
+  <g transform="translate(1230, 760)">
+    <g filter="url(#sketch2)">
+      <circle cx="0" cy="25" r="8" fill="#1e1e1e"/>
+      <circle cx="45" cy="8" r="8" fill="#1e1e1e"/>
+      <circle cx="45" cy="25" r="8" fill="#1e1e1e"/>
+      <circle cx="45" cy="42" r="8" fill="#1e1e1e"/>
+      <circle cx="90" cy="25" r="8" fill="#c2410c"/>
+      <line x1="8" y1="25" x2="37" y2="8" stroke="#1e1e1e" stroke-width="1.5"/>
+      <line x1="8" y1="25" x2="37" y2="25" stroke="#1e1e1e" stroke-width="1.5"/>
+      <line x1="8" y1="25" x2="37" y2="42" stroke="#1e1e1e" stroke-width="1.5"/>
+      <line x1="53" y1="8" x2="82" y2="25" stroke="#1e1e1e" stroke-width="1.5"/>
+      <line x1="53" y1="25" x2="82" y2="25" stroke="#1e1e1e" stroke-width="1.5"/>
+      <line x1="53" y1="42" x2="82" y2="25" stroke="#1e1e1e" stroke-width="1.5"/>
     </g>
   </g>
+  <text x="1230" y="830" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">L1 → L2 parallel → L3</text>
 
-  <path d="M 740 593 L 740 628" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+  <path d="M 430 916 L 430 968" stroke="#1e1e1e" stroke-width="1.8" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-  <!-- ============= SECTION 3 — EXECUTE ============= -->
-  <g>
-    <rect x="60" y="630" width="1360" height="180" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+  <path d="M 90 950 Q 350 946, 700 950 T 1310 950" stroke="#d4d4d8" stroke-width="1" fill="none" filter="url(#sketch2)"/>
 
-    <g transform="translate(100, 670)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">03</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Execute</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.dag.execute</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">asyncio executor walks</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">each layer; dispatches</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">every step to its handler.</text>
-    </g>
+  <!-- STAGE 04 EXECUTE (focal) -->
+  <g filter="url(#sketch)"><circle cx="125" cy="1090" r="48" fill="#ffec99" stroke="#1e1e1e" stroke-width="3"/></g>
+  <text x="125" y="1106" font-size="36" font-weight="700" fill="#1e1e1e" text-anchor="middle">04</text>
+  <text x="90" y="1170" font-size="11" font-weight="600" fill="#c2410c" letter-spacing="1.8">EXECUTE</text>
+  <text x="90" y="1192" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" fill="#71717a">aiorch.core.dag.execute</text>
 
-    <g transform="translate(370, 660)" filter="url(#softShadow)">
-      <rect width="330" height="120" rx="10" fill="#fef3c7" stroke="#1a1a1a" stroke-width="2"/>
-      <text x="20" y="28" font-family="Charter, Georgia, serif" font-size="17" font-weight="700" fill="#1a1a1a">Executor</text>
-      <text x="20" y="46" font-size="11" fill="#8a8275" font-style="italic">the only stateful, long-lived stage</text>
-      <line x1="20" y1="56" x2="310" y2="56" stroke="#d4c899"/>
-      <text x="20" y="78" font-size="12" fill="#3a3a3a">Walks the DAG layer by layer.</text>
-      <text x="20" y="96" font-size="12" fill="#3a3a3a">Handles retries, timeouts, and the</text>
-      <text x="20" y="112" font-size="12" fill="#3a3a3a">on_failure cleanup contract.</text>
-    </g>
+  <g filter="url(#sketch)"><rect x="240" y="980" width="500" height="220" fill="#ffec99" stroke="#1e1e1e" stroke-width="3" rx="6"/></g>
+  <text x="260" y="1022" font-size="30" font-weight="700" fill="#1e1e1e">Executor</text>
+  <text x="260" y="1046" font-size="12" font-weight="500" fill="#8b6914">The only stage that holds state across time</text>
+  <line x1="260" y1="1058" x2="720" y2="1058" stroke="#8b6914" stroke-width="1" opacity="0.4"/>
+  <text x="260" y="1090" font-size="15" fill="#1e1e1e">Walks the DAG layer by layer</text>
+  <text x="260" y="1114" font-size="15" fill="#1e1e1e">Owns retries, timeouts, <tspan font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="14">on_failure</tspan> cleanup</text>
+  <text x="260" y="1138" font-size="15" fill="#1e1e1e">Dispatches every step to its primitive handler</text>
+  <text x="260" y="1170" font-size="12" font-style="italic" fill="#8b6914">Shares nothing with the other stages except the artefact.</text>
 
-    <path d="M 704 720 L 760 720" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
+  <path d="M 760 1040 Q 830 1035, 900 1028" stroke="#c2410c" stroke-width="1.5" fill="none" filter="url(#sketch2)" marker-end="url(#arrAccent)"/>
+  <text x="920" y="1020" font-size="14" fill="#c2410c" font-weight="600">Asyncio thread pool,</text>
+  <text x="920" y="1040" font-size="14" fill="#c2410c" font-weight="600">not subprocess per step.</text>
+  <text x="920" y="1068" font-size="13" fill="#3f3f46">Subprocess spawn cost measurably</text>
+  <text x="920" y="1086" font-size="13" fill="#3f3f46">dominated wall time when pipelines</text>
+  <text x="920" y="1104" font-size="13" fill="#3f3f46">had many short Python steps.</text>
+  <text x="920" y="1132" font-size="13" fill="#3f3f46">The GIL is an acceptable ceiling</text>
+  <text x="920" y="1150" font-size="13" fill="#3f3f46">for I/O-bound work, and most</text>
+  <text x="920" y="1168" font-size="13" fill="#3f3f46">primitive calls are I/O-bound.</text>
 
-    <g transform="translate(760, 680)">
-      <polygon points="100,0 200,40 100,80 0,40" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5" filter="url(#softShadow)"/>
-      <text x="100" y="36" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">Primitive</text>
-      <text x="100" y="54" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">dispatcher</text>
-    </g>
+  <path d="M 490 1200 L 490 1250" stroke="#1e1e1e" stroke-width="1.8" fill="none" marker-end="url(#arrInk)" filter="url(#sketch2)"/>
 
-    <g transform="translate(1010, 680)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
-        <tspan x="0" dy="0">Thread pool from</tspan>
-        <tspan x="0" dy="16"><tspan font-family="'SF Mono', Menlo, monospace" font-size="11">asyncio.run_in_executor</tspan></tspan>
-        <tspan x="0" dy="16">— same-layer steps overlap</tspan>
-        <tspan x="0" dy="16">without manual threading.</tspan>
-      </text>
-    </g>
+  <g filter="url(#sketch)"><polygon points="490,1255 610,1305 490,1355 370,1305" fill="#ffffff" stroke="#1e1e1e" stroke-width="2.5"/></g>
+  <text x="490" y="1298" font-size="14" font-weight="600" fill="#1e1e1e" text-anchor="middle">Primitive</text>
+  <text x="490" y="1320" font-size="14" font-weight="600" fill="#1e1e1e" text-anchor="middle">dispatcher</text>
+
+  <path d="M 90 1230 Q 350 1226, 700 1230 T 1310 1230" stroke="#d4d4d8" stroke-width="1" fill="none" filter="url(#sketch2)"/>
+
+  <!-- STAGE 05 PRIMITIVES -->
+  <g filter="url(#sketch)"><circle cx="125" cy="1440" r="42" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2.5"/></g>
+  <text x="125" y="1454" font-size="32" font-weight="700" fill="#1e1e1e" text-anchor="middle">05</text>
+  <text x="90" y="1510" font-size="11" font-weight="600" fill="#c2410c" letter-spacing="1.8">PRIMITIVES</text>
+  <text x="90" y="1532" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="11" fill="#71717a">aiorch.runtime.*</text>
+
+  <g stroke="#1e1e1e" stroke-width="1.4" fill="none" filter="url(#sketch2)">
+    <path d="M 450 1355 C 370 1395, 290 1430, 265 1445"/>
+    <path d="M 470 1355 C 440 1395, 420 1430, 435 1445"/>
+    <path d="M 485 1355 L 605 1445"/>
+    <path d="M 500 1355 C 540 1395, 710 1430, 775 1445"/>
+    <path d="M 515 1355 C 600 1395, 850 1430, 945 1445"/>
+    <path d="M 530 1355 C 680 1395, 990 1430, 1115 1445"/>
   </g>
 
-  <path d="M 860 813 L 860 853" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+  <g filter="url(#sketch2)"><rect x="195" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="195" y="1450" width="170" height="32" fill="#ffc9c9" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="215" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">prompt</text>
+  <text x="215" y="1508" font-size="13" fill="#1e1e1e">LiteLLM call</text>
+  <text x="215" y="1532" font-size="12" fill="#71717a">Cached by hash;</text>
+  <text x="215" y="1550" font-size="12" fill="#71717a">any provider.</text>
+  <text x="215" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.prompt</text>
 
-  <!-- ============= SECTION 4 — PRIMITIVES ============= -->
-  <g>
-    <rect x="60" y="855" width="1360" height="300" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+  <g filter="url(#sketch2)"><rect x="385" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="385" y="1450" width="170" height="32" fill="#b2f2bb" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="405" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">python</text>
+  <text x="405" y="1508" font-size="13" fill="#1e1e1e">Exec in thread</text>
+  <text x="405" y="1532" font-size="12" fill="#71717a">Your Python env;</text>
+  <text x="405" y="1550" font-size="12" fill="#71717a">inputs / result.</text>
+  <text x="405" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.python</text>
 
-    <g transform="translate(100, 900)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">04</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Primitives</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.runtime.*</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">Six first-class step types.</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">Composable — a foreach</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">can wrap a prompt, a</text>
-      <text x="0" y="128" font-size="12" fill="#5c5c5c">condition can gate a run.</text>
-    </g>
+  <g filter="url(#sketch2)"><rect x="575" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="575" y="1450" width="170" height="32" fill="#a5d8ff" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="595" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">run</text>
+  <text x="595" y="1508" font-size="13" fill="#1e1e1e">Shell subprocess</text>
+  <text x="595" y="1532" font-size="12" fill="#71717a">Auto-quoted Jinja;</text>
+  <text x="595" y="1550" font-size="12" fill="#71717a">your $PATH, env.</text>
+  <text x="595" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.run</text>
 
-    <g font-size="12">
-      <g transform="translate(370, 890)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">prompt</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.prompt</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">LiteLLM call</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">any provider</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">cached by hash</text>
-      </g>
+  <g filter="url(#sketch2)"><rect x="765" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="765" y="1450" width="170" height="32" fill="#d0bfff" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="785" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">flow</text>
+  <text x="785" y="1508" font-size="13" fill="#1e1e1e">Sub-pipeline call</text>
+  <text x="785" y="1532" font-size="12" fill="#71717a">Parser + executor,</text>
+  <text x="785" y="1550" font-size="12" fill="#71717a">recursively.</text>
+  <text x="785" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.flow</text>
 
-      <g transform="translate(610, 890)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">python</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.python</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">exec in thread</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">YOUR Python env</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">inputs dict · result var</text>
-      </g>
+  <g filter="url(#sketch2)"><rect x="955" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="955" y="1450" width="170" height="32" fill="#ffec99" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="975" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">foreach</text>
+  <text x="975" y="1508" font-size="13" fill="#1e1e1e">Fan over a list</text>
+  <text x="975" y="1532" font-size="12" fill="#71717a">One per item;</text>
+  <text x="975" y="1550" font-size="12" fill="#71717a">parallel: true.</text>
+  <text x="975" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.foreach</text>
 
-      <g transform="translate(850, 890)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">run</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.run</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">shell subprocess</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">YOUR $PATH, /bin/sh</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">Jinja auto-quoted</text>
-      </g>
+  <g filter="url(#sketch2)"><rect x="1145" y="1450" width="170" height="140" fill="#ffffff" stroke="#1e1e1e" stroke-width="2" rx="6"/><rect x="1145" y="1450" width="170" height="32" fill="#ffd8a8" stroke="#1e1e1e" stroke-width="2" rx="6"/></g>
+  <text x="1165" y="1472" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="15" font-weight="600" fill="#1e1e1e">condition</text>
+  <text x="1165" y="1508" font-size="13" fill="#1e1e1e">Gate the step</text>
+  <text x="1165" y="1532" font-size="12" fill="#71717a">Skipped ≠ failed;</text>
+  <text x="1165" y="1550" font-size="12" fill="#71717a">trace shows both.</text>
+  <text x="1165" y="1578" font-family="'JetBrains Mono', 'SF Mono', Menlo, monospace" font-size="10" fill="#8a8a91">runtime.condition</text>
 
-      <g transform="translate(370, 1020)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">flow</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.flow</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">sub-pipeline</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">parser + executor</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">recursive composition</text>
-      </g>
-
-      <g transform="translate(610, 1020)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">foreach</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.foreach</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">fan a step over a list</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">parallel: true</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">concurrency: N</text>
-      </g>
-
-      <g transform="translate(850, 1020)" filter="url(#softShadow)">
-        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">condition</text>
-        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.condition</text>
-        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
-        <text x="16" y="72" fill="#3a3a3a">gate on a boolean</text>
-        <text x="16" y="88" fill="#5c5c5c" font-size="11">skipped is not failed</text>
-        <text x="16" y="102" fill="#5c5c5c" font-size="11">classify + branch</text>
-      </g>
-    </g>
-
-    <g transform="translate(1120, 900)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
-        <tspan x="0" dy="0">Add a new primitive by</tspan>
-        <tspan x="0" dy="16">registering a handler —</tspan>
-        <tspan x="0" dy="16">everything else stays</tspan>
-        <tspan x="0" dy="16">the same.</tspan>
-      </text>
-    </g>
-  </g>
-
-  <path d="M 740 1158 L 740 1198" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
-
-  <!-- ============= SECTION 5 — RECORD ============= -->
-  <g>
-    <rect x="60" y="1200" width="1360" height="200" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
-
-    <g transform="translate(100, 1240)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">05</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Record</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.storage.sqlite</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">Every step persists</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">inputs, outputs, tokens,</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">cost, and duration.</text>
-    </g>
-
-    <g transform="translate(400, 1220)">
-      <ellipse cx="160" cy="10" rx="160" ry="10" fill="#0f4c75"/>
-      <rect x="0" y="10" width="320" height="130" fill="#0f4c75"/>
-      <ellipse cx="160" cy="140" rx="160" ry="10" fill="#0a3957"/>
-      <text x="160" y="48" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="17" font-weight="600" fill="#ffffff">SQLite · history.db</text>
-      <text x="160" y="72" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="12" fill="#b0d4e8">~/.aiorch/history.db</text>
-      <line x1="60" y1="86" x2="260" y2="86" stroke="#3b7194"/>
-      <text x="160" y="106" text-anchor="middle" font-size="12" fill="#d8e8f2">
-        <tspan font-weight="600">runs</tspan>  ·  <tspan font-weight="600">steps</tspan>  ·  <tspan font-weight="600">llm_cache</tspan>
-      </text>
-      <text x="160" y="126" text-anchor="middle" font-size="11" fill="#9fc4da">append-only during a run · queryable mid-flight</text>
-    </g>
-
-    <g transform="translate(780, 1240)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">columns of note</text>
-      <line x1="0" y1="10" x2="260" y2="10" stroke="#b45309" stroke-width="1.5"/>
-      <g font-size="11.5" fill="#3a3a3a">
-        <text x="0" y="32"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">prompt_tokens</tspan></text>
-        <text x="0" y="48"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">completion_tokens</tspan></text>
-        <text x="0" y="64"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">cost_usd</tspan> <tspan fill="#8a8275" font-style="italic">(predictive, not billed)</tspan></text>
-        <text x="0" y="80"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">duration_ms</tspan></text>
-        <text x="0" y="96"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">status</tspan> <tspan fill="#5c5c5c">· ok | failed | skipped</tspan></text>
-      </g>
-    </g>
-
-    <g transform="translate(1110, 1240)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
-        <tspan x="0" dy="0">Same schema powers the</tspan>
-        <tspan x="0" dy="16">LLM response cache —</tspan>
-        <tspan x="0" dy="16">re-runs of identical prompts</tspan>
-        <tspan x="0" dy="16">are free and instant.</tspan>
-      </text>
-    </g>
-  </g>
-
-  <path d="M 560 1403 L 560 1438" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
-
-  <!-- ============= SECTION 6 — REPLAY ============= -->
-  <g>
-    <rect x="60" y="1440" width="1360" height="180" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
-
-    <g transform="translate(100, 1480)">
-      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">06</text>
-      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Replay</text>
-      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">read views over SQLite</text>
-      <text x="0" y="80" font-size="12" fill="#5c5c5c">Three commands that</text>
-      <text x="0" y="96" font-size="12" fill="#5c5c5c">reconstruct and resume</text>
-      <text x="0" y="112" font-size="12" fill="#5c5c5c">past runs.</text>
-    </g>
-
-    <g transform="translate(370, 1460)" filter="url(#softShadow)">
-      <rect width="300" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
-        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">history</tspan>
-      </text>
-      <line x1="16" y1="34" x2="284" y2="34" stroke="#e6e1d4"/>
-      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">List recent runs by pipeline,</text>
-      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">with status, duration, total cost.</text>
-      <text x="16" y="98" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">SELECT * FROM runs</text>
-      <text x="16" y="112" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">ORDER BY started_at DESC</text>
-    </g>
-
-    <g transform="translate(700, 1460)" filter="url(#softShadow)">
-      <rect width="300" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
-      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
-        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">trace</tspan> <tspan fill="#5c5c5c" font-size="11">&lt;run-id&gt;</tspan>
-      </text>
-      <line x1="16" y1="34" x2="284" y2="34" stroke="#e6e1d4"/>
-      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">Step-by-step timeline for one</text>
-      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">run — inputs, outputs, tokens,</text>
-      <text x="16" y="86" font-size="11.5" fill="#5c5c5c">errors, cache hits.</text>
-      <text x="16" y="112" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">SELECT * FROM steps WHERE ...</text>
-    </g>
-
-    <g transform="translate(1030, 1460)" filter="url(#softShadow)">
-      <rect width="300" height="140" rx="8" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.5"/>
-      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
-        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">resume</tspan> <tspan fill="#5c5c5c" font-size="11">&lt;run-id&gt;</tspan>
-      </text>
-      <line x1="16" y1="34" x2="284" y2="34" stroke="#d4c899"/>
-      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">Re-enter the executor at</text>
-      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">the failed step. Completed</text>
-      <text x="16" y="86" font-size="11.5" fill="#5c5c5c">steps are not re-run — their</text>
-      <text x="16" y="102" font-size="11.5" fill="#5c5c5c">outputs come from SQLite.</text>
-      <text x="16" y="126" font-family="Charter, Georgia, serif" font-size="11" font-style="italic" fill="#b45309">the killer feature</text>
-    </g>
-  </g>
-
-  <!-- Footer -->
-  <g transform="translate(80, 1690)">
-    <line x1="0" y1="0" x2="1320" y2="0" stroke="#e6e1d4" stroke-width="1"/>
-    <text x="0" y="24" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
-      <tspan font-weight="600" fill="#1a1a1a">Narrow boundaries by design.</tspan>
-      Each stage is a pure function of the previous stage's output.
-      The DAG builder doesn't know about primitives; primitives don't know about the DAG.
-    </text>
-    <text x="0" y="44" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
-      That's what makes the runtime small, testable, and — for the commercial Platform — portable to a distributed executor fleet without re-writing the core.
-    </text>
-
-    <text x="0" y="92" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">aiorch · v0.1.x · github.com/ereshzealous/aiorch-cli</text>
-    <text x="1320" y="92" text-anchor="end" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#bfb8a3">architecture · 2026-04</text>
+  <g stroke="#71717a" stroke-width="1" stroke-dasharray="4 3" fill="none" filter="url(#sketch2)">
+    <path d="M 265 1590 C 340 1650, 500 1690, 580 1700"/>
+    <path d="M 435 1590 C 460 1650, 570 1690, 600 1700"/>
+    <path d="M 605 1590 L 620 1700"/>
+    <path d="M 775 1590 C 720 1650, 680 1690, 660 1700"/>
+    <path d="M 945 1590 C 860 1650, 730 1690, 680 1700"/>
+    <path d="M 1135 1590 C 980 1650, 790 1690, 710 1700"/>
   </g>
 </svg>
