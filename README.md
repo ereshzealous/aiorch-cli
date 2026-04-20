@@ -1160,7 +1160,7 @@ The **aiorch Platform** fills a different gap: the team-scale, long-running, mul
 
 The CLI and Platform share the same core: parser, DAG builder, and primitive semantics are identical, so a pipeline that runs in the CLI runs in the Platform. You upgrade when the "my laptop" model stops being the right fit.
 
-[Contact](mailto:eresh.zealous@gmail.com) if that's you.
+[Open an issue](https://github.com/ereshzealous/aiorch-cli/issues/new) if that's you.
 
 ---
 
