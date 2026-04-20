@@ -55,7 +55,7 @@ export OPENROUTER_API_KEY=sk-or-v1-...
 aiorch run examples/llm/01-hello-llm.yaml
 ```
 
-Works with any model [LiteLLM](https://docs.litellm.ai/) supports — OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Bedrock, and more.
+The demo uses OpenRouter because one key unlocks every model from a single endpoint — convenient for a quick try. aiorch itself is provider-neutral: swap `OPENROUTER_API_KEY` for `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, or any variable [LiteLLM](https://docs.litellm.ai/) recognises, and it's picked up automatically — OpenAI, Anthropic, Gemini, OpenRouter, Ollama, Bedrock, and more.
 
 ---
 
