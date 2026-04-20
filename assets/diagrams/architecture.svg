@@ -1,1 +1,401 @@
-<svg id="my-svg" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="flowchart" style="max-width: 1759.53px; background-color: transparent;" viewBox="0 0 1759.53125 1845.0064697265625" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#my-svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:#552222;}#my-svg .error-text{fill:#552222;stroke:#552222;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#333333;stroke:#333333;}#my-svg .marker.cross{stroke:#333333;}#my-svg svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#my-svg p{margin:0;}#my-svg .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#333;}#my-svg .cluster-label text{fill:#333;}#my-svg .cluster-label span{color:#333;}#my-svg .cluster-label span p{background-color:transparent;}#my-svg .label text,#my-svg span{fill:#333;color:#333;}#my-svg .node rect,#my-svg .node circle,#my-svg .node ellipse,#my-svg .node polygon,#my-svg .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#my-svg .rough-node .label text,#my-svg .node .label text,#my-svg .image-shape .label,#my-svg .icon-shape .label{text-anchor:middle;}#my-svg .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#my-svg .rough-node .label,#my-svg .node .label,#my-svg .image-shape .label,#my-svg .icon-shape .label{text-align:center;}#my-svg .node.clickable{cursor:pointer;}#my-svg .root .anchor path{fill:#333333!important;stroke-width:0;stroke:#333333;}#my-svg .arrowheadPath{fill:#333333;}#my-svg .edgePath .path{stroke:#333333;stroke-width:1px;}#my-svg .flowchart-link{stroke:#333333;fill:none;}#my-svg .edgeLabel{background-color:rgba(232,232,232, 0.8);text-align:center;}#my-svg .edgeLabel p{background-color:rgba(232,232,232, 0.8);}#my-svg .edgeLabel rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#my-svg .labelBkg{background-color:rgba(232, 232, 232, 0.5);}#my-svg .cluster rect{fill:#ffffde;stroke:#aaaa33;stroke-width:1px;}#my-svg .cluster text{fill:#333;}#my-svg .cluster span{color:#333;}#my-svg div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#my-svg .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#333;}#my-svg rect.text{fill:none;stroke-width:0;}#my-svg .icon-shape,#my-svg .image-shape{background-color:rgba(232,232,232, 0.8);text-align:center;}#my-svg .icon-shape p,#my-svg .image-shape p{background-color:rgba(232,232,232, 0.8);padding:2px;}#my-svg .icon-shape .label rect,#my-svg .image-shape .label rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#my-svg .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#my-svg .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#my-svg .node .neo-node{stroke:#9370DB;}#my-svg [data-look="neo"].node rect,#my-svg [data-look="neo"].cluster rect,#my-svg [data-look="neo"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node path{stroke:#9370DB;stroke-width:1px;}#my-svg [data-look="neo"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node .neo-line path{stroke:#9370DB;filter:none;}#my-svg [data-look="neo"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node circle .state-start{fill:#000000;}#my-svg [data-look="neo"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="my-svg_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="my-svg_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="my-svg_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"><g class="cluster" id="my-svg-Replay" data-look="classic"><rect style="" x="811.1875" y="1685.0065002441406" width="231.4375" height="152"/><g class="cluster-label" transform="translate(857.390625, 1685.0065002441406)"><foreignObject width="139.03125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>6. Replay &amp; inspect</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Persist" data-look="classic"><rect style="" x="119.45703125" y="1453.234375" width="1514.16015625" height="181.77212524414062"/><g class="cluster-label" transform="translate(842.474609375, 1453.234375)"><foreignObject width="68.125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>5. Record</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Primitives" data-look="classic"><rect style="" x="8" y="1251.234375" width="1743.53125" height="152"/><g class="cluster-label" transform="translate(773.125, 1251.234375)"><foreignObject width="213.28125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>4. Primitives do the real work</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Execute" data-look="classic"><rect style="" x="119.45703125" y="846" width="1514.16015625" height="355.234375"/><g class="cluster-label" transform="translate(838.466796875, 846)"><foreignObject width="76.140625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>3. Execute</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Plan" data-look="classic"><rect style="" x="775.44921875" y="620" width="330" height="176"/><g class="cluster-label" transform="translate(915.51171875, 620)"><foreignObject width="49.875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>2. Plan</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Parse" data-look="classic"><rect style="" x="715.85546875" y="210" width="439.1875" height="360"/><g class="cluster-label" transform="translate(867.48046875, 210)"><foreignObject width="135.9375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>1. Parse &amp; validate</p></span></div></foreignObject></g></g><g class="cluster" id="my-svg-Inputs" data-look="classic"><rect style="" x="696.9140625" y="8" width="538.046875" height="152"/><g class="cluster-label" transform="translate(903.0625, 8)"><foreignObject width="125.75" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5;"><span class="nodeLabel"><p>What you provide</p></span></div></foreignObject></g></g></g><g class="edgePaths"><path d="M810.938,111L810.938,119.167C810.938,127.333,810.938,143.667,810.938,156C810.938,168.333,810.938,176.667,810.938,185C810.938,193.333,810.938,201.667,823.219,210.765C835.501,219.862,860.064,229.725,872.346,234.656L884.628,239.587" id="my-svg-L_Y_P_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_Y_P_0" data-points="W3sieCI6ODEwLjkzNzUsInkiOjExMX0seyJ4Ijo4MTAuOTM3NSwieSI6MTYwfSx7IngiOjgxMC45Mzc1LCJ5IjoxODV9LHsieCI6ODEwLjkzNzUsInkiOjIxMH0seyJ4Ijo4ODguMzM5ODQzNzUsInkiOjI0MS4wNzc2NjU1MTA0ODEwN31d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1069.961,135L1069.961,139.167C1069.961,143.333,1069.961,151.667,1069.961,160C1069.961,168.333,1069.961,176.667,1069.961,185C1069.961,193.333,1069.961,201.667,1057.679,210.765C1045.397,219.862,1020.834,229.725,1008.552,234.656L996.271,239.587" id="my-svg-L_I_P_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_I_P_0" data-points="W3sieCI6MTA2OS45NjA5Mzc1LCJ5IjoxMzV9LHsieCI6MTA2OS45NjA5Mzc1LCJ5IjoxNjB9LHsieCI6MTA2OS45NjA5Mzc1LCJ5IjoxODV9LHsieCI6MTA2OS45NjA5Mzc1LCJ5IjoyMTB9LHsieCI6OTkyLjU1ODU5Mzc1LCJ5IjoyNDEuMDc3NjY1NTEwNDgxMDd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M940.449,289L940.449,293.167C940.449,297.333,940.449,305.667,940.449,313.333C940.449,321,940.449,328,940.449,331.5L940.449,335" id="my-svg-L_P_S_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_P_S_0" data-points="W3sieCI6OTQwLjQ0OTIxODc1LCJ5IjoyODl9LHsieCI6OTQwLjQ0OTIxODc1LCJ5IjozMTR9LHsieCI6OTQwLjQ0OTIxODc1LCJ5IjozMzl9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M940.449,417L940.449,421.167C940.449,425.333,940.449,433.667,940.449,441.333C940.449,449,940.449,456,940.449,459.5L940.449,463" id="my-svg-L_S_PD_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_S_PD_0" data-points="W3sieCI6OTQwLjQ0OTIxODc1LCJ5Ijo0MTd9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo0NDJ9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo0Njd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M940.449,545L940.449,549.167C940.449,553.333,940.449,561.667,940.449,570C940.449,578.333,940.449,586.667,940.449,595C940.449,603.333,940.449,611.667,940.449,619.333C940.449,627,940.449,634,940.449,637.5L940.449,641" id="my-svg-L_PD_D_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_PD_D_0" data-points="W3sieCI6OTQwLjQ0OTIxODc1LCJ5Ijo1NDV9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo1NzB9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo1OTV9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo2MjB9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo2NDV9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M940.449,771L940.449,775.167C940.449,779.333,940.449,787.667,940.449,796C940.449,804.333,940.449,812.667,940.449,821C940.449,829.333,940.449,837.667,940.449,845.333C940.449,853,940.449,860,940.449,863.5L940.449,867" id="my-svg-L_D_E_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_D_E_0" data-points="W3sieCI6OTQwLjQ0OTIxODc1LCJ5Ijo3NzF9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo3OTZ9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo4MjF9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo4NDZ9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo4NzF9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M940.449,973L940.449,977.167C940.449,981.333,940.449,989.667,940.449,997.333C940.449,1005,940.449,1012,940.449,1015.5L940.449,1019" id="my-svg-L_E_X_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_E_X_0" data-points="W3sieCI6OTQwLjQ0OTIxODc1LCJ5Ijo5NzN9LHsieCI6OTQwLjQ0OTIxODc1LCJ5Ijo5OTh9LHsieCI6OTQwLjQ0OTIxODc1LCJ5IjoxMDIzfV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M872.791,1108.576L756.159,1124.019C639.527,1139.462,406.264,1170.348,289.632,1189.958C173,1209.568,173,1217.901,173,1226.234C173,1234.568,173,1242.901,173,1250.568C173,1258.234,173,1265.234,173,1268.734L173,1272.234" id="my-svg-L_X_F1_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F1_0" data-points="W3sieCI6ODcyLjc5MDYzNjc3NDE3OTYsInkiOjExMDguNTc1NzkzMDI0MTc5Nn0seyJ4IjoxNzMsInkiOjEyMDEuMjM0Mzc1fSx7IngiOjE3MywieSI6MTIyNi4yMzQzNzV9LHsieCI6MTczLCJ5IjoxMjUxLjIzNDM3NX0seyJ4IjoxNzMsInkiOjEyNzYuMjM0Mzc1fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M877.758,1113.543L811.965,1128.158C746.172,1142.774,614.586,1172.004,548.793,1190.786C483,1209.568,483,1217.901,483,1226.234C483,1234.568,483,1242.901,483,1250.568C483,1258.234,483,1265.234,483,1268.734L483,1272.234" id="my-svg-L_X_F2_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F2_0" data-points="W3sieCI6ODc3Ljc1ODE0NjMyNDgzMTgsInkiOjExMTMuNTQzMzAyNTc0ODMxOH0seyJ4Ijo0ODMsInkiOjEyMDEuMjM0Mzc1fSx7IngiOjQ4MywieSI6MTIyNi4yMzQzNzV9LHsieCI6NDgzLCJ5IjoxMjUxLjIzNDM3NX0seyJ4Ijo0ODMsInkiOjEyNzYuMjM0Mzc1fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M895.091,1130.876L878.076,1142.603C861.061,1154.329,827.03,1177.782,810.015,1193.675C793,1209.568,793,1217.901,793,1226.234C793,1234.568,793,1242.901,793,1250.568C793,1258.234,793,1265.234,793,1268.734L793,1272.234" id="my-svg-L_X_F3_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F3_0" data-points="W3sieCI6ODk1LjA5MTI1NzM1NDEyMzIsInkiOjExMzAuODc2NDEzNjA0MTIzMn0seyJ4Ijo3OTMsInkiOjEyMDEuMjM0Mzc1fSx7IngiOjc5MywieSI6MTIyNi4yMzQzNzV9LHsieCI6NzkzLCJ5IjoxMjUxLjIzNDM3NX0seyJ4Ijo3OTMsInkiOjEyNzYuMjM0Mzc1fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M985.807,1130.876L1002.822,1142.603C1019.838,1154.329,1053.868,1177.782,1070.883,1193.675C1087.898,1209.568,1087.898,1217.901,1087.898,1226.234C1087.898,1234.568,1087.898,1242.901,1087.898,1252.568C1087.898,1262.234,1087.898,1273.234,1087.898,1278.734L1087.898,1284.234" id="my-svg-L_X_F4_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F4_0" data-points="W3sieCI6OTg1LjgwNzE4MDE0NTg3NjgsInkiOjExMzAuODc2NDEzNjA0MTIzMn0seyJ4IjoxMDg3Ljg5ODQzNzUsInkiOjEyMDEuMjM0Mzc1fSx7IngiOjEwODcuODk4NDM3NSwieSI6MTIyNi4yMzQzNzV9LHsieCI6MTA4Ny44OTg0Mzc1LCJ5IjoxMjUxLjIzNDM3NX0seyJ4IjoxMDg3Ljg5ODQzNzUsInkiOjEyODguMjM0Mzc1fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1002.034,1114.65L1061.153,1129.081C1120.273,1143.511,1238.511,1172.373,1297.631,1190.97C1356.75,1209.568,1356.75,1217.901,1356.75,1226.234C1356.75,1234.568,1356.75,1242.901,1356.75,1252.568C1356.75,1262.234,1356.75,1273.234,1356.75,1278.734L1356.75,1284.234" id="my-svg-L_X_F5_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F5_0" data-points="W3sieCI6MTAwMi4wMzM4NjUyMzQ0NzgxLCJ5IjoxMTE0LjY0OTcyODUxNTUyMn0seyJ4IjoxMzU2Ljc1LCJ5IjoxMjAxLjIzNDM3NX0seyJ4IjoxMzU2Ljc1LCJ5IjoxMjI2LjIzNDM3NX0seyJ4IjoxMzU2Ljc1LCJ5IjoxMjUxLjIzNDM3NX0seyJ4IjoxMzU2Ljc1LCJ5IjoxMjg4LjIzNDM3NX1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1007.018,1109.666L1108.118,1124.927C1209.217,1140.189,1411.417,1170.712,1512.517,1190.14C1613.617,1209.568,1613.617,1217.901,1613.617,1226.234C1613.617,1234.568,1613.617,1242.901,1613.617,1252.568C1613.617,1262.234,1613.617,1273.234,1613.617,1278.734L1613.617,1284.234" id="my-svg-L_X_F6_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_X_F6_0" data-points="W3sieCI6MTAwNy4wMTc2NTUyNTc0MTEzLCJ5IjoxMTA5LjY2NTkzODQ5MjU4ODZ9LHsieCI6MTYxMy42MTcxODc1LCJ5IjoxMjAxLjIzNDM3NX0seyJ4IjoxNjEzLjYxNzE4NzUsInkiOjEyMjYuMjM0Mzc1fSx7IngiOjE2MTMuNjE3MTg3NSwieSI6MTI1MS4yMzQzNzV9LHsieCI6MTYxMy42MTcxODc1LCJ5IjoxMjg4LjIzNDM3NX1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M173,1378.234L173,1382.401C173,1386.568,173,1394.901,173,1403.234C173,1411.568,173,1419.901,173,1428.234C173,1436.568,173,1444.901,282.552,1462.275C392.103,1479.648,611.207,1506.062,720.758,1519.269L830.31,1532.475" id="my-svg-L_F1_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F1_H_0" data-points="W3sieCI6MTczLCJ5IjoxMzc4LjIzNDM3NX0seyJ4IjoxNzMsInkiOjE0MDMuMjM0Mzc1fSx7IngiOjE3MywieSI6MTQyOC4yMzQzNzV9LHsieCI6MTczLCJ5IjoxNDUzLjIzNDM3NX0seyJ4Ijo4MzQuMjgxMjUsInkiOjE1MzIuOTU0MTY2NTUwMDc3OH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M483,1378.234L483,1382.401C483,1386.568,483,1394.901,483,1403.234C483,1411.568,483,1419.901,483,1428.234C483,1436.568,483,1444.901,540.894,1460.921C598.788,1476.941,714.575,1500.647,772.469,1512.501L830.363,1524.354" id="my-svg-L_F2_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F2_H_0" data-points="W3sieCI6NDgzLCJ5IjoxMzc4LjIzNDM3NX0seyJ4Ijo0ODMsInkiOjE0MDMuMjM0Mzc1fSx7IngiOjQ4MywieSI6MTQyOC4yMzQzNzV9LHsieCI6NDgzLCJ5IjoxNDUzLjIzNDM3NX0seyJ4Ijo4MzQuMjgxMjUsInkiOjE1MjUuMTU2MjQ5Njg3NDEyNH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M793,1378.234L793,1382.401C793,1386.568,793,1394.901,793,1403.234C793,1411.568,793,1419.901,793,1428.234C793,1436.568,793,1444.901,799.418,1455.745C805.836,1466.589,818.673,1479.943,825.091,1486.62L831.509,1493.297" id="my-svg-L_F3_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F3_H_0" data-points="W3sieCI6NzkzLCJ5IjoxMzc4LjIzNDM3NX0seyJ4Ijo3OTMsInkiOjE0MDMuMjM0Mzc1fSx7IngiOjc5MywieSI6MTQyOC4yMzQzNzV9LHsieCI6NzkzLCJ5IjoxNDUzLjIzNDM3NX0seyJ4Ijo4MzQuMjgxMjUsInkiOjE0OTYuMTgwNjM2NjczMjk5N31d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1087.898,1366.234L1087.898,1372.401C1087.898,1378.568,1087.898,1390.901,1087.898,1401.234C1087.898,1411.568,1087.898,1419.901,1087.898,1428.234C1087.898,1436.568,1087.898,1444.901,1077.029,1457.577C1066.159,1470.254,1044.42,1487.273,1033.55,1495.782L1022.681,1504.292" id="my-svg-L_F4_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F4_H_0" data-points="W3sieCI6MTA4Ny44OTg0Mzc1LCJ5IjoxMzY2LjIzNDM3NX0seyJ4IjoxMDg3Ljg5ODQzNzUsInkiOjE0MDMuMjM0Mzc1fSx7IngiOjEwODcuODk4NDM3NSwieSI6MTQyOC4yMzQzNzV9LHsieCI6MTA4Ny44OTg0Mzc1LCJ5IjoxNDUzLjIzNDM3NX0seyJ4IjoxMDE5LjUzMTI1LCJ5IjoxNTA2Ljc1NzY2NjU5MzMzOH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1356.75,1366.234L1356.75,1372.401C1356.75,1378.568,1356.75,1390.901,1356.75,1401.234C1356.75,1411.568,1356.75,1419.901,1356.75,1428.234C1356.75,1436.568,1356.75,1444.901,1301.199,1460.813C1245.648,1476.726,1134.546,1500.217,1078.996,1511.963L1023.445,1523.708" id="my-svg-L_F5_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F5_H_0" data-points="W3sieCI6MTM1Ni43NSwieSI6MTM2Ni4yMzQzNzV9LHsieCI6MTM1Ni43NSwieSI6MTQwMy4yMzQzNzV9LHsieCI6MTM1Ni43NSwieSI6MTQyOC4yMzQzNzV9LHsieCI6MTM1Ni43NSwieSI6MTQ1My4yMzQzNzV9LHsieCI6MTAxOS41MzEyNSwieSI6MTUyNC41MzU4MjkxNDQyOTM4fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M1613.617,1366.234L1613.617,1372.401C1613.617,1378.568,1613.617,1390.901,1613.617,1401.234C1613.617,1411.568,1613.617,1419.901,1613.617,1428.234C1613.617,1436.568,1613.617,1444.901,1515.264,1462.085C1416.91,1479.268,1220.204,1505.303,1121.85,1518.32L1023.497,1531.337" id="my-svg-L_F6_H_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_F6_H_0" data-points="W3sieCI6MTYxMy42MTcxODc1LCJ5IjoxMzY2LjIzNDM3NX0seyJ4IjoxNjEzLjYxNzE4NzUsInkiOjE0MDMuMjM0Mzc1fSx7IngiOjE2MTMuNjE3MTg3NSwieSI6MTQyOC4yMzQzNzV9LHsieCI6MTYxMy42MTcxODc1LCJ5IjoxNDUzLjIzNDM3NX0seyJ4IjoxMDE5LjUzMTI1LCJ5IjoxNTMxLjg2MTUzNjQwMDgxMzN9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/><path d="M926.906,1610.007L926.906,1614.173C926.906,1618.34,926.906,1626.673,926.906,1635.007C926.906,1643.34,926.906,1651.673,926.906,1660.007C926.906,1668.34,926.906,1676.673,926.906,1684.34C926.906,1692.007,926.906,1699.007,926.906,1702.507L926.906,1706.007" id="my-svg-L_H_R_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_H_R_0" data-points="W3sieCI6OTI2LjkwNjI1LCJ5IjoxNjEwLjAwNjUwMDI0NDE0MDZ9LHsieCI6OTI2LjkwNjI1LCJ5IjoxNjM1LjAwNjUwMDI0NDE0MDZ9LHsieCI6OTI2LjkwNjI1LCJ5IjoxNjYwLjAwNjUwMDI0NDE0MDZ9LHsieCI6OTI2LjkwNjI1LCJ5IjoxNjg1LjAwNjUwMDI0NDE0MDZ9LHsieCI6OTI2LjkwNjI1LCJ5IjoxNzEwLjAwNjUwMDI0NDE0MDZ9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_Y_P_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_I_P_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_P_S_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_S_PD_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_PD_D_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_D_E_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_E_X_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F1_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F2_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F3_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F4_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F5_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_X_F6_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F1_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F2_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F3_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F4_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F5_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_F6_H_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_H_R_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default" id="my-svg-flowchart-Y-0" data-look="classic" transform="translate(810.9375, 84)"><rect class="basic label-container" style="" x="-79.0234375" y="-27" width="158.046875" height="54"/><g class="label" style="" transform="translate(-49.0234375, -12)"><rect/><foreignObject width="98.046875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>pipeline.yaml</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-I-1" data-look="classic" transform="translate(1069.9609375, 84)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Runtime inputs<br />-i KEY=VALUE or --input file.json</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-P-2" data-look="classic" transform="translate(940.44921875, 262)"><rect class="basic label-container" style="" x="-52.109375" y="-27" width="104.21875" height="54"/><g class="label" style="" transform="translate(-22.109375, -12)"><rect/><foreignObject width="44.21875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Parser</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-S-3" data-look="classic" transform="translate(940.44921875, 378)"><rect class="basic label-container" style="" x="-115.1640625" y="-39" width="230.328125" height="78"/><g class="label" style="" transform="translate(-85.1640625, -24)"><rect/><foreignObject width="170.328125" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>JSON Schema<br />layer 1 structural check</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-PD-4" data-look="classic" transform="translate(940.44921875, 506)"><rect class="basic label-container" style="" x="-96.0390625" y="-39" width="192.078125" height="78"/><g class="label" style="" transform="translate(-66.0390625, -24)"><rect/><foreignObject width="132.078125" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Pydantic models<br />layer 2 type check</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-D-5" data-look="classic" transform="translate(940.44921875, 708)"><rect class="basic label-container" style="" x="-130" y="-63" width="260" height="126"/><g class="label" style="" transform="translate(-100, -48)"><rect/><foreignObject width="200" height="96"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>DAG builder<br />layer 3 dependency check<br />independent steps on the same layer</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-E-6" data-look="classic" transform="translate(940.44921875, 922)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Executor<br />walks the DAG layer by layer</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-X-7" data-look="classic" transform="translate(940.44921875, 1099.6171875)"><polygon points="76.6171875,0 153.234375,-76.6171875 76.6171875,-153.234375 0,-76.6171875" class="label-container" transform="translate(-76.1171875, 76.6171875)"/><g class="label" style="" transform="translate(-37.6171875, -24)"><rect/><foreignObject width="75.234375" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Primitive<br />dispatcher</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F1-8" data-look="classic" transform="translate(173, 1327.234375)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>prompt<br />LiteLLM call to any provider</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F2-9" data-look="classic" transform="translate(483, 1327.234375)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>python<br />subprocess running YOUR Python</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F3-10" data-look="classic" transform="translate(793, 1327.234375)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>run<br />subprocess running YOUR shell</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F4-11" data-look="classic" transform="translate(1087.8984375, 1327.234375)"><rect class="basic label-container" style="" x="-114.8984375" y="-39" width="229.796875" height="78"/><g class="label" style="" transform="translate(-84.8984375, -24)"><rect/><foreignObject width="169.796875" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>flow<br />invoke another pipeline</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F5-12" data-look="classic" transform="translate(1356.75, 1327.234375)"><rect class="basic label-container" style="" x="-103.953125" y="-39" width="207.90625" height="78"/><g class="label" style="" transform="translate(-73.953125, -24)"><rect/><foreignObject width="147.90625" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>foreach<br />fan a step over a list</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-F6-13" data-look="classic" transform="translate(1613.6171875, 1327.234375)"><rect class="basic label-container" style="" x="-102.9140625" y="-39" width="205.828125" height="78"/><g class="label" style="" transform="translate(-72.9140625, -24)"><rect/><foreignObject width="145.828125" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>condition<br />branch on a boolean</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-H-14" data-look="classic" transform="translate(926.90625, 1544.1204376220703)"><path d="M0,14.92747784045125 a92.625,14.92747784045125 0,0,0 185.25,0 a92.625,14.92747784045125 0,0,0 -185.25,0 l0,101.92747784045125 a92.625,14.92747784045125 0,0,0 185.25,0 l0,-101.92747784045125" class="basic label-container outer-path" style="" transform="translate(-92.625, -65.89121676067687)"/><g class="label" style="" transform="translate(-85.125, -26)"><rect/><foreignObject width="170.25" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>SQLite<br />~/.aiorch/history.db<br />runs, steps, cache, cost</p></span></div></foreignObject></g></g><g class="node default" id="my-svg-flowchart-R-15" data-look="classic" transform="translate(926.90625, 1761.0065002441406)"><rect class="basic label-container" style="" x="-80.71875" y="-51" width="161.4375" height="102"/><g class="label" style="" transform="translate(-50.71875, -36)"><rect/><foreignObject width="101.4375" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>aiorch history<br />aiorch trace<br />aiorch resume</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="my-svg-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="my-svg-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 1840" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+  <defs>
+    <marker id="arrowInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
+    </marker>
+    <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b45309"/>
+    </marker>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
+      <feOffset dx="0" dy="2" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1480" height="1840" fill="#fbf9f3"/>
+
+  <!-- Title -->
+  <text x="80" y="72" font-family="Charter, Georgia, serif" font-size="30" font-weight="600" fill="#1a1a1a">
+    aiorch  <tspan fill="#b45309" font-weight="400">·</tspan>  architecture
+  </text>
+  <text x="80" y="100" font-size="14" fill="#5c5c5c" letter-spacing="0.3">
+    What <tspan font-family="'SF Mono', Menlo, monospace" font-size="13.5" fill="#1a1a1a">aiorch run pipeline.yaml</tspan> actually does, in six deliberately narrow stages.
+  </text>
+  <line x1="80" y1="122" x2="260" y2="122" stroke="#b45309" stroke-width="2.5"/>
+
+  <!-- ============= SECTION 1 — PARSE & VALIDATE ============= -->
+  <g>
+    <rect x="60" y="160" width="1360" height="200" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 200)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">01</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Parse &amp; validate</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.parser</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">Fails fast — before a</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">token is spent or a</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">subprocess is started.</text>
+    </g>
+
+    <g transform="translate(370, 200)" filter="url(#softShadow)">
+      <rect width="160" height="90" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="14" y="24" font-family="'SF Mono', Menlo, monospace" font-size="13" font-weight="700" fill="#1a1a1a">pipeline.yaml</text>
+      <line x1="14" y1="34" x2="146" y2="34" stroke="#e6e1d4"/>
+      <text x="14" y="54" font-size="11.5" fill="#5c5c5c">name</text>
+      <text x="14" y="70" font-size="11.5" fill="#5c5c5c">input:</text>
+      <text x="14" y="86" font-size="11.5" fill="#5c5c5c">steps:</text>
+    </g>
+
+    <g transform="translate(370, 300)" filter="url(#softShadow)">
+      <rect width="160" height="40" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="80" y="24" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="11.5" font-weight="600" fill="#1a1a1a">-i KEY=VALUE</text>
+    </g>
+
+    <path d="M 534 244 L 568 244" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrowAccent)"/>
+    <path d="M 534 320 C 550 320, 558 280, 568 250" stroke="#b45309" stroke-width="2.2" fill="none" marker-end="url(#arrowAccent)"/>
+
+    <g transform="translate(570, 200)" filter="url(#softShadow)">
+      <rect width="230" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="16" font-weight="600" fill="#1a1a1a">Parser</text>
+      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">three validation layers, in order</text>
+      <line x1="16" y1="54" x2="214" y2="54" stroke="#e6e1d4"/>
+      <g font-size="12" fill="#3a3a3a">
+        <text x="16" y="76"><tspan fill="#b45309" font-weight="700">1.</tspan>   JSON Schema · structural</text>
+        <text x="16" y="98"><tspan fill="#b45309" font-weight="700">2.</tspan>   Pydantic · type checks</text>
+        <text x="16" y="120"><tspan fill="#b45309" font-weight="700">3.</tspan>   Cross-field semantics</text>
+      </g>
+    </g>
+
+    <path d="M 804 270 L 858 270" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
+
+    <g transform="translate(860, 220)" filter="url(#softShadow)">
+      <rect width="220" height="100" rx="8" fill="#fef9e7" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">Validated Agentfile</text>
+      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">typed Pydantic model</text>
+      <line x1="16" y1="54" x2="204" y2="54" stroke="#e6cfa0"/>
+      <text x="16" y="74" font-size="11.5" fill="#3a3a3a">steps · inputs · env</text>
+      <text x="16" y="90" font-size="11.5" fill="#3a3a3a">ready for the DAG builder</text>
+    </g>
+
+    <g transform="translate(1140, 220)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
+        <tspan x="0" dy="0">Typo in field name?</tspan>
+        <tspan x="0" dy="16">Wrong input type?</tspan>
+        <tspan x="0" dy="16">Circular depends?</tspan>
+        <tspan x="0" dy="22" fill="#b45309" font-weight="600">Caught here.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <path d="M 740 363 L 740 398" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+
+  <!-- ============= SECTION 2 — PLAN ============= -->
+  <g>
+    <rect x="60" y="400" width="1360" height="190" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 440)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">02</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Plan</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.dag</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">Builds the dependency</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">graph, detects cycles,</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">groups parallel steps.</text>
+    </g>
+
+    <g transform="translate(370, 430)" filter="url(#softShadow)">
+      <rect width="260" height="130" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="16" font-weight="600" fill="#1a1a1a">DAG builder</text>
+      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">graphlib + depends resolver</text>
+      <line x1="16" y1="54" x2="244" y2="54" stroke="#e6e1d4"/>
+      <text x="16" y="76" font-size="12" fill="#3a3a3a">· resolves <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5">depends:</tspan> edges</text>
+      <text x="16" y="96" font-size="12" fill="#3a3a3a">· raises <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5">DAGError</tspan> on cycle</text>
+      <text x="16" y="116" font-size="12" fill="#3a3a3a">· groups steps into layers</text>
+    </g>
+
+    <path d="M 634 495 L 690 495" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
+
+    <g transform="translate(690, 430)" filter="url(#softShadow)">
+      <rect width="360" height="130" rx="8" fill="#fef9e7" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="16" y="26" font-family="Charter, Georgia, serif" font-size="15" font-weight="600" fill="#1a1a1a">Layered execution plan</text>
+      <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">independent steps on the same layer</text>
+
+      <g transform="translate(16, 64)">
+        <circle cx="12" cy="20" r="8" fill="#1a1a1a"/>
+        <text x="12" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L1</text>
+        <circle cx="90" cy="6" r="8" fill="#1a1a1a"/>
+        <circle cx="90" cy="20" r="8" fill="#1a1a1a"/>
+        <circle cx="90" cy="34" r="8" fill="#1a1a1a"/>
+        <text x="90" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L2 · parallel</text>
+        <circle cx="180" cy="20" r="8" fill="#b45309"/>
+        <text x="180" y="55" text-anchor="middle" font-size="10" fill="#5c5c5c">L3</text>
+        <line x1="19" y1="20" x2="83" y2="6" stroke="#1a1a1a" stroke-width="1.3"/>
+        <line x1="19" y1="20" x2="83" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
+        <line x1="19" y1="20" x2="83" y2="34" stroke="#1a1a1a" stroke-width="1.3"/>
+        <line x1="97" y1="6" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
+        <line x1="97" y1="20" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
+        <line x1="97" y1="34" x2="173" y2="20" stroke="#1a1a1a" stroke-width="1.3"/>
+        <text x="230" y="20" font-size="11.5" fill="#3a3a3a">3 steps on L2</text>
+        <text x="230" y="34" font-size="11.5" fill="#3a3a3a">overlap in wall time</text>
+      </g>
+    </g>
+
+    <g transform="translate(1110, 440)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
+        <tspan x="0" dy="0">Parallelism is a</tspan>
+        <tspan x="0" dy="16">consequence of the DAG,</tspan>
+        <tspan x="0" dy="16">not a separate setting.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <path d="M 740 593 L 740 628" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+
+  <!-- ============= SECTION 3 — EXECUTE ============= -->
+  <g>
+    <rect x="60" y="630" width="1360" height="180" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 670)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">03</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Execute</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.core.dag.execute</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">asyncio executor walks</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">each layer; dispatches</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">every step to its handler.</text>
+    </g>
+
+    <g transform="translate(370, 660)" filter="url(#softShadow)">
+      <rect width="330" height="120" rx="10" fill="#fef3c7" stroke="#1a1a1a" stroke-width="2"/>
+      <text x="20" y="28" font-family="Charter, Georgia, serif" font-size="17" font-weight="700" fill="#1a1a1a">Executor</text>
+      <text x="20" y="46" font-size="11" fill="#8a8275" font-style="italic">the only stateful, long-lived stage</text>
+      <line x1="20" y1="56" x2="310" y2="56" stroke="#d4c899"/>
+      <text x="20" y="78" font-size="12" fill="#3a3a3a">Walks the DAG layer by layer.</text>
+      <text x="20" y="96" font-size="12" fill="#3a3a3a">Handles retries, timeouts, and the</text>
+      <text x="20" y="112" font-size="12" fill="#3a3a3a">on_failure cleanup contract.</text>
+    </g>
+
+    <path d="M 704 720 L 760 720" stroke="#1a1a1a" stroke-width="1.6" fill="none" marker-end="url(#arrowInk)"/>
+
+    <g transform="translate(760, 680)">
+      <polygon points="100,0 200,40 100,80 0,40" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5" filter="url(#softShadow)"/>
+      <text x="100" y="36" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">Primitive</text>
+      <text x="100" y="54" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">dispatcher</text>
+    </g>
+
+    <g transform="translate(1010, 680)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
+        <tspan x="0" dy="0">Thread pool from</tspan>
+        <tspan x="0" dy="16"><tspan font-family="'SF Mono', Menlo, monospace" font-size="11">asyncio.run_in_executor</tspan></tspan>
+        <tspan x="0" dy="16">— same-layer steps overlap</tspan>
+        <tspan x="0" dy="16">without manual threading.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <path d="M 860 813 L 860 853" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+
+  <!-- ============= SECTION 4 — PRIMITIVES ============= -->
+  <g>
+    <rect x="60" y="855" width="1360" height="300" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 900)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">04</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Primitives</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.runtime.*</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">Six first-class step types.</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">Composable — a foreach</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">can wrap a prompt, a</text>
+      <text x="0" y="128" font-size="12" fill="#5c5c5c">condition can gate a run.</text>
+    </g>
+
+    <g font-size="12">
+      <g transform="translate(370, 890)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">prompt</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.prompt</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">LiteLLM call</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">any provider</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">cached by hash</text>
+      </g>
+
+      <g transform="translate(610, 890)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">python</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.python</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">exec in thread</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">YOUR Python env</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">inputs dict · result var</text>
+      </g>
+
+      <g transform="translate(850, 890)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">run</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.run</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">shell subprocess</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">YOUR $PATH, /bin/sh</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">Jinja auto-quoted</text>
+      </g>
+
+      <g transform="translate(370, 1020)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">flow</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.flow</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">sub-pipeline</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">parser + executor</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">recursive composition</text>
+      </g>
+
+      <g transform="translate(610, 1020)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">foreach</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.foreach</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">fan a step over a list</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">parallel: true</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">concurrency: N</text>
+      </g>
+
+      <g transform="translate(850, 1020)" filter="url(#softShadow)">
+        <rect width="210" height="110" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="15" font-weight="700" fill="#b45309">condition</text>
+        <text x="16" y="44" font-size="11" fill="#8a8275" font-style="italic">aiorch.runtime.condition</text>
+        <line x1="16" y1="54" x2="194" y2="54" stroke="#e6e1d4"/>
+        <text x="16" y="72" fill="#3a3a3a">gate on a boolean</text>
+        <text x="16" y="88" fill="#5c5c5c" font-size="11">skipped is not failed</text>
+        <text x="16" y="102" fill="#5c5c5c" font-size="11">classify + branch</text>
+      </g>
+    </g>
+
+    <g transform="translate(1120, 900)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
+        <tspan x="0" dy="0">Add a new primitive by</tspan>
+        <tspan x="0" dy="16">registering a handler —</tspan>
+        <tspan x="0" dy="16">everything else stays</tspan>
+        <tspan x="0" dy="16">the same.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <path d="M 740 1158 L 740 1198" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+
+  <!-- ============= SECTION 5 — RECORD ============= -->
+  <g>
+    <rect x="60" y="1200" width="1360" height="200" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 1240)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">05</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Record</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">aiorch.storage.sqlite</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">Every step persists</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">inputs, outputs, tokens,</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">cost, and duration.</text>
+    </g>
+
+    <g transform="translate(400, 1220)">
+      <ellipse cx="160" cy="10" rx="160" ry="10" fill="#0f4c75"/>
+      <rect x="0" y="10" width="320" height="130" fill="#0f4c75"/>
+      <ellipse cx="160" cy="140" rx="160" ry="10" fill="#0a3957"/>
+      <text x="160" y="48" text-anchor="middle" font-family="Charter, Georgia, serif" font-size="17" font-weight="600" fill="#ffffff">SQLite · history.db</text>
+      <text x="160" y="72" text-anchor="middle" font-family="'SF Mono', Menlo, monospace" font-size="12" fill="#b0d4e8">~/.aiorch/history.db</text>
+      <line x1="60" y1="86" x2="260" y2="86" stroke="#3b7194"/>
+      <text x="160" y="106" text-anchor="middle" font-size="12" fill="#d8e8f2">
+        <tspan font-weight="600">runs</tspan>  ·  <tspan font-weight="600">steps</tspan>  ·  <tspan font-weight="600">llm_cache</tspan>
+      </text>
+      <text x="160" y="126" text-anchor="middle" font-size="11" fill="#9fc4da">append-only during a run · queryable mid-flight</text>
+    </g>
+
+    <g transform="translate(780, 1240)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="14" font-weight="600" fill="#1a1a1a">columns of note</text>
+      <line x1="0" y1="10" x2="260" y2="10" stroke="#b45309" stroke-width="1.5"/>
+      <g font-size="11.5" fill="#3a3a3a">
+        <text x="0" y="32"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">prompt_tokens</tspan></text>
+        <text x="0" y="48"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">completion_tokens</tspan></text>
+        <text x="0" y="64"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">cost_usd</tspan> <tspan fill="#8a8275" font-style="italic">(predictive, not billed)</tspan></text>
+        <text x="0" y="80"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">duration_ms</tspan></text>
+        <text x="0" y="96"><tspan font-family="'SF Mono', Menlo, monospace" fill="#b45309">status</tspan> <tspan fill="#5c5c5c">· ok | failed | skipped</tspan></text>
+      </g>
+    </g>
+
+    <g transform="translate(1110, 1240)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#5c5c5c">
+        <tspan x="0" dy="0">Same schema powers the</tspan>
+        <tspan x="0" dy="16">LLM response cache —</tspan>
+        <tspan x="0" dy="16">re-runs of identical prompts</tspan>
+        <tspan x="0" dy="16">are free and instant.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <path d="M 560 1403 L 560 1438" stroke="#1a1a1a" stroke-width="2" fill="none" marker-end="url(#arrowInk)"/>
+
+  <!-- ============= SECTION 6 — REPLAY ============= -->
+  <g>
+    <rect x="60" y="1440" width="1360" height="180" rx="10" fill="#ffffff" stroke="#e6e1d4" stroke-width="1.2"/>
+
+    <g transform="translate(100, 1480)">
+      <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="42" font-weight="300" fill="#b45309">06</text>
+      <text x="0" y="34" font-family="Charter, Georgia, serif" font-size="19" font-weight="600" fill="#1a1a1a">Replay</text>
+      <text x="0" y="56" font-size="11.5" fill="#8a8275" font-style="italic">read views over SQLite</text>
+      <text x="0" y="80" font-size="12" fill="#5c5c5c">Three commands that</text>
+      <text x="0" y="96" font-size="12" fill="#5c5c5c">reconstruct and resume</text>
+      <text x="0" y="112" font-size="12" fill="#5c5c5c">past runs.</text>
+    </g>
+
+    <g transform="translate(370, 1460)" filter="url(#softShadow)">
+      <rect width="300" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
+        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">history</tspan>
+      </text>
+      <line x1="16" y1="34" x2="284" y2="34" stroke="#e6e1d4"/>
+      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">List recent runs by pipeline,</text>
+      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">with status, duration, total cost.</text>
+      <text x="16" y="98" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">SELECT * FROM runs</text>
+      <text x="16" y="112" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">ORDER BY started_at DESC</text>
+    </g>
+
+    <g transform="translate(700, 1460)" filter="url(#softShadow)">
+      <rect width="300" height="140" rx="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.2"/>
+      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
+        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">trace</tspan> <tspan fill="#5c5c5c" font-size="11">&lt;run-id&gt;</tspan>
+      </text>
+      <line x1="16" y1="34" x2="284" y2="34" stroke="#e6e1d4"/>
+      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">Step-by-step timeline for one</text>
+      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">run — inputs, outputs, tokens,</text>
+      <text x="16" y="86" font-size="11.5" fill="#5c5c5c">errors, cache hits.</text>
+      <text x="16" y="112" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">SELECT * FROM steps WHERE ...</text>
+    </g>
+
+    <g transform="translate(1030, 1460)" filter="url(#softShadow)">
+      <rect width="300" height="140" rx="8" fill="#fef3c7" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="16" y="24" font-family="'SF Mono', Menlo, monospace" font-size="14" font-weight="700">
+        <tspan fill="#b45309">aiorch</tspan> <tspan fill="#1a1a1a">resume</tspan> <tspan fill="#5c5c5c" font-size="11">&lt;run-id&gt;</tspan>
+      </text>
+      <line x1="16" y1="34" x2="284" y2="34" stroke="#d4c899"/>
+      <text x="16" y="54" font-size="11.5" fill="#5c5c5c">Re-enter the executor at</text>
+      <text x="16" y="70" font-size="11.5" fill="#5c5c5c">the failed step. Completed</text>
+      <text x="16" y="86" font-size="11.5" fill="#5c5c5c">steps are not re-run — their</text>
+      <text x="16" y="102" font-size="11.5" fill="#5c5c5c">outputs come from SQLite.</text>
+      <text x="16" y="126" font-family="Charter, Georgia, serif" font-size="11" font-style="italic" fill="#b45309">the killer feature</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(80, 1690)">
+    <line x1="0" y1="0" x2="1320" y2="0" stroke="#e6e1d4" stroke-width="1"/>
+    <text x="0" y="24" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
+      <tspan font-weight="600" fill="#1a1a1a">Narrow boundaries by design.</tspan>
+      Each stage is a pure function of the previous stage's output.
+      The DAG builder doesn't know about primitives; primitives don't know about the DAG.
+    </text>
+    <text x="0" y="44" font-family="Charter, Georgia, serif" font-size="13" fill="#5c5c5c">
+      That's what makes the runtime small, testable, and — for the commercial Platform — portable to a distributed executor fleet without re-writing the core.
+    </text>
+
+    <text x="0" y="92" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#8a8275">aiorch · v0.1.x · github.com/ereshzealous/aiorch-cli</text>
+    <text x="1320" y="92" text-anchor="end" font-family="'SF Mono', Menlo, monospace" font-size="10.5" fill="#bfb8a3">architecture · 2026-04</text>
+  </g>
+</svg>

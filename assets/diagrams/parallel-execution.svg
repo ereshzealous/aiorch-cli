@@ -1,1 +1,126 @@
-<svg id="my-svg" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 784 268" style="max-width: 784px; background-color: transparent;" role="graphics-document document" aria-roledescription="gantt"><style>#my-svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:#552222;}#my-svg .error-text{fill:#552222;stroke:#552222;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#333333;stroke:#333333;}#my-svg .marker.cross{stroke:#333333;}#my-svg svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#my-svg p{margin:0;}#my-svg .mermaid-main-font{font-family:"trebuchet ms",verdana,arial,sans-serif;}#my-svg .exclude-range{fill:#eeeeee;}#my-svg .section{stroke:none;opacity:0.2;}#my-svg .section0{fill:rgba(102, 102, 255, 0.49);}#my-svg .section2{fill:#fff400;}#my-svg .section1,#my-svg .section3{fill:white;opacity:0.2;}#my-svg .sectionTitle0{fill:#333;}#my-svg .sectionTitle1{fill:#333;}#my-svg .sectionTitle2{fill:#333;}#my-svg .sectionTitle3{fill:#333;}#my-svg .sectionTitle{text-anchor:start;font-family:"trebuchet ms",verdana,arial,sans-serif;}#my-svg .grid .tick{stroke:lightgrey;opacity:0.8;shape-rendering:crispEdges;}#my-svg .grid .tick text{font-family:"trebuchet ms",verdana,arial,sans-serif;fill:#333;}#my-svg .grid path{stroke-width:0;}#my-svg .today{fill:none;stroke:red;stroke-width:2px;}#my-svg .task{stroke-width:2;}#my-svg .taskText{text-anchor:middle;font-family:"trebuchet ms",verdana,arial,sans-serif;}#my-svg .taskTextOutsideRight{fill:black;text-anchor:start;font-family:"trebuchet ms",verdana,arial,sans-serif;}#my-svg .taskTextOutsideLeft{fill:black;text-anchor:end;}#my-svg .task.clickable{cursor:pointer;}#my-svg .taskText.clickable{cursor:pointer;fill:#003163!important;font-weight:bold;}#my-svg .taskTextOutsideLeft.clickable{cursor:pointer;fill:#003163!important;font-weight:bold;}#my-svg .taskTextOutsideRight.clickable{cursor:pointer;fill:#003163!important;font-weight:bold;}#my-svg .taskText0,#my-svg .taskText1,#my-svg .taskText2,#my-svg .taskText3{fill:white;}#my-svg .task0,#my-svg .task1,#my-svg .task2,#my-svg .task3{fill:#8a90dd;stroke:#534fbc;}#my-svg .taskTextOutside0,#my-svg .taskTextOutside2{fill:black;}#my-svg .taskTextOutside1,#my-svg .taskTextOutside3{fill:black;}#my-svg .active0,#my-svg .active1,#my-svg .active2,#my-svg .active3{fill:#bfc7ff;stroke:#534fbc;}#my-svg .activeText0,#my-svg .activeText1,#my-svg .activeText2,#my-svg .activeText3{fill:black!important;}#my-svg .done0,#my-svg .done1,#my-svg .done2,#my-svg .done3{stroke:grey;fill:lightgrey;stroke-width:2;}#my-svg .doneText0,#my-svg .doneText1,#my-svg .doneText2,#my-svg .doneText3{fill:black!important;}#my-svg .doneText0.taskTextOutsideLeft,#my-svg .doneText0.taskTextOutsideRight,#my-svg .doneText1.taskTextOutsideLeft,#my-svg .doneText1.taskTextOutsideRight,#my-svg .doneText2.taskTextOutsideLeft,#my-svg .doneText2.taskTextOutsideRight,#my-svg .doneText3.taskTextOutsideLeft,#my-svg .doneText3.taskTextOutsideRight{fill:black!important;}#my-svg .crit0,#my-svg .crit1,#my-svg .crit2,#my-svg .crit3{stroke:#ff8888;fill:red;stroke-width:2;}#my-svg .activeCrit0,#my-svg .activeCrit1,#my-svg .activeCrit2,#my-svg .activeCrit3{stroke:#ff8888;fill:#bfc7ff;stroke-width:2;}#my-svg .doneCrit0,#my-svg .doneCrit1,#my-svg .doneCrit2,#my-svg .doneCrit3{stroke:#ff8888;fill:lightgrey;stroke-width:2;cursor:pointer;shape-rendering:crispEdges;}#my-svg .milestone{transform:rotate(45deg) scale(0.8,0.8);}#my-svg .milestoneText{font-style:italic;}#my-svg .doneCritText0,#my-svg .doneCritText1,#my-svg .doneCritText2,#my-svg .doneCritText3{fill:black!important;}#my-svg .doneCritText0.taskTextOutsideLeft,#my-svg .doneCritText0.taskTextOutsideRight,#my-svg .doneCritText1.taskTextOutsideLeft,#my-svg .doneCritText1.taskTextOutsideRight,#my-svg .doneCritText2.taskTextOutsideLeft,#my-svg .doneCritText2.taskTextOutsideRight,#my-svg .doneCritText3.taskTextOutsideLeft,#my-svg .doneCritText3.taskTextOutsideRight{fill:black!important;}#my-svg .vert{stroke:navy;}#my-svg .vertText{font-size:15px;text-anchor:middle;fill:navy!important;}#my-svg .activeCritText0,#my-svg .activeCritText1,#my-svg .activeCritText2,#my-svg .activeCritText3{fill:black!important;}#my-svg .titleText{text-anchor:middle;font-size:18px;fill:#333;font-family:"trebuchet ms",verdana,arial,sans-serif;}#my-svg .node .neo-node{stroke:#9370DB;}#my-svg [data-look="neo"].node rect,#my-svg [data-look="neo"].cluster rect,#my-svg [data-look="neo"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node path{stroke:#9370DB;stroke-width:1px;}#my-svg [data-look="neo"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node .neo-line path{stroke:#9370DB;filter:none;}#my-svg [data-look="neo"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].node circle .state-start{fill:#000000;}#my-svg [data-look="neo"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg [data-look="neo"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#my-svg :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g/><g class="grid" transform="translate(75, 218)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle"><path class="domain" stroke="currentColor" d="M0.5,-183V0.5H634.5V-183"/><g class="tick" opacity="1" transform="translate(0.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(74.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(149.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(223.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(298.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(372.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(447.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(521.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g><g class="tick" opacity="1" transform="translate(596.5,0)"><line stroke="currentColor" y2="-183"/><text fill="#000" y="3" dy="1em" stroke="none" font-size="10" style="text-anchor: middle;">000 ms</text></g></g><g><rect x="0" y="48" width="746.5" height="24" class="section section0"/><rect x="0" y="72" width="746.5" height="24" class="section section1"/><rect x="0" y="96" width="746.5" height="24" class="section section1"/><rect x="0" y="120" width="746.5" height="24" class="section section1"/><rect x="0" y="144" width="746.5" height="24" class="section section1"/><rect x="0" y="168" width="746.5" height="24" class="section section2"/><rect x="0" y="192" width="746.5" height="24" class="section section3"/></g><g><rect id="my-svg-a1" rx="3" ry="3" x="75" y="50" width="14" height="20" transform-origin="82px 60px" class="task task0"/><rect id="my-svg-b1" rx="3" ry="3" x="75" y="74" width="630" height="20" transform-origin="390px 84px" class="task task1"/><rect id="my-svg-b2" rx="3" ry="3" x="75" y="98" width="632" height="20" transform-origin="391px 108px" class="task task1"/><rect id="my-svg-b3" rx="3" ry="3" x="75" y="122" width="633" height="20" transform-origin="391.5px 132px" class="task task1"/><rect id="my-svg-b4" rx="3" ry="3" x="75" y="146" width="634" height="20" transform-origin="392px 156px" class="task task1"/><rect id="my-svg-c1" rx="3" ry="3" x="76" y="170" width="11" height="20" transform-origin="81.5px 180px" class="task task2"/><rect id="my-svg-d1" rx="3" ry="3" x="76" y="194" width="18" height="20" transform-origin="85px 204px" class="task task3"/><text id="my-svg-a1-text" font-size="11" x="94" y="63.5" class="taskTextOutsideRight taskTextOutside0  width-64.40625">stage (serial)            </text><text id="my-svg-b1-text" font-size="11" x="390" y="87.5" class="taskText taskText1  width-59.5625">worker_sum                </text><text id="my-svg-b2-text" font-size="11" x="391" y="111.5" class="taskText taskText1  width-60.390625">worker_max                </text><text id="my-svg-b3-text" font-size="11" x="391.5" y="135.5" class="taskText taskText1  width-66.890625">worker_mean               </text><text id="my-svg-b4-text" font-size="11" x="392" y="159.5" class="taskText taskText1  width-101.3125">worker_count_evens        </text><text id="my-svg-c1-text" font-size="11" x="92" y="183.5" class="taskTextOutsideRight taskTextOutside2  width-48.765625">aggregate                 </text><text id="my-svg-d1-text" font-size="11" x="99" y="207.5" class="taskTextOutsideRight taskTextOutside3  width-58.8125">show report               </text></g><g><text dy="0em" x="10" y="62" font-size="11" class="sectionTitle sectionTitle0"><tspan alignment-baseline="central" x="10">Layer 1</tspan></text><text dy="0em" x="10" y="122" font-size="11" class="sectionTitle sectionTitle1"><tspan alignment-baseline="central" x="10">Layer 2 (parallel)</tspan></text><text dy="0em" x="10" y="182" font-size="11" class="sectionTitle sectionTitle2"><tspan alignment-baseline="central" x="10">Layer 3</tspan></text><text dy="0em" x="10" y="206" font-size="11" class="sectionTitle sectionTitle3"><tspan alignment-baseline="central" x="10">Layer 4</tspan></text></g><g class="today"><line x1="2204369252" x2="2204369252" y1="25" y2="243" class="today"/></g><text x="392" y="25" class="titleText">Parallel layer — four workers finish in the wall-clock time of one</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 580" font-family="-apple-system, system-ui, 'Segoe UI', sans-serif">
+  <defs>
+    <marker id="arrInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/>
+    </marker>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/>
+      <feOffset dx="0" dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="580" fill="#fbf9f3"/>
+
+  <text x="60" y="56" font-family="Charter, Georgia, serif" font-size="26" font-weight="600" fill="#1a1a1a">Parallel layer execution</text>
+  <text x="60" y="80" font-size="13" fill="#5c5c5c">Four workers on the same DAG layer finish in the wall-clock time of the slowest — not the sum.</text>
+  <line x1="60" y1="100" x2="220" y2="100" stroke="#b45309" stroke-width="2.5"/>
+
+  <!-- Time axis -->
+  <g transform="translate(280, 420)">
+    <line x1="0" y1="0" x2="820" y2="0" stroke="#1a1a1a" stroke-width="1.2"/>
+    <text x="-30" y="5" font-size="11" fill="#5c5c5c" font-family="'SF Mono', Menlo, monospace">t = 0</text>
+
+    <!-- tick marks at 0, 250, 500, 750, 1000 ms (scaled to fit 820px) -->
+    <g stroke="#1a1a1a" stroke-width="1">
+      <line x1="0" y1="0" x2="0" y2="6"/>
+      <line x1="205" y1="0" x2="205" y2="6"/>
+      <line x1="410" y1="0" x2="410" y2="6"/>
+      <line x1="615" y1="0" x2="615" y2="6"/>
+      <line x1="820" y1="0" x2="820" y2="6"/>
+    </g>
+    <g font-size="10" fill="#5c5c5c" font-family="'SF Mono', Menlo, monospace" text-anchor="middle">
+      <text x="0" y="22">0</text>
+      <text x="205" y="22">250 ms</text>
+      <text x="410" y="22">500 ms</text>
+      <text x="615" y="22">750 ms</text>
+      <text x="820" y="22">1000 ms</text>
+    </g>
+  </g>
+
+  <!-- Labels on the left for each swim lane -->
+  <g font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#3a3a3a">
+    <text x="60" y="158">stage</text>
+    <text x="60" y="198">worker_sum</text>
+    <text x="60" y="238">worker_max</text>
+    <text x="60" y="278">worker_mean</text>
+    <text x="60" y="318">worker_count_evens</text>
+    <text x="60" y="362">aggregate</text>
+    <text x="60" y="402">show</text>
+  </g>
+
+  <!-- Layer band labels on far left -->
+  <g font-family="Charter, Georgia, serif" font-size="10.5" font-weight="600" letter-spacing="1.5" fill="#b45309">
+    <text x="20" y="158">L1</text>
+    <text x="20" y="258">L2</text>
+    <text x="20" y="362">L3</text>
+    <text x="20" y="402">L4</text>
+  </g>
+
+  <!-- Backdrop shading for Layer 2 (to emphasize parallelism) -->
+  <rect x="280" y="180" width="820" height="148" fill="#fef3c7" opacity="0.5"/>
+  <text x="1110" y="254" font-family="Charter, Georgia, serif" font-size="12" font-style="italic" fill="#b45309">Layer 2 band</text>
+  <text x="1110" y="268" font-size="10.5" fill="#8a8275" font-style="italic">4 steps overlap</text>
+
+  <!-- Bars. x is time (1px = ~1.22ms given 820px = 1000ms, but let me use 1px = 1ms roughly) -->
+  <!-- Actually let me scale: 820px = 1000ms. So 1ms = 0.82px. -->
+  <!-- Convert: stage 0-11ms = 0 to 9px wide -->
+  <!-- Simpler: use 1ms = 1px so 820px = 820ms max. Since observed max is ~550ms, fits. -->
+  <!-- Actually I want prominent bars. Let's use 1ms = 1.5px, 820px = 546ms. Extend axis to make this fit. -->
+  <!-- Let's redo: 820px = 600ms, so 1ms ≈ 1.37px -->
+
+  <!-- Or: keep axis as 0-1000ms = 820px, and make bars with that scale. -->
+  <!-- stage: 11ms = 9px wide at x=280 -->
+
+  <!-- Stage bar (11ms) at x=280, width=9 -->
+  <g transform="translate(280, 146)">
+    <rect x="0" y="0" width="9" height="24" rx="2" fill="#475569"/>
+    <text x="14" y="16" font-size="10" fill="#5c5c5c">11 ms</text>
+  </g>
+
+  <!-- Layer 2 bars (all start at x=9, width=508-511) -->
+  <!-- 508ms = 417px, 509 = 417px, 510 = 418px, 511 = 419px -->
+  <g transform="translate(289, 186)">
+    <rect x="0" y="0" width="417" height="24" rx="2" fill="#b45309"/>
+    <text x="425" y="16" font-size="10" fill="#5c5c5c">508 ms</text>
+  </g>
+  <g transform="translate(289, 226)">
+    <rect x="0" y="0" width="417" height="24" rx="2" fill="#b45309"/>
+    <text x="425" y="16" font-size="10" fill="#5c5c5c">509 ms</text>
+  </g>
+  <g transform="translate(289, 266)">
+    <rect x="0" y="0" width="418" height="24" rx="2" fill="#b45309"/>
+    <text x="426" y="16" font-size="10" fill="#5c5c5c">510 ms</text>
+  </g>
+  <g transform="translate(289, 306)">
+    <rect x="0" y="0" width="419" height="24" rx="2" fill="#b45309"/>
+    <text x="427" y="16" font-size="10" fill="#5c5c5c">511 ms</text>
+  </g>
+
+  <!-- Aggregate (10ms) starts at 522ms = 428px -->
+  <g transform="translate(708, 350)">
+    <rect x="0" y="0" width="8" height="24" rx="2" fill="#475569"/>
+    <text x="14" y="16" font-size="10" fill="#5c5c5c">10 ms</text>
+  </g>
+
+  <!-- Show (15ms) starts at 535ms = 439px -->
+  <g transform="translate(719, 390)">
+    <rect x="0" y="0" width="12" height="24" rx="2" fill="#475569"/>
+    <text x="18" y="16" font-size="10" fill="#5c5c5c">15 ms</text>
+  </g>
+
+  <!-- Wall-clock total marker -->
+  <line x1="731" y1="140" x2="731" y2="410" stroke="#b45309" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="740" y="142" font-family="Charter, Georgia, serif" font-size="11" font-style="italic" fill="#b45309">wall-clock total · 550 ms</text>
+
+  <!-- Serial-world comparison bracket -->
+  <g transform="translate(280, 460)">
+    <text x="0" y="0" font-family="Charter, Georgia, serif" font-size="13" font-weight="600" fill="#1a1a1a">The same pipeline serialised would take</text>
+    <text x="0" y="20" font-size="12" fill="#3a3a3a">
+      <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5">11 + 508 + 509 + 510 + 511 + 10 + 15</tspan> = <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#b45309" font-weight="700">2 074 ms</tspan>.
+      With DAG layering it runs in <tspan font-family="'SF Mono', Menlo, monospace" font-size="11.5" fill="#b45309" font-weight="700">550 ms</tspan> — <tspan font-weight="700">a 3.8× speed-up</tspan>, free.
+    </text>
+    <text x="0" y="40" font-size="11.5" fill="#5c5c5c" font-style="italic">No thread-pool code to write. No <tspan font-family="'SF Mono', Menlo, monospace" font-size="11">asyncio.gather()</tspan>. The DAG does it.</text>
+  </g>
+</svg>

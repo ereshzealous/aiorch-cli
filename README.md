@@ -184,7 +184,7 @@ A three-step pipeline that extracts rows from a CSV, summarises them with an LLM
   <img alt="Three-step pipeline DAG" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/pipeline-dag.svg">
 </p>
 
-<!-- Source: assets/diagrams/pipeline-dag.mmd -->
+<!-- Source: assets/diagrams/pipeline-dag.svg (hand-authored) -->
 
 ```yaml
 steps:
@@ -221,13 +221,21 @@ LLM responses are additionally cached by hash of `(prompt, model, temperature, m
 
 ## Architecture
 
-Here's what happens inside `aiorch run <file>`:
+Here's the whole run lifecycle on one line, before we zoom in:
+
+<p align="center">
+  <img alt="aiorch run lifecycle — compact view" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/run-lifecycle.svg">
+</p>
+
+<!-- Source: assets/diagrams/run-lifecycle.svg (hand-authored) -->
+
+And here's the same thing with every stage's responsibility and boundary spelled out:
 
 <p align="center">
   <img alt="aiorch architecture" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/architecture.svg">
 </p>
 
-<!-- Source: assets/diagrams/architecture.mmd -->
+<!-- Source: assets/diagrams/architecture.svg (hand-authored) -->
 
 Six stages, each with a single responsibility. The boundary between them is deliberately narrow — each stage can be tested in isolation.
 
@@ -288,7 +296,7 @@ This is the section most orchestrator docs skip. It's important.
   <img alt="How aiorch primitives integrate with the host machine" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/host-integration.svg">
 </p>
 
-<!-- Source: assets/diagrams/host-integration.mmd -->
+<!-- Source: assets/diagrams/host-integration.svg (hand-authored) -->
 
 **aiorch does not bundle its own Python runtime, its own shell, or its own tools.** It uses *yours*.
 
@@ -380,7 +388,7 @@ If four steps all depend only on step A and none depend on each other, they all 
   <img alt="Parallel layer execution" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/parallel-execution.svg">
 </p>
 
-<!-- Source: assets/diagrams/parallel-execution.mmd -->
+<!-- Source: assets/diagrams/parallel-execution.svg (hand-authored) -->
 
 The four workers finish in roughly the wall-clock time of the **slowest** one, not the sum. This is the primary win over a shell script's `&&` chain, which runs strictly sequentially.
 
@@ -409,7 +417,7 @@ steps:
   <img alt="foreach fan-out" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/foreach-fanout.svg">
 </p>
 
-<!-- Source: assets/diagrams/foreach-fanout.mmd -->
+<!-- Source: assets/diagrams/foreach-fanout.svg (hand-authored) -->
 
 Every item gets its own step invocation with `item` bound in the Jinja context. `parallel: true` runs all invocations concurrently; without it, they run sequentially in list order (useful when item N depends on the side effects of item N-1).
 
@@ -431,7 +439,7 @@ call_flaky_api:
   <img alt="Retry lifecycle" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/retry-lifecycle.svg">
 </p>
 
-<!-- Source: assets/diagrams/retry-lifecycle.mmd -->
+<!-- Source: assets/diagrams/retry-lifecycle.svg (hand-authored) -->
 
 On failure, aiorch re-dispatches the step after `retry_delay`. If retries are exhausted and the step declares `on_failure: <step>`, that cleanup step runs before the error is re-raised. If there is no `on_failure`, the error propagates immediately.
 
@@ -445,7 +453,7 @@ A classifier step decides which branch runs; other branches are marked `skipped`
   <img alt="Classify and branch" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/classify-branch.svg">
 </p>
 
-<!-- Source: assets/diagrams/classify-branch.mmd -->
+<!-- Source: assets/diagrams/classify-branch.svg (hand-authored) -->
 
 ```yaml
 classify:
