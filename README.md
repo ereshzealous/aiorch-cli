@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="aiorch" src="assets/icon.svg" width="128" height="128">
+  <img alt="aiorch" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/icon.svg" width="128" height="128">
 </p>
 
 <h1 align="center">aiorch</h1>
@@ -32,24 +32,12 @@ Works with any provider [LiteLLM](https://docs.litellm.ai/) supports — OpenAI,
 
 aiorch turns a YAML file into an executable DAG. The full lifecycle of `aiorch run`:
 
-```mermaid
-flowchart LR
-    Y[pipeline.yaml] --> P[Parser]
-    P --> D[DAG builder]
-    D --> E[Executor]
-    E --> X{Primitive<br>dispatcher}
-    X --> F1[prompt<br>LiteLLM]
-    X --> F2[flow<br>sub-pipeline]
-    X --> F3[python<br>subprocess]
-    X --> F4[run<br>shell]
-    X --> F5[foreach<br>fan out]
-    F1 --> H[(SQLite<br>~/.aiorch/history.db)]
-    F2 --> H
-    F3 --> H
-    F4 --> H
-    F5 --> H
-    H --> R[aiorch history<br>aiorch trace]
-```
+<p align="center">
+  <img alt="aiorch run lifecycle" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/run-lifecycle.svg">
+</p>
+
+<!-- Source: assets/diagrams/run-lifecycle.mmd — regenerate with:
+     npx @mermaid-js/mermaid-cli -i assets/diagrams/run-lifecycle.mmd -o assets/diagrams/run-lifecycle.svg -b transparent -->
 
 1. **Parse** — `aiorch.core.parser` reads your YAML into a typed pipeline object (steps, inputs, dependencies).
 2. **DAG build** — `aiorch.core.dag` resolves `depends:` and `foreach:` into a layered DAG. Independent steps land on the same layer so they run in parallel.
@@ -68,13 +56,12 @@ flowchart LR
 
 Three steps — extract data, summarise with an LLM, write to disk:
 
-```mermaid
-flowchart LR
-    In([input.csv]) --> Ex[extract<br>python]
-    Ex --> Su[summarise<br>prompt]
-    Su --> Wr[write<br>run]
-    Wr --> Out([report.md])
-```
+<p align="center">
+  <img alt="Three-step pipeline DAG" src="https://raw.githubusercontent.com/ereshzealous/aiorch-cli/main/assets/diagrams/pipeline-dag.svg">
+</p>
+
+<!-- Source: assets/diagrams/pipeline-dag.mmd — regenerate with:
+     npx @mermaid-js/mermaid-cli -i assets/diagrams/pipeline-dag.mmd -o assets/diagrams/pipeline-dag.svg -b transparent -->
 
 ```yaml
 steps:

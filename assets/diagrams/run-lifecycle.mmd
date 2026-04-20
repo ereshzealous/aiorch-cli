@@ -1,0 +1,16 @@
+flowchart LR
+    Y[pipeline.yaml] --> P[Parser]
+    P --> D[DAG builder]
+    D --> E[Executor]
+    E --> X{Primitive<br>dispatcher}
+    X --> F1[prompt<br>LiteLLM]
+    X --> F2[flow<br>sub-pipeline]
+    X --> F3[python<br>subprocess]
+    X --> F4[run<br>shell]
+    X --> F5[foreach<br>fan out]
+    F1 --> H[(SQLite<br>~/.aiorch/history.db)]
+    F2 --> H
+    F3 --> H
+    F4 --> H
+    F5 --> H
+    H --> R[aiorch history<br>aiorch trace]

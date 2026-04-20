@@ -1,0 +1,5 @@
+flowchart LR
+    In([input.csv]) --> Ex[extract<br>python]
+    Ex --> Su[summarise<br>prompt]
+    Su --> Wr[write<br>run]
+    Wr --> Out([report.md])
