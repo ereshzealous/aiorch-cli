@@ -35,7 +35,7 @@
 - [CLI reference](#cli-reference)
 - [Examples](#examples)
 - [Roadmap](#roadmap)
-- [The commercial platform](#the-commercial-platform)
+- [Beyond one laptop](#beyond-one-laptop)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -372,7 +372,7 @@ When you run aiorch in CI, the runner has a completely different environment fro
 
 4. **Commit a `requirements.txt` or `pyproject.toml`** if your `python:` steps import non-stdlib packages. Install it before `aiorch run`.
 
-aiorch deliberately doesn't try to solve the "my environment isn't in git" problem — it would have to bundle Docker or nix or a venv-per-pipeline mechanism, and those are proper infrastructure decisions that the commercial Platform makes. The CLI's deal is: you manage the environment, aiorch runs the pipeline.
+aiorch deliberately doesn't try to solve the "my environment isn't in git" problem. Full reproducibility needs Docker / nix / a venv-per-pipeline mechanism — those are proper infrastructure decisions that sit outside the CLI's scope. The CLI's deal is: you manage the environment, aiorch runs the pipeline.
 
 ---
 
@@ -626,7 +626,7 @@ aiorch run greet-user.yaml
 aiorch run greet-user.yaml -i name=Eresh -i times=3
 ```
 
-Input types available: `string`, `integer`, `number`, `boolean`, `list`, `file` (a path on disk whose contents are loaded), `http` (a URL whose content is fetched lazily), `artifact` (Platform-only — content-addressed file store).
+Input types available: `string`, `integer`, `number`, `boolean`, `list`, `file` (a path on disk whose contents are loaded), `http` (a URL whose content is fetched lazily).
 
 ### Level 2 — step outputs and dependencies
 
@@ -1142,25 +1142,11 @@ Planned:
 
 ---
 
-## The commercial platform
+## Beyond one laptop
 
-Everything above is the OSS CLI — LLM orchestration, YAML DAG, local SQLite history. It fills the "single-machine declarative pipeline" gap.
+This CLI covers the single-machine case: YAML in git, pipelines on your laptop or a CI runner, local SQLite history. That's the scope of this repo and is complete for that scope.
 
-The **aiorch Platform** fills a different gap: the team-scale, long-running, multi-tenant one. Same YAML, same primitives, different infrastructure story:
-
-- **Production connectors** — Postgres, S3 / MinIO / R2 / GCS, Kafka, SMTP, webhook — with workspace-scoped secrets and audit logs.
-- **`agent:` primitive with MCP** — function-calling agents over stdio + Streamable HTTP, with a session-pooled MCP registry.
-- **Artifact store** — content-addressed file storage with dedup, quotas, and UI download.
-- **Multi-tenant workspaces + RBAC** — orgs, workspaces, roles (viewer / operator / editor / admin / owner).
-- **Scheduler + webhook triggers** — cron, HMAC-verified webhooks, per-trigger rate limits, delivery history.
-- **Executor fleet** — distributed, admission-controlled, Redis-coordinated run execution with per-workspace concurrency caps.
-- **Web UI** — pipeline editor, trace viewer, cost analytics, health page.
-- **Prometheus metrics + /api/health** — production observability.
-- **Postgres storage** — team-shared run history, audit trail, query-able metadata.
-
-The CLI and Platform share the same core: parser, DAG builder, and primitive semantics are identical, so a pipeline that runs in the CLI runs in the Platform. You upgrade when the "my laptop" model stops being the right fit.
-
-[Open an issue](https://github.com/ereshzealous/aiorch-cli/issues/new) if that's you.
+A team-scale counterpart is in the works — same YAML, same primitives, different infrastructure story. [Open an issue](https://github.com/ereshzealous/aiorch-cli/issues/new) if that's a direction you'd like to hear more about.
 
 ---
 
