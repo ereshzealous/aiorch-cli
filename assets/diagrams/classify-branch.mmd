@@ -1,0 +1,8 @@
+flowchart TD
+    In([input]) --> C{classify<br>which branch?}
+    C -->|class A| A[handle_a<br>RUNS]
+    C -->|class B| B[handle_b<br>skipped]
+    C -->|class C| Z[handle_c<br>skipped]
+    A --> Sum[summarize<br>pulls only A's output]
+    B -.->|trace shows 'skipped'| Sum
+    Z -.->|trace shows 'skipped'| Sum

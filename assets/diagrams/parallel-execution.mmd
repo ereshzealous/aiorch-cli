@@ -1,0 +1,15 @@
+gantt
+    title Parallel layer — four workers finish in the wall-clock time of one
+    dateFormat X
+    axisFormat %L ms
+    section Layer 1
+    stage (serial)            :a1, 0, 11
+    section Layer 2 (parallel)
+    worker_sum                :b1, 11, 508
+    worker_max                :b2, 11, 509
+    worker_mean               :b3, 11, 510
+    worker_count_evens        :b4, 11, 511
+    section Layer 3
+    aggregate                 :c1, 523, 10
+    section Layer 4
+    show report               :d1, 535, 15

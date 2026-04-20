@@ -1,0 +1,58 @@
+flowchart TB
+    subgraph Inputs["What you provide"]
+        Y[pipeline.yaml]
+        I[Runtime inputs<br>-i KEY=VALUE or --input file.json]
+    end
+
+    subgraph Parse["1. Parse &amp; validate"]
+        P[Parser]
+        S[JSON Schema<br>layer 1 structural check]
+        PD[Pydantic models<br>layer 2 type check]
+    end
+
+    subgraph Plan["2. Plan"]
+        D[DAG builder<br>layer 3 dependency check<br>independent steps on the same layer]
+    end
+
+    subgraph Execute["3. Execute"]
+        E[Executor<br>walks the DAG layer by layer]
+        X{Primitive<br>dispatcher}
+    end
+
+    subgraph Primitives["4. Primitives do the real work"]
+        F1[prompt<br>LiteLLM call to any provider]
+        F2[python<br>subprocess running YOUR Python]
+        F3[run<br>subprocess running YOUR shell]
+        F4[flow<br>invoke another pipeline]
+        F5[foreach<br>fan a step over a list]
+        F6[condition<br>branch on a boolean]
+    end
+
+    subgraph Persist["5. Record"]
+        H[(SQLite<br>~/.aiorch/history.db<br>runs, steps, cache, cost)]
+    end
+
+    subgraph Replay["6. Replay &amp; inspect"]
+        R[aiorch history<br>aiorch trace<br>aiorch resume]
+    end
+
+    Y --> P
+    I --> P
+    P --> S
+    S --> PD
+    PD --> D
+    D --> E
+    E --> X
+    X --> F1
+    X --> F2
+    X --> F3
+    X --> F4
+    X --> F5
+    X --> F6
+    F1 --> H
+    F2 --> H
+    F3 --> H
+    F4 --> H
+    F5 --> H
+    F6 --> H
+    H --> R

@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph Your_machine["Your machine or CI runner"]
+        subgraph CLI["aiorch process"]
+            EX[Executor]
+        end
+        subgraph Host["Host OS — not bundled with aiorch"]
+            PY[Your Python interpreter<br>+ whatever packages<br>you've installed]
+            SH[Your shell<br>/bin/sh by default]
+            TOOLS[Your installed tools<br>git, curl, jq, sqlite3, etc.]
+            ENV[Shell env vars<br>PATH, API keys,<br>project-specific vars]
+        end
+        subgraph Remote["External services — called over network"]
+            LLM[LiteLLM<br>OpenAI / Anthropic / Gemini / ...]
+            HTTP[HTTP endpoints<br>type: http inputs]
+            DB[SQLite, Postgres, etc.<br>via your driver]
+        end
+    end
+
+    EX -- python step --> PY
+    EX -- run step --> SH
+    SH --> TOOLS
+    PY --> ENV
+    SH --> ENV
+    EX -- prompt step --> LLM
+    EX -- http input --> HTTP
+    PY --> DB

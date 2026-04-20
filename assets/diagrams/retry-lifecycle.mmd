@@ -1,0 +1,11 @@
+stateDiagram-v2
+    [*] --> Running: executor dispatches step
+    Running --> Success: body returned
+    Running --> Failed: exception raised
+    Failed --> Backoff: attempts remaining
+    Backoff --> Running: retry_delay elapsed
+    Failed --> OnFailure: retries exhausted<br>on_failure defined
+    Failed --> StepFailed: retries exhausted<br>no on_failure
+    OnFailure --> StepFailed: cleanup ran<br>error re-raised
+    Success --> [*]
+    StepFailed --> [*]
