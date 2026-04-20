@@ -41,12 +41,15 @@ jobs:
 
       - name: Run non-LLM pipelines end-to-end
         # Executes every examples/core/*.yaml with the arg set its README
-        # documents. Two pipelines are deliberately skipped:
+        # documents. Three pipelines are deliberately skipped:
         #   13 — known CLI bug: -i KEY=@file.bin UTF-8-decodes before
         #        consulting `format: binary`. Re-enable after the fix.
         #   25 — probes http://localhost:5173/api/health, which only
         #        exists when the commercial Platform API is running.
         #        Not portable to a clean runner.
+        #   38 — demonstration of retry-exhaustion: strategy_2_patient
+        #        uses random.random() < 0.75 per attempt so ~31% of
+        #        runs terminally fail. By design; run locally to inspect.
         run: |
           set -u
           shopt -s nullglob
@@ -63,7 +66,7 @@ jobs:
             [31]="-i mode=fast"
             [32]="-i a=3 -i b=4 -i c=5 -i d=2"
           )
-          SKIP=(13 25)
+          SKIP=(13 25 38)
 
           cd examples/core
           fail=0

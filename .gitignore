@@ -42,6 +42,8 @@ ENV/
 .aiorch/
 ~/.aiorch/
 *.log
+# …except fixture logs shipped with the example pipelines.
+!examples/**/inputs/*.log
 
 # Coverage / testing
 .coverage
