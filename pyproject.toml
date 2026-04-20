@@ -40,6 +40,14 @@ dependencies = [
 # Structured-input validation (--input schema checks)
 validation = ["jsonschema>=4.0"]
 
+# Developer tooling — unit tests that cover the pure-function layer
+# (parser, DAG, template resolver, CLI wiring). Pipelines under examples/
+# remain the integration test suite; these extras are for fast regression
+# signal on the deterministic modules.
+dev = [
+    "pytest>=8.0",
+]
+
 # Note: production connectors (Postgres / S3 / Kafka / SMTP / webhook),
 # the agent + MCP primitives, artifact storage, and Prometheus metrics
 # export are exclusive to the commercial aiorch Platform. This CLI is
@@ -66,3 +74,7 @@ packages = ["src/aiorch"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
