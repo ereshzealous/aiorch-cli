@@ -68,6 +68,30 @@ def _find_pipeline(path: str | None) -> Path:
     )
 
 
+def _prime_config(config_path: str | None, pipeline_dir: Path | None = None) -> None:
+    """Resolve which aiorch.yaml to use and install it as the config singleton.
+
+    Precedence: explicit --config flag > walk-up from pipeline dir > walk-up
+    from cwd (the last is the default find_config() behaviour)."""
+    import aiorch.core.config as _cfg_mod
+    from aiorch.core.config import find_config, load_config
+
+    if _cfg_mod._config is not None:
+        return
+
+    if config_path:
+        p = Path(config_path)
+        if not p.exists():
+            raise click.ClickException(f"Config file not found: {config_path}")
+        _cfg_mod._config = load_config(p)
+        return
+
+    if pipeline_dir is not None:
+        found = find_config(pipeline_dir)
+        if found is not None:
+            _cfg_mod._config = load_config(found)
+
+
 @click.group()
 @click.version_option(version=__version__, prog_name="aiorch")
 def main():
@@ -89,9 +113,12 @@ def main():
               help="Output format (text or json)")
 @click.option("--model", default=None, help="Override LLM model for all prompt/agent steps")
 @click.option("--max-cost", default=None, type=float, help="Abort if cost exceeds this value in dollars")
+@click.option("--config", "-c", "config_path", default=None,
+              help="Path to aiorch.yaml. Overrides auto-discovery.")
 def run(file: str | None, step: str | None, from_step: str | None, dry: bool, verbose: bool,
         input_arg: str | None, input_overrides: tuple, watch: bool,
-        output_format: str, model: str | None, max_cost: float | None):
+        output_format: str, model: str | None, max_cost: float | None,
+        config_path: str | None):
     """Run a pipeline."""
     from aiorch.runtime import execute_step, COST_KEY, META_KEY, LOGGER_KEY
     from aiorch.logging import RunLogger
@@ -118,15 +145,7 @@ def run(file: str | None, step: str | None, from_step: str | None, dry: bool, ve
             raise SystemExit(2)
         raise
 
-    # Prime the config singleton from the pipeline's directory so
-    # `aiorch run examples/llm/foo.yaml` picks up examples/llm/aiorch.yaml
-    # even when invoked from a parent directory.
-    import aiorch.core.config as _cfg_mod
-    from aiorch.core.config import find_config, load_config
-    if _cfg_mod._config is None:
-        pipeline_cfg = find_config(Path(path).parent)
-        if pipeline_cfg is not None:
-            _cfg_mod._config = load_config(pipeline_cfg)
+    _prime_config(config_path, Path(path).parent)
 
     if dry:
         if not json_mode:
@@ -521,11 +540,14 @@ def resume(run_id: int, verbose: bool):
 @click.argument("file", required=False)
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text",
               help="Output format (text or json)")
-def validate(file: str | None, output_format: str):
+@click.option("--config", "-c", "config_path", default=None,
+              help="Path to aiorch.yaml. Overrides auto-discovery.")
+def validate(file: str | None, output_format: str, config_path: str | None):
     """Validate a pipeline's syntax and structure."""
     import json as _json
 
     path = _find_pipeline(file)
+    _prime_config(config_path, Path(path).parent)
     try:
         af = parse_file(path)
         graph = build_graph(af)
@@ -602,9 +624,12 @@ def explain(step_name: str, file: str | None):
 @click.option("--json", "output_json", is_flag=True, help="Output as JSON")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text",
               help="Output format (text or json)")
-def plan(file: str | None, output_json: bool, output_format: str):
+@click.option("--config", "-c", "config_path", default=None,
+              help="Path to aiorch.yaml. Overrides auto-discovery.")
+def plan(file: str | None, output_json: bool, output_format: str, config_path: str | None):
     """Show execution plan without running — DAG layers, costs, conditions."""
     path = _find_pipeline(file)
+    _prime_config(config_path, Path(path).parent)
     af = parse_file(path)
     from aiorch.core.plan import build_plan
     execution_plan = build_plan(af)
@@ -772,8 +797,11 @@ def trace(run_id: int):
 @main.command()
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text",
               help="Output format (text or json)")
-def doctor(output_format: str):
+@click.option("--config", "-c", "config_path", default=None,
+              help="Path to aiorch.yaml. Overrides auto-discovery.")
+def doctor(output_format: str, config_path: str | None):
     """Check setup — API keys, tools, dependencies."""
+    _prime_config(config_path, None)
     checks = []
 
     # Python version

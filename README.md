@@ -980,7 +980,18 @@ storage:
   type: sqlite        # default — ~/.aiorch/history.db
 ```
 
-aiorch auto-discovers `aiorch.yaml` by walking up from the current directory, so `cd` into the folder holding it before running.
+aiorch auto-discovers `aiorch.yaml` by walking up from the pipeline file's directory, then from the current directory — whichever hit comes first wins.
+
+To point at a config that lives elsewhere (shared team config, staging vs prod, CI-only tweaks), pass `--config` / `-c`:
+
+```bash
+aiorch run -c ~/configs/prod.yaml pipelines/nightly.yaml
+aiorch validate --config /etc/aiorch/ci.yaml pipelines/nightly.yaml
+aiorch plan -c ./staging.yaml pipelines/nightly.yaml
+aiorch doctor -c ~/configs/prod.yaml
+```
+
+Supported on `run`, `validate`, `plan`, and `doctor`. The explicit flag overrides auto-discovery; a missing path produces a clean `Config file not found: ...` error.
 
 ### 3. Write a pipeline
 
