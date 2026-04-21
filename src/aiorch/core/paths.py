@@ -12,47 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Path confinement helper — used by every runtime sink that writes
-to the filesystem based on a template-rendered path.
+"""Path confinement helper.
 
-The audit identified three path-traversal vectors (``save:``,
-``action: write-file`` in CLI mode, and ``flow:`` sub-pipeline path)
-that all shared the same root cause: a user-controlled string went
-into ``Path(...)`` and then into ``write_text`` / ``parse_file`` with
-no check that the resolved path stayed inside a sandbox. This module
-is the single shared gate they now pass through.
+``safe_path()`` resolves a user-supplied path, follows symlinks, and
+rejects anything that lands outside the configured roots. Default
+root is process CWD; operators extend it via ``AIORCH_SAFE_ROOTS``
+(colon-separated). Callers that want ``/dev/stdout`` and friends
+pass ``allow_symbolic=True``.
 
-Design goals:
-
-1. **Confine** — the resolved path must land inside at least one
-   configured root. Default root is process CWD; operators add
-   roots via ``AIORCH_SAFE_ROOTS`` (colon-separated).
-
-2. **Follow symlinks** — ``Path.resolve()`` is the first thing we
-   call, so a symlink pointing outside the sandbox is rejected as
-   soon as an existing component in the path resolves to its
-   target. A ``reports/`` symlink pointing at ``/etc/`` can't sneak
-   ``/etc/shadow`` through.
-
-3. **Support symbolic destinations** — ``/dev/stdout``, ``/dev/stderr``,
-   ``/dev/null`` are not filesystem paths, they're OS-level file
-   descriptors. CLI example pipelines use ``path: /dev/stdout`` to
-   print output to the terminal. The caller opts into symbolic
-   destinations via ``allow_symbolic=True``.
-
-4. **Educational errors** — when a path is rejected, the message
-   names the rejected path, the allowed roots, and the env var
-   override, so a user hitting this error can fix it without
-   reading source.
-
-Not in scope:
-  - TOCTOU protection (between the safe_path check and the actual
-    write, an attacker could still race a symlink swap). Proper
-    mitigation requires ``open`` with ``O_NOFOLLOW`` or dirfd
-    anchoring, which is a bigger refactor. Follow-up work.
-  - Blocking writes to sensitive locations *inside* the sandbox
-    (e.g. ``.git/hooks/`` under CWD). Users who explicitly set CWD
-    to their project root accept that the whole project is writable.
+TOCTOU note: the check and the subsequent write are not atomic — a
+racing symlink swap could still defeat this. Proper mitigation needs
+``O_NOFOLLOW`` / dirfd anchoring.
 """
 
 from __future__ import annotations

@@ -170,11 +170,8 @@ def _register_builtins() -> None:
             check_shell_command(cmd, shell_policy)
 
         timeout = parse_duration(step.timeout)
-        # Subprocess env = os.environ + workspace configs (always) +
-        # workspace secrets that the step explicitly declared via
-        # `secrets:`. Secrets not in the allowlist are stripped —
-        # see Bug 8 in the security audit. Configs are not gated
-        # because they're plain text by definition.
+        # Subprocess env = os.environ + configs + only the secrets named
+        # in `step.secrets` (allowlist — unnamed secrets are stripped).
         secrets_allowed = set(step.secrets or [])
         stdout = await execute_run(
             cmd,
@@ -227,12 +224,10 @@ def _register_builtins() -> None:
     register_primitive("prompt", _prompt_handler)
     register_primitive("flow", _flow_handler, cost_estimator=_flow_cost)
     register_primitive("python", _python_handler)
-    # NOTE: `agent`, `action`, and connector primitives (email/s3/kafka/
-    # teams/discord) are exclusive to the commercial aiorch Platform —
-    # see README.md §Commercial platform. The CLI here is a pure
-    # LLM-orchestration showcase: prompt, python, run, flow, foreach,
-    # condition. Pipelines that declare removed primitives will fail
-    # with a clear "Unknown primitive" error at DAG-build time.
+    # CLI primitives are: prompt, python, run, flow, foreach, condition.
+    # `agent`, `action`, and connector primitives (email/s3/kafka/teams/
+    # discord) are Platform-only. Pipelines using them fail at
+    # DAG-build with "Unknown primitive".
 
 
 _register_builtins()

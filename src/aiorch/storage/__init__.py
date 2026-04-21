@@ -1,14 +1,10 @@
 # Copyright 2026 Eresh Gorantla
 # SPDX-License-Identifier: Apache-2.0
 
-"""Storage layer — abstract interface with PostgreSQL implementation.
+"""Storage layer — Store protocol + backend selection.
 
-The Store interface defines all storage operations. PostgresStore is the
-sole backend. DATABASE_URL env var (loaded from .env) configures the connection.
-
-Usage:
-    from aiorch.storage import init_storage, start_run, log_step, get_runs
-    init_storage()  # Reads DATABASE_URL from environment
+``init_storage()`` picks a backend: SQLite at ~/.aiorch/history.db by
+default, PostgreSQL when DATABASE_URL is set (requires aiorch-platform).
 """
 
 from __future__ import annotations
@@ -69,12 +65,9 @@ class RunStore(ABC):
         self, run_id: int, status: str = "success", total_cost: float = 0,
         *, claim_token: str | None = None,
     ) -> None:
-        """Mark a run terminal. When ``claim_token`` is provided, the update
-        only lands if the row's stored token still matches — protection
-        against the reclaim-vs-finish race where a stuck executor resumes
-        after its run has been reassigned to a peer. Callers that aren't
-        the claiming executor (legacy paths, admin overrides) pass None
-        and skip the guard."""
+        """Mark a run terminal. When ``claim_token`` is provided the update
+        only lands if the row's token still matches — prevents a stale
+        executor from finishing a run that was reclaimed by a peer."""
 
     @abstractmethod
     def get_run(self, run_id: int) -> dict[str, Any] | None: ...
@@ -83,29 +76,16 @@ class RunStore(ABC):
     def get_runs(self, limit: int = 20) -> list[dict[str, Any]]: ...
 
     def claim_pending_run(self) -> dict[str, Any] | None:
-        """Atomically claim the oldest pending run and flip it to 'running'.
-
-        Backends that support it (Postgres) must use FOR UPDATE SKIP LOCKED
-        so multiple executors can claim lock-free in parallel. Single-process
-        backends (SQLite, in-memory) may use a simpler serial claim.
-
-        Must generate a fresh ``claim_token`` on the row and return it in
-        the result dict so the executor can pass it to subsequent heartbeat
-        and finish_run calls. Returns the claimed run row, or None if the
-        queue is empty.
-        """
+        """Atomically claim the oldest pending run, flip it to 'running',
+        stamp it with a fresh ``claim_token``, and return the row. Postgres
+        backends should use ``FOR UPDATE SKIP LOCKED`` for parallel claims;
+        single-process backends can serialise."""
         raise NotImplementedError
 
     def update_heartbeat(self, run_id: int, claim_token: str | None = None) -> None:
-        """Refresh the heartbeat timestamp for a running run.
-
-        Called periodically by the executor to signal that the run is still
-        alive. The stale-run reclaimer checks heartbeat_at instead of
-        started_at so long-running pipelines are not wrongly reset. When
-        ``claim_token`` is provided, the update only lands if the row's
-        stored token still matches — so a reclaimed run's original executor
-        cannot silently keep the heartbeat alive for a peer's claim.
-        """
+        """Refresh heartbeat_at on a running run. When ``claim_token`` is
+        provided, the update only lands if the row's token still matches
+        — so a reclaimed run's original executor cannot keep pinging."""
         raise NotImplementedError
 
 
@@ -169,15 +149,8 @@ class Store(RunStore, StepStore, CacheStore, DashboardStore):
         raise NotImplementedError
 
     def execute_many_transactional(self, statements: list[tuple[str, tuple]]) -> None:
-        """Execute multiple SQL statements inside a single transaction.
-
-        All statements succeed or all are rolled back. Used by multi-step
-        onboarding flows (registration, invitation accept, OAuth user creation)
-        to prevent orphaned records on mid-flow failures.
-
-        Default implementation falls back to sequential execute_sql calls
-        (no atomicity guarantee — backends should override).
-        """
+        """Execute multiple SQL statements atomically. Default falls back to
+        sequential execute_sql with no transaction — backends should override."""
         for sql, params in statements:
             self.execute_sql(sql, params)
 
@@ -190,12 +163,9 @@ _store: Store | None = None
 
 
 def get_store() -> Store:
-    """Get the current store instance. Requires init_storage() to have been called."""
+    """Get the current store instance. Requires init_storage() first."""
     if _store is None:
-        raise RuntimeError(
-            "Storage not initialized. Call init_storage() first. "
-            "Ensure DATABASE_URL is set in .env"
-        )
+        raise RuntimeError("Storage not initialized. Call init_storage() first.")
     return _store
 
 
@@ -206,20 +176,15 @@ def set_store(store: Store) -> None:
 
 
 def init_storage() -> None:
-    """Initialize storage backend.
-
-    Resolution:
-      1. DATABASE_URL env var set → PostgresStore (Platform mode)
-      2. No DATABASE_URL           → SQLiteStore at ~/.aiorch/history.db (CLI mode)
-    """
+    """Initialize the storage backend. Uses SQLite at ~/.aiorch/history.db
+    unless DATABASE_URL is set, in which case PostgresStore is used (requires
+    aiorch-platform)."""
     global _store
     if _store is not None:
         return
 
     database_url = os.environ.get("DATABASE_URL")
     if database_url:
-        from aiorch.core.config import get_config
-        cfg = get_config()
         try:
             from aiorch.storage.postgres import PostgresStore
         except ImportError as e:
@@ -229,10 +194,7 @@ def init_storage() -> None:
                 "aiorch-platform alongside aiorch-cli, or unset "
                 "DATABASE_URL to run in CLI-only (SQLite) mode."
             ) from e
-        _store = PostgresStore(
-            url=database_url,
-            pool_size=cfg.storage.pool_size,
-        )
+        _store = PostgresStore(url=database_url, pool_size=10)
         logger.info("Storage: PostgreSQL (%s...)", database_url[:40])
     else:
         from aiorch.storage.sqlite import SQLiteStore

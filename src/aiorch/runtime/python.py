@@ -3,41 +3,23 @@
 
 """Inline Python primitive handler.
 
-The `python:` step primitive runs a block of Python source inside
-the executor's own interpreter, not a subprocess. That avoids the
-30-100ms per-step startup cost of `run: python3 -c ...` and gives
-steps access to the same site-packages the executor was built with
-(httpx, pydantic, jinja2, stdlib, etc.) with zero quoting pain.
+The ``python:`` step runs a block of Python in the executor's
+interpreter (no subprocess startup cost, full access to site-
+packages). The body executes in a fresh namespace with:
 
-Contract (matches docs/python-primitive-proposal.md):
+  ``inputs``    — deep-copied dict of context variables
+  ``step_name`` — current step name
+  ``result``    — pre-seeded to None
 
-  - The body runs in a fresh namespace containing:
-      `inputs`     — dict of all in-scope context variables
-                     (pipeline inputs, step outputs so far, vars,
-                     foreach item if applicable). Deep-copied so
-                     mutations in the body don't leak.
-      `step_name`  — str, the current step name.
-      `result`     — pre-seeded to None; the body assigns a
-                     JSON-serializable value to make it the step's
-                     `output:` variable.
+If the body assigns ``result``, that value is the step output;
+otherwise captured stdout is, matching the ``run:`` contract.
+Exceptions re-raise. ``step.timeout`` is enforced via
+``asyncio.wait_for`` on a thread executor — on timeout the step
+fails but the thread runs to completion (Python can't kill threads
+externally).
 
-  - If the body sets `result`, that value (after JSON-serializability
-    check) is the step output.
-  - If the body does NOT set `result`, captured stdout becomes the
-    step output — matching the `run:` shell contract.
-  - Any exception is re-raised with the traceback attached; the
-    executor's normal step-error path handles retry semantics.
-  - `step.timeout` is enforced by running the body in a thread
-    executor with `asyncio.wait_for`. On timeout the step fails
-    cleanly; the runaway thread continues until it exits on its
-    own (Python can't kill threads from outside), but the executor
-    is free to continue scheduling other work.
-
-Security model: trusted-code, identical to `run:`. Anyone who can
-author a pipeline already runs arbitrary shell via `run:` — adding
-arbitrary Python is not a privilege escalation. Workspace secrets
-still honor the step's `secrets:` allowlist, filtered upstream by
-the same merge_env path that `run:` uses.
+Trust model is identical to ``run:``: a pipeline author already has
+arbitrary shell, so arbitrary Python is no new risk.
 """
 
 from __future__ import annotations

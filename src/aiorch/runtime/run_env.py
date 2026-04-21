@@ -3,41 +3,22 @@
 
 """Per-run environment helper.
 
-On the Platform, every run has its own set of configs (plain text)
-and secrets (decrypted at claim time) sourced from the DB. These
-values must NEVER be written to ``os.environ`` — concurrent runs
-would clobber each other. Instead they live in
-``context[RUN_ENV_KEY]`` and are read through the helpers in this
-module.
-
-Since the security audit (Bug 8), the per-run bucket is **split**
-into two sub-buckets:
+Per-run configs and secrets live in ``context[RUN_ENV_KEY]`` (not
+``os.environ``, which would leak across concurrent runs) as two
+sub-buckets:
 
     context[RUN_ENV_KEY] = {
-        "configs": {"REGION": "us-west-2", "LOG_LEVEL": "info", ...},
-        "secrets": {"DB_URL": "...", "GITHUB_TOKEN": "...", ...},
+        "configs": {"REGION": "us-west-2", ...},
+        "secrets": {"DB_URL": "...", ...},
     }
 
-The split is load-bearing:
+``get_env`` reads either bucket for in-process callers. ``merge_env``
+builds the subprocess environment for ``run:`` steps: all configs are
+included, but secrets are filtered to the allowlist the step
+declared via its ``secrets:`` list.
 
-- ``get_env(context, key)`` — used by **in-process** Python callers
-  (SMTP connector, S3 connector, etc.) that run inside the executor
-  process. These callers are trusted and can read both configs and
-  secrets without an allowlist. Calling behaviour is unchanged from
-  the flat-dict era.
-
-- ``merge_env(context, secrets_allowed=...)`` — used by the ``run:``
-  primitive to build the **subprocess** environment. Here the
-  allowlist kicks in: configs are always included, but secrets are
-  included **only** if the pipeline author explicitly named them in
-  the step's ``secrets:`` list. This closes the Bug 8 leak where
-  every shell step in every pipeline inherited every workspace
-  secret in its ``environ``, regardless of whether it needed them.
-
-Backward compat: if some caller still hands us a flat str→str
-dict (no "configs"/"secrets" sub-keys), we treat the whole thing
-as configs. Tests and older callers continue to work; new callers
-should build the split shape.
+A flat ``str -> str`` dict with no "configs"/"secrets" keys is treated
+as all-configs for backwards compatibility.
 """
 
 from __future__ import annotations

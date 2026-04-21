@@ -38,19 +38,12 @@ _INPUT_TYPES = {
     "connector",   # named managed connector (Platform only)
 }
 
-# Input types that resolve automatically at run start time and are NEVER
-# user-supplied. parse_input_schema() filters these out of the returned
-# schema dict so the UI Run dialog only shows fields the user actually
-# fills in. The runtime in dag.py reads inputs from the raw YAML directly
-# (not via parse_input_schema), so filtering here is a UI-contract
-# concern only — the runtime resolves these inputs regardless.
+# Auto-resolved inputs are filtered out of parse_input_schema so the
+# UI's Run dialog doesn't ask users to supply values they never set.
+# dag.py's runtime reads these from the raw YAML regardless.
 _AUTO_RESOLVED_INPUT_TYPES = {"connector", "http"}
 
-# Types that were removed and now surface a migration error at parse
-# time instead of a generic "unknown type" message. `json` / `csv` were
-# subsumed by `artifact` (Platform) and `file` (CLI). `env` was removed
-# because workspace_secrets + the per-step `secrets:` allowlist cover
-# the same need with audit, scope, rotation, and UI visibility.
+# Removed input types that now raise a migration error at parse time.
 _RETIRED_INPUT_TYPES = {"json", "csv", "env"}
 
 
@@ -95,16 +88,10 @@ class InputField(BaseModel):
     def validate_type(self) -> InputField:
         if self.type == "env":
             raise ValueError(
-                f"Input type 'env' has been removed. Use a workspace "
-                f"secret (sensitive values) or workspace config (plain "
-                f"values) instead:\n"
-                f"  1. Add the variable to Connectors & Secrets in the UI\n"
-                f"  2. Reference it from the step that needs it via "
-                f"`secrets: [VAR_NAME]` (for secrets) or as a plain "
-                f"environment lookup (for configs)\n"
-                f"Workspace secrets give you audit logging, per-step "
-                f"allowlist scoping, and rotation without restarting "
-                f"the executor — none of which env reads had."
+                "Input type 'env' has been removed. Use a step-level "
+                "`secrets: [VAR_NAME]` allowlist (for sensitive values) "
+                "or read the variable directly via the `env:` block in "
+                "aiorch.yaml (for plain values)."
             )
         if self.type in _RETIRED_INPUT_TYPES:
             raise ValueError(
