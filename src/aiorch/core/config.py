@@ -132,7 +132,10 @@ def load_config(path: str | Path | None = None) -> Config:
     if isinstance(raw_env, dict):
         for key, value in raw_env.items():
             if key not in os.environ:
-                os.environ[key] = str(value)
+                # Resolve ${VAR} against the current environment so shell-exported
+                # values can flow through. `env: SLACK_WEBHOOK: ${SLACK_WEBHOOK}`
+                # is now a no-op passthrough; writing a literal value still works.
+                os.environ[key] = _resolve_env(str(value))
 
     resolved = _resolve_env_recursive(raw)
     return Config(**resolved)

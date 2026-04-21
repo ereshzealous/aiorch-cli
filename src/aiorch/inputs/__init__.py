@@ -262,7 +262,6 @@ _register_builtin_loaders()
 
 
 _RETIRED_TYPES_HELP = {
-    "file": "type: artifact, format: text",
     "json": "type: artifact, format: json",
     "csv":  "type: artifact, format: csv",
     "env":  "workspace_secrets + per-step `secrets:` allowlist",
