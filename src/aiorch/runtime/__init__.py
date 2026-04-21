@@ -77,7 +77,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
     # Resolve vars into context
     merged = {**context, **step.vars}
 
-    # Ensure accumulators and _meta are shared between merged and original context
     if COST_KEY not in context:
         context[COST_KEY] = {}
     merged[COST_KEY] = context[COST_KEY]
@@ -90,8 +89,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
     if RUNTIME_META_KEY in context:
         merged[RUNTIME_META_KEY] = context[RUNTIME_META_KEY]
 
-    # Resolve condition — raise StepSkipped if false so the DAG runner
-    # can emit a step_skipped event (distinct from step_done-with-None).
     if step.condition:
         try:
             resolved_cond = template.resolve(step.condition, merged)
@@ -104,7 +101,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
         if not eval_condition(resolved_cond):
             raise StepSkipped(step.name, step.condition, resolved_cond)
 
-    # Resolve input
     try:
         resolved_input = _resolve_input(step.input, merged)
     except Exception as e:
@@ -121,13 +117,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
         async def _run_one(item_ctx):
             return await _dispatch(step, item_ctx, resolved_input)
 
-        # When step.timeout is set on a foreach step, it's the PER-ITERATION
-        # budget. Partial timeouts return a [TIMEOUT]: sentinel and other
-        # iterations continue; all-timeout raises RuntimeError.
-        #
-        # step.skip_on_error names a previously-produced list output; any
-        # iteration whose corresponding upstream slot is an error sentinel
-        # is skipped without running the primitive (saves LLM cost).
         return await run_foreach(
             items, merged, _run_one,
             parallel=step.parallel is True,
@@ -136,9 +125,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
             skip_on_error=step.skip_on_error,
         )
 
-    # Non-foreach path: step.timeout (when set) wraps the entire dispatch
-    # so single-unit agent/prompt/action steps honor a user-declared SLA
-    # the same way run/python steps already do.
     step_timeout = _parse_timeout(step.timeout)
     if step_timeout is not None:
         try:
@@ -156,7 +142,6 @@ async def execute_step(step: Step, context: dict[str, Any]) -> Any:
     else:
         result = await _dispatch(step, merged, resolved_input)
 
-    # Save output to file if `save:` is set
     if step.save and result is not None:
         save_to_file(result, step.save, merged)
 
@@ -173,7 +158,6 @@ async def _dispatch(step: Step, context: dict[str, Any], resolved_input: str | N
     if ptype == "prompt":
         return await _dispatch_prompt(step, context, resolved_input)
 
-    # All other primitives: look up in registry
     spec = get_primitive(ptype)
     if spec is None:
         registered = ", ".join(get_registered_primitives())
@@ -201,7 +185,6 @@ async def _dispatch_prompt(step: Step, context: dict[str, Any], resolved_input: 
 
     logger = context.get(LOGGER_KEY)
 
-    # Check cache
     cache_model = model or "provider-default"
     if step.cache:
         key = cache_key(prompt_text, cache_model, system, temperature)
@@ -211,14 +194,12 @@ async def _dispatch_prompt(step: Step, context: dict[str, Any], resolved_input: 
                 logger.log(step.name, "INFO", "Cache hit — skipped LLM call")
             return cached["response"]
 
-    # Determine if output validation is needed
     needs_validation = bool(step.output_schema or step.assertions)
     max_attempts = 1 + step.retry_on_invalid if needs_validation else 1
     current_prompt = prompt_text
     result = None
 
     for attempt in range(max_attempts):
-        # Log the prompt being sent
         if logger:
             logger.log(step.name, "DEBUG", "Prompt sent to LLM", {
                 "model": model,
@@ -229,10 +210,6 @@ async def _dispatch_prompt(step: Step, context: dict[str, Any], resolved_input: 
             })
 
         try:
-            # Streaming + step-progress events require aiorch-platform
-            # (event bus, Redis pub/sub). The CLI always runs in the
-            # non-streaming path; Platform's executor sets __run_id__
-            # and overrides the primitive handler there.
             run_id = None
             if run_id and step.name:
                 result = None
@@ -349,10 +326,6 @@ def _resolve_step_model(step: Step, context: dict[str, Any]) -> str | None:
     resolved = str(resolved).strip() if resolved else ""
     if not resolved:
         return None
-    # If template.resolve silently returned the raw source because the
-    # referenced variable was missing, treat the step as "no model" so
-    # the provider default kicks in instead of trying to call a model
-    # literally named "{{ model }}".
     if "{{" in resolved or "}}" in resolved:
         return None
     return resolved
