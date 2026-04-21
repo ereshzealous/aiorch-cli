@@ -40,7 +40,6 @@ class FileLogSink(QueryableLogSink):
     def set_run(self, run_id: int) -> Path:
         """Set the current run file. Truncates any stale log from a prior session."""
         self._current_file = self._log_dir / f"run-{run_id}.jsonl"
-        # Truncate: each run starts fresh (IDs may be reused across sessions)
         if self._current_file.exists():
             self._current_file.unlink()
         return self._current_file
