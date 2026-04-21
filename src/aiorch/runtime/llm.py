@@ -217,9 +217,10 @@ class LitellmClient:
             finish_reason,
         )
 
+        clean_model = _strip_routing_prefix(resolved_model)
+
         try:
             from aiorch.metrics import observe_llm_request
-            clean_model = _strip_routing_prefix(resolved_model)
             observe_llm_request(
                 provider=self._provider_type, model=clean_model,
                 duration=duration_ms / 1000,

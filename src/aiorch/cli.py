@@ -118,6 +118,16 @@ def run(file: str | None, step: str | None, from_step: str | None, dry: bool, ve
             raise SystemExit(2)
         raise
 
+    # Prime the config singleton from the pipeline's directory so
+    # `aiorch run examples/llm/foo.yaml` picks up examples/llm/aiorch.yaml
+    # even when invoked from a parent directory.
+    import aiorch.core.config as _cfg_mod
+    from aiorch.core.config import find_config, load_config
+    if _cfg_mod._config is None:
+        pipeline_cfg = find_config(Path(path).parent)
+        if pipeline_cfg is not None:
+            _cfg_mod._config = load_config(pipeline_cfg)
+
     if dry:
         if not json_mode:
             console.print(f"\n  [dim]Dry run:[/dim] [bold]{af.name}[/bold]\n")

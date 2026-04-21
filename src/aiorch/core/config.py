@@ -178,11 +178,12 @@ def _resolve_env_recursive(data: Any) -> Any:
 
 def find_config(start: Path | None = None) -> Path | None:
     """Walk up from start directory looking for a config file."""
-    cwd = start or Path.cwd()
-    for name in CONFIG_NAMES:
-        p = cwd / name
-        if p.exists():
-            return p
+    cwd = (start or Path.cwd()).resolve()
+    for directory in (cwd, *cwd.parents):
+        for name in CONFIG_NAMES:
+            p = directory / name
+            if p.exists():
+                return p
     return None
 
 
