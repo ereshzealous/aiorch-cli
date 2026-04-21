@@ -153,7 +153,6 @@ class HttpInputLoader(InputLoader):
             else:
                 resolved_headers[k] = v
 
-        # SSRF + CRLF gates before httpx sees anything.
         url = safe_http_url(url, purpose="http: input")
         resolved_headers = {
             k: safe_header_value(v, name=str(k), purpose="http: input")
@@ -197,12 +196,6 @@ class LazyHttpInput:
 
     __slots__ = ("_config", "_value", "_fetched", "_error")
 
-    # The names that live on this class itself, not on the resolved
-    # value. __getattr__ MUST NOT forward these to _resolve() — doing
-    # so creates infinite recursion when an instance is in a broken
-    # state (e.g. created via cls.__new__(cls) without __init__, as
-    # copy.deepcopy does for slotted classes that don't define
-    # __deepcopy__).
     _OWN_NAMES = frozenset(("_config", "_value", "_fetched", "_error"))
 
     def __init__(self, config: dict):
@@ -245,37 +238,14 @@ class LazyHttpInput:
         return key in self._resolve()
 
     def __bool__(self) -> bool:
-        # Don't fetch just for truthiness. An input that was
-        # declared in the YAML is "present" regardless of its value.
         return True
 
     def __getattr__(self, name: str) -> Any:
-        # __getattr__ only fires when normal attribute lookup fails.
-        # Refuse to forward our own slot names and dunder methods —
-        # if they're missing, the instance is in a broken state and
-        # the right thing is to raise AttributeError so the caller
-        # (copy.deepcopy, pickle, debugger introspection) knows.
-        # Forwarding them would call _resolve() which accesses the
-        # very slots that aren't set, recursing until the stack
-        # overflows.
         if name.startswith("_") or name in self._OWN_NAMES:
             raise AttributeError(name)
         return getattr(self._resolve(), name)
 
     def __deepcopy__(self, memo):
-        # Define an explicit __deepcopy__ so copy.deepcopy() doesn't
-        # go through cls.__new__(cls) + slot-poking, which leaves
-        # the instance in a broken state and triggers __getattr__
-        # recursion. The python: primitive's input handler deep-
-        # copies the entire context dict for immutability; without
-        # this hook, every http input crashes that path.
-        #
-        # Semantics: preserve the lazy/fetched state. If the original
-        # already fetched, copy the resolved value (deepcopied so
-        # downstream mutations stay isolated). If not yet fetched,
-        # the copy starts unfetched too — it'll do its own fetch on
-        # first access. Cache benefit is lost across copies but
-        # correctness is preserved.
         import copy as _copy
         new = LazyHttpInput.__new__(LazyHttpInput)
         new._config = _copy.deepcopy(self._config, memo)
@@ -326,9 +296,6 @@ def _register_builtin_loaders() -> None:
     register_input_loader("http", HttpInputLoader())
     register_input_loader("connector", ConnectorInputLoader())
 
-    # Aliases — InputField schema uses these names for scalar types,
-    # all of which are stored as plain values in the context dict and
-    # never routed through a file/content loader.
     register_input_loader("string", text_loader)
     register_input_loader("integer", text_loader)
     register_input_loader("number", text_loader)
@@ -346,19 +313,10 @@ def _register_builtin_loaders() -> None:
 _register_builtin_loaders()
 
 
-# Map retired type names to helpful migration messages. The parser
-# already rejects these at validation time, but load_input() also
-# guards against them in case a run context slips through with an
-# old typed dict (e.g. from a replayed run_events row).
 _RETIRED_TYPES_HELP = {
     "file": "type: artifact, format: text",
     "json": "type: artifact, format: json",
     "csv":  "type: artifact, format: csv",
-    # `env` was removed because workspace_secrets and workspace_configs
-    # already cover the same need with audit trails, scoping, rotation,
-    # and UI visibility — none of which env reads had. Migration is
-    # mechanical: declare the variable in Connectors & Secrets and
-    # reference it via `secrets: [VAR_NAME]` on the step that uses it.
     "env":  "workspace_secrets + per-step `secrets:` allowlist",
 }
 
@@ -372,19 +330,14 @@ def load_input(value: Any) -> Any:
     Returns:
         The loaded value (string, dict, list, etc.)
     """
-    # Plain value — return as-is
     if not isinstance(value, dict):
         return _smart_load_string(value) if isinstance(value, str) else value
 
-    # Dict without type — return as-is (it's a plain dict value)
     if "type" not in value:
         return value
 
     loader_type = value["type"]
 
-    # Retired types get a clear migration error instead of
-    # "unknown type". This catches replays of old run contexts
-    # and any YAML that slipped past the parser.
     if loader_type in _RETIRED_TYPES_HELP:
         raise ValueError(
             f"Input type '{loader_type}' has been removed. "
@@ -421,7 +374,6 @@ def parse_input_arg(arg: str) -> dict[str, Any]:
         - Inline JSON string → parses
         - Inline YAML string → parses
     """
-    # File path?
     path = Path(arg)
     if path.exists() and path.is_file():
         content = path.read_text()
@@ -485,17 +437,11 @@ def parse_kv_inputs(pairs: tuple[str, ...] | list[str]) -> dict:
             if not path.exists():
                 raise ValueError(f"Input file not found: {path}")
 
-            # Infer format from extension; user can override in the
-            # pipeline YAML's `format:` field, but this default
-            # covers the 99% case.
             suffix = path.suffix.lower()
             if suffix == ".json":
                 fmt = "json"
                 content_type = "application/json"
             elif suffix in (".yaml", ".yml"):
-                # YAML files aren't a first-class artifact format —
-                # parse them client-side and pass as a dict so the
-                # pipeline gets the same shape as type: json.
                 fmt = "json"
                 content_type = "application/x-yaml"
             elif suffix == ".csv":
@@ -509,9 +455,6 @@ def parse_kv_inputs(pairs: tuple[str, ...] | list[str]) -> dict:
                 content_type = _content_type_for_ext(suffix)
 
             # CLI mode: parse the file inline and bind the parsed value
-            # directly. No artifact store — that's a Platform concern.
-            # The bound value has the Python type the pipeline expects
-            # (dict for JSON/YAML, list[dict] for CSV, str for text).
             if fmt == "json" or suffix in (".yaml", ".yml"):
                 try:
                     parsed = yaml.safe_load(path.read_text())
