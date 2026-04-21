@@ -125,10 +125,6 @@ class LitellmClient:
         self._base_url = base_url
         self._provider_type = provider_type
         self._default_model = default_model
-        # Cost gate context (Phase A in the audit). When provider_id
-        # is set, every call passes through aiorch.server.spend's
-        # check_provider_budget + charge_provider helpers. When None
-        # (single-user CLI mode), the gates are no-ops.
         self._provider_id = provider_id
         self._workspace_id = workspace_id
 
@@ -151,12 +147,6 @@ class LitellmClient:
             )
         resolved_model = self._resolve_model(effective_model)
 
-        # Cost gate pre-check (Phase A): refuse the call if the
-        # provider is already at its daily or monthly cap. Pre-check
-        # uses incoming_usd=0 because we don't know the actual cost
-        # until the call returns. The post-flight charge below
-        # enforces the cap for real and the *next* call after an
-        # over-cap charge will be rejected here.
         if self._provider_id:
             from aiorch.runtime._hooks import pre_call_hook
             hook = pre_call_hook()
@@ -176,10 +166,6 @@ class LitellmClient:
         if self._api_key:
             kwargs["api_key"] = self._api_key
 
-        # Only pass api_base for truly custom endpoints.
-        # For known providers (openrouter/, anthropic/, etc.), litellm
-        # handles routing natively via the model prefix — passing api_base
-        # forces a different code path that breaks param handling.
         native_prefixes = ("openrouter/", "anthropic/", "gemini/", "cohere/", "ollama/", "bedrock/")
         if self._base_url and not resolved_model.startswith(native_prefixes):
             kwargs["api_base"] = self._base_url
@@ -188,22 +174,14 @@ class LitellmClient:
         response = await litellm.acompletion(**kwargs, drop_params=True)
         duration_ms = (time.time() - start) * 1000
 
-        # Extract tokens
         prompt_tokens = 0
         completion_tokens = 0
         if hasattr(response, "usage") and response.usage:
             prompt_tokens = getattr(response.usage, "prompt_tokens", 0) or 0
             completion_tokens = getattr(response.usage, "completion_tokens", 0) or 0
 
-        # Accurate cost via litellm's pricing database
         cost = self._get_cost(response, resolved_model, prompt_tokens, completion_tokens)
 
-        # Post-flight charge against the provider's cost gates
-        # (Phase A). The call has already happened, so this records
-        # the spend even if it pushes the provider over its cap —
-        # the next call's pre-check will then reject. Matches
-        # OpenAI's hard-limit semantics: the call that crosses the
-        # line is the last one allowed.
         if self._provider_id and cost > 0:
             from aiorch.runtime._hooks import post_call_hook
             hook = post_call_hook()
@@ -239,10 +217,6 @@ class LitellmClient:
             finish_reason,
         )
 
-        # Metrics are a Platform-only concern (Prometheus counters are
-        # Platform plumbing). CLI runs without aiorch.metrics — the
-        # try/except keeps the hot path intact if the Platform package
-        # happens to be installed alongside.
         try:
             from aiorch.metrics import observe_llm_request
             clean_model = _strip_routing_prefix(resolved_model)
@@ -267,12 +241,10 @@ class LitellmClient:
 
     def _resolve_model(self, model: str) -> str:
         """Apply provider-specific model name conventions for litellm routing."""
-        # OpenRouter — detected by provider_type or base_url
         if self._provider_type == "openrouter" or (self._base_url and "openrouter.ai" in self._base_url):
             if not model.startswith("openrouter/"):
                 return f"openrouter/{model}"
             return model
-        # Other providers — litellm uses prefixes for non-OpenAI models
         prefix_map = {
             "anthropic": "anthropic/",
             "google": "gemini/",
@@ -287,7 +259,6 @@ class LitellmClient:
     @staticmethod
     def _get_cost(response, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         """Extract cost — tries litellm.completion_cost, falls back to estimate."""
-        # Method 1: response._hidden_params (most reliable)
         if hasattr(response, "_hidden_params"):
             hidden = response._hidden_params
             if isinstance(hidden, dict):
@@ -295,7 +266,6 @@ class LitellmClient:
                 if resp_cost and resp_cost > 0:
                     return float(resp_cost)
 
-        # Method 2: litellm.completion_cost() — uses built-in pricing DB
         try:
             import litellm
             cost = litellm.completion_cost(completion_response=response)
@@ -304,7 +274,6 @@ class LitellmClient:
         except Exception:
             pass
 
-        # Method 3: fallback to manual estimate
         if prompt_tokens or completion_tokens:
             return estimate_cost(model, prompt_tokens, completion_tokens)
 
@@ -475,9 +444,6 @@ def _resolve_managed_provider(
     except Exception:
         return None
 
-    # Resolve the caller's org_id up-front so every branch can use it
-    # for scope checks. This is cheap (one lookup) and avoids duplicate
-    # work further down.
     resolved_org_id = org_id
     if not resolved_org_id and workspace_id:
         ws_row = store.query_one("SELECT org_id FROM workspaces WHERE id = ?", (workspace_id,))
@@ -490,7 +456,6 @@ def _resolve_managed_provider(
             row_ws = row.get("workspace_id")
             row_org = row.get("org_id")
             if row_ws:
-                # Workspace-scoped provider: must match caller workspace.
                 if workspace_id and row_ws != workspace_id:
                     logger.warning(
                         "provider %s is workspace-scoped to %s, not %s — refusing",
@@ -498,7 +463,6 @@ def _resolve_managed_provider(
                     )
                     return None
             else:
-                # Org-wide provider: must match caller org.
                 if resolved_org_id and row_org != resolved_org_id:
                     logger.warning(
                         "provider %s is org-wide for %s, not %s — refusing",
@@ -511,8 +475,6 @@ def _resolve_managed_provider(
         return None
 
     if workspace_id:
-        # Workspace default — require org_id match as well so a row
-        # with (attacker_org, victim_workspace) is never returned.
         if resolved_org_id:
             row = store.query_one(
                 "SELECT * FROM llm_providers "
