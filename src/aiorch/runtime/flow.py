@@ -46,15 +46,8 @@ async def execute_flow(step: Step, context: dict[str, Any]) -> Any:
     from aiorch.constants import LOGGER_KEY
     run_logger = context.get(LOGGER_KEY)
 
-    # Resolve the flow path against the parent context
     raw_path = template.resolve(step.flow, context)
 
-    # Path confinement: the flow path is a template-rendered string
-    # that may include untrusted context values. Confine it to the
-    # parent pipeline's source directory (plus AIORCH_SAFE_ROOTS)
-    # so an attacker-controlled value can't load an arbitrary YAML
-    # from /etc/ or another workspace. allow_symbolic is False —
-    # /dev/stdout makes no sense as a sub-pipeline source.
     from aiorch.constants import SOURCE_DIR_KEY
     from aiorch.core.paths import safe_path
 
@@ -66,10 +59,8 @@ async def execute_flow(step: Step, context: dict[str, Any]) -> Any:
         allow_symbolic=False,
     )
 
-    # parse_file raises FileNotFoundError if the file doesn't exist
     sub_af = parse_file(resolved_path)
 
-    # Build child context: start with resolved vars, overlay input
     child_context: dict[str, Any] = {}
     if step.vars:
         child_context.update(template.resolve_dict(step.vars, context))
@@ -85,12 +76,10 @@ async def execute_flow(step: Step, context: dict[str, Any]) -> Any:
         })
 
     # Lazy import to avoid circular dependency:
-    # runtime.__init__ imports flow, and flow needs execute_step from runtime.__init__
     from aiorch.runtime import execute_step
 
     result_context = await dag_execute(sub_af, runner=execute_step, context=child_context)
 
-    # Collect outputs: any step with an `output` key contributes to the result
     outputs = {
         s.output: result_context[s.output]
         for s in sub_af.steps.values()
@@ -102,11 +91,9 @@ async def execute_flow(step: Step, context: dict[str, Any]) -> Any:
             "outputs_produced": list(outputs.keys()),
         })
 
-    # Convenience: if there is exactly one output, return the value directly
     if len(outputs) == 1:
         return next(iter(outputs.values()))
 
-    # Multiple (or zero) outputs — return the full context dict
     return result_context
 
 
