@@ -24,17 +24,9 @@ from __future__ import annotations
 
 from typing import Callable
 
-# Budget hooks — both take (provider_id, incoming_usd | cost_usd) and
-# may raise (pre-check) or silently record (post-charge). CLI never
-# sets provider_id so these hooks are never called in CLI mode; they
-# exist so Platform can inject budget enforcement without runtime/
-# importing server.spend.
 _pre_call_hook: Callable[..., None] | None = None
 _post_call_hook: Callable[..., None] | None = None
 
-# Provider API-key decryptor — called by LitellmClient when loading
-# a Platform-managed provider's stored ciphertext. CLI providers use
-# plaintext env vars so this is only wired on Platform.
 _provider_key_decryptor: Callable[[str], str] | None = None
 
 
