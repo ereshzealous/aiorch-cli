@@ -45,10 +45,6 @@ logger = logging.getLogger("aiorch.foreach")
 TIMEOUT_SENTINEL_PREFIX = "[TIMEOUT]:"
 SKIPPED_SENTINEL_PREFIX = "[SKIPPED]:"
 
-# Prefixes that mark a value as "upstream failed" — used by the
-# ``skip_on_error`` flag to decide whether to skip an iteration. Keep
-# aligned with the sentinels produced by ``aiorch.tools`` (MCP errors)
-# and this module (timeout sentinels).
 _ERROR_SENTINEL_PREFIXES = (
     TIMEOUT_SENTINEL_PREFIX,
     SKIPPED_SENTINEL_PREFIX,
@@ -79,7 +75,6 @@ def resolve_foreach_items(raw_items: list | str, context: dict[str, Any]) -> lis
     if isinstance(raw_items, list):
         return raw_items
 
-    # Direct variable reference — look up in context to preserve types (list of dicts, etc.)
     if isinstance(raw_items, str):
         stripped = raw_items.strip()
         if stripped.startswith("{{") and stripped.endswith("}}"):
@@ -137,8 +132,6 @@ async def run_foreach(
         by ``[TIMEOUT]: ...`` sentinel strings. Skipped iterations (via
         ``skip_on_error``) are represented by ``[SKIPPED]: ...`` sentinels.
     """
-    # Resolve the skip list up-front so each iteration can cheaply index
-    # into it. None/missing list disables skip_on_error for this call.
     upstream = None
     if skip_on_error:
         val = context.get(skip_on_error)
@@ -155,14 +148,11 @@ async def run_foreach(
 
     async def _run_one(i: int, item: Any) -> Any:
         # skip_on_error: if upstream output at index i is a sentinel, emit
-        # a [SKIPPED]: sentinel without running the iteration at all. No
-        # LLM, tool, or shell call is made.
         if upstream is not None and i < len(upstream):
             up = upstream[i]
             if _is_error_sentinel(up):
                 skipped_indices.append(i)
                 # Propagate a short fingerprint of the upstream cause so
-                # operators can trace what failed without cross-referencing.
                 preview = str(up).replace("\n", " ")[:80]
                 return (
                     f"{SKIPPED_SENTINEL_PREFIX} iter {i} — upstream "
@@ -182,9 +172,6 @@ async def run_foreach(
             return sentinel
 
     if parallel:
-        # gather with default return_exceptions=False — non-timeout errors
-        # still raise and fail the step. Timeouts are caught inside _run_one
-        # and returned as sentinels, so they never reach gather as exceptions.
         results = list(await asyncio.gather(
             *[_run_one(i, item) for i, item in enumerate(items)]
         ))
@@ -200,8 +187,6 @@ async def run_foreach(
             if isinstance(r, str) and r.startswith(TIMEOUT_SENTINEL_PREFIX)
         )
         if timeout_count and timeout_count == len(results):
-            # All iterations timed out — running downstream on all-sentinels
-            # produces garbage, so fail the step with actionable detail.
             bullets = "\n  ".join(str(r) for r in results)
             raise RuntimeError(
                 f"Foreach step{' ' + repr(step_name) if step_name else ''} "
@@ -214,9 +199,6 @@ async def run_foreach(
                 f"MCP sessions (if any) recover via 5-minute idle pool TTL."
             )
         if timeout_count:
-            # Partial timeout — step still succeeds, but operators need to
-            # see which iterations fell out so they can diagnose without
-            # digging through the output list in the UI.
             logger.warning(
                 "Step %r — %d of %d foreach iteration(s) timed out at %ss; "
                 "continuing with partial results. Affected iterations will "
@@ -225,10 +207,6 @@ async def run_foreach(
                 step_name or "<foreach>", timeout_count, len(results), timeout,
             )
     if skipped_indices:
-        # Step still succeeds — the upstream error is the real problem.
-        # But operators benefit from a single WARN line that tells them
-        # which indices fell out of this step without scanning the full
-        # output list in the UI.
         logger.warning(
             "Step %r — %d of %d foreach iteration(s) skipped via "
             "skip_on_error=%r (upstream sentinel at indices %s). Slots "
@@ -238,11 +216,6 @@ async def run_foreach(
             skip_on_error, skipped_indices,
         )
 
-    # Record warnings onto the per-step metadata carried in the shared
-    # _meta dict. The executor's on_done hook reads it and passes it to
-    # emit_step_done → event payload → UI. Status stays 'success'; the
-    # warnings field is a separate signal the UI can render as a yellow
-    # badge alongside the green check.
     if (timeout_count or skipped_indices) and step_name:
         _record_foreach_warnings(
             context=context,
@@ -284,8 +257,6 @@ def _record_foreach_warnings(
         context[META_KEY] = meta_root
     step_meta = meta_root.setdefault(step_name, {})
 
-    # Identify exactly which iteration indices fell out — lets the UI
-    # list "iter 2" instead of just "1 of 3 failed".
     timed_out_indices = [
         i for i, r in enumerate(results)
         if isinstance(r, str) and r.startswith(TIMEOUT_SENTINEL_PREFIX)
