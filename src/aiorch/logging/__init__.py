@@ -89,10 +89,8 @@ class RunLogger:
         self._step_starts: dict[str, float] = {}
         self._redact = redact
 
-        # Store injection — use provided store or fall back to module-level functions
         self._store = store
 
-        # Set up sink
         if sink is None:
             self._sink: LogSink = create_sink("file")
         elif isinstance(sink, LogSink):
@@ -100,11 +98,9 @@ class RunLogger:
         else:
             self._sink = create_sink(sink)
 
-        # Initialize sink for this run
         if hasattr(self._sink, "set_run"):
             self._sink.set_run(run_id)
 
-        # Write run start event
         self._write_event({
             "event": "run_start",
             "run_id": self.run_id,
@@ -204,29 +200,13 @@ class RunLogger:
         duration_ms = (now - started) * 1000
         error_type = classify_error(error, primitive)
 
-        # Format the full traceback from the exception's __traceback__.
-        # By the time we get here, the exception has already propagated
-        # up from the step body (through dag.py:_run_step), so
-        # __traceback__ is fully populated with the call chain that
-        # ended at the raise. format_exception on an exception with no
-        # __traceback__ also works — it just returns the type+message.
         try:
             traceback_str = "".join(
                 _tb_module.format_exception(type(error), error, error.__traceback__)
             )
         except Exception:
-            # Belt-and-suspenders. If traceback formatting itself
-            # fails (some custom exceptions break the formatter),
-            # record SOMETHING rather than masking the original error
-            # with a "couldn't format traceback" error.
             traceback_str = f"<traceback formatting failed>\n{error!r}"
 
-        # Cap the traceback at 64KB. Real-world tracebacks are 1-5KB;
-        # recursion-bug tracebacks can hit hundreds of KB. The cap
-        # prevents a single broken pipeline from filling step_runs.
-        # Truncation keeps the head of the traceback (which contains
-        # the type + the deepest frames) and appends a marker so the
-        # Trace UI shows the user that there was more.
         TB_MAX_BYTES = 65536
         if len(traceback_str) > TB_MAX_BYTES:
             traceback_str = (
@@ -285,9 +265,6 @@ class RunLogger:
         self.events.append(event)
         self._write_event(asdict(event))
 
-        # Persist to step_runs so the Trace page can show the skipped
-        # state. Without this, the skipped step is invisible in the
-        # steps strip — it looks like the pipeline only had N-1 steps.
         storage_reason = str(reason)[:200]
         if self._redact:
             from aiorch.core.redaction import redact
