@@ -12,7 +12,7 @@
   <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-blue.svg"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-green.svg"></a>
   <a href="#roadmap"><img alt="Status" src="https://img.shields.io/badge/status-alpha-orange.svg"></a>
-  <a href="https://pypi.org/project/aiorch/"><img alt="PyPI" src="https://img.shields.io/pypi/v/aiorch.svg"></a>
+  <a href="https://pypi.org/project/aiorch/"><img alt="PyPI" src="https://img.shields.io/pypi/v/aiorch.svg?v=2"></a>
 </p>
 
 ---
