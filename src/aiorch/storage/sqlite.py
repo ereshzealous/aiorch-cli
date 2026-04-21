@@ -220,8 +220,8 @@ class SQLiteStore(Store):
                 (status, time.time(), total_cost, run_id),
             )
         else:
-            # Token guard — see executor CRITICAL #2. Protects against
-            # stale-executor writes landing after a peer has reclaimed.
+            # claim_token guard: drops the write if a peer has reclaimed
+            # this run since we started it.
             self._conn.execute(
                 "UPDATE runs SET status = ?, finished_at = ?, total_cost = ? "
                 "WHERE id = ? AND claim_token = ?",
@@ -242,13 +242,9 @@ class SQLiteStore(Store):
         return [dict(r) for r in rows]
 
     def claim_pending_run(self) -> dict[str, Any] | None:
-        # SQLite is single-process (CLI mode). No inter-process contention,
-        # no SKIP LOCKED support. Serial claim inside a single transaction
-        # is sufficient. We still stamp a claim_token on the row so the
-        # Store interface contract stays the same across backends —
-        # reclaim-vs-finish protection is genuinely only needed on
-        # multi-process Postgres, but shipping the field on SQLite too
-        # avoids divergent code paths in the executor.
+        # SQLite single-process: a serial claim is sufficient. claim_token
+        # is stamped anyway so the executor sees a uniform contract across
+        # backends.
         import uuid
         row = self._conn.execute(
             "SELECT * FROM runs WHERE status = 'pending' "

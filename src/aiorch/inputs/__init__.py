@@ -14,47 +14,17 @@
 
 """Input loader system — pluggable typed inputs for pipelines.
 
-Each input value is either:
-  - A plain string → returned as-is
-  - A dict with type: → dispatched to the correct loader
+An input value is either a plain string (returned as-is) or a dict with
+``type:`` that dispatches to a loader. Types the CLI supports:
 
-Supported types:
-  text     → plain string
-  artifact → fetch content from the artifact store (MinIO on Platform,
-             local filesystem on CLI). Parses per ``format`` field
-             into text / json / csv / binary.
-  http     → fetch URL → string or parsed JSON
-  connector → resolve via aiorch.connectors (Platform only, async)
+  text / string / integer / number / boolean / list  — literal values
+  file    → read from disk
+  http    → GET URL, return string or parsed JSON (lazy)
+  env     → read an environment variable
+  stdin   → read from stdin
 
-Retired types:
-  file     → use artifact with format: text
-  json     → use artifact with format: json
-  csv      → use artifact with format: csv
-  env      → use workspace_secrets (sensitive) or workspace_configs
-             (plain values) instead. Removed because env reads bypass
-             the audit log, can't rotate without an executor restart,
-             and aren't scoped per workspace. workspace_secrets +
-             per-step `secrets:` allowlist gives the same value with
-             audit, scope, and rotation.
-
-Usage:
-    from aiorch.inputs import load_input
-
-    # Plain string
-    load_input("cricket")  → "cricket"
-
-    # Typed artifact (by ID — the store is queried)
-    load_input({"type": "artifact", "artifact_id": "abc-123", "format": "text"})
-        → file contents as str
-
-    load_input({"type": "artifact", "artifact_id": "abc-123", "format": "json"})
-        → dict or list
-
-    load_input({"type": "artifact", "artifact_id": "abc-123", "format": "csv"})
-        → list[dict]
-
-    load_input({"type": "artifact", "artifact_id": "abc-123", "format": "binary"})
-        → raw bytes
+``artifact`` and ``connector`` types raise a clear error in the CLI —
+they require the commercial aiorch Platform.
 """
 
 from __future__ import annotations
@@ -125,14 +95,10 @@ class ArtifactInputLoader(InputLoader):
 
 
 class HttpInputLoader(InputLoader):
-    """Fetches a URL → string or parsed JSON.
-
-    SSRF + header gates (Pass 3 #2 in the audit): the URL and any
-    custom header values come from pipeline YAML (or input
-    overrides), so they go through the same safety helpers as the
-    webhook action. AIORCH_ALLOW_PRIVATE_HOSTS=1 is the operator
-    opt-out for legitimate internal-service inputs.
-    """
+    """Fetches a URL → string or parsed JSON. The URL and header values
+    flow through ``safe_http_url`` / ``safe_header_value`` since they
+    come from user-supplied YAML. Set ``AIORCH_ALLOW_PRIVATE_HOSTS=1``
+    to allow internal-service inputs."""
 
     def load(self, config: dict) -> Any:
         import httpx
@@ -174,25 +140,10 @@ class HttpInputLoader(InputLoader):
 
 
 class LazyHttpInput:
-    """Deferred-fetch proxy for ``type: http`` inputs.
-
-    Wraps an HTTP config dict and defers the actual network call
-    until the first time the value is read (Jinja2 ``__str__``,
-    ``__getattr__``, or ``__getitem__``). Once fetched, the result
-    is cached so a second step referencing the same input doesn't
-    re-issue the request.
-
-    This is what Phase B.4 of the input-artifacts work gets us:
-    ``type: http`` inputs no longer block pipeline start, and
-    dead http inputs (declared but never referenced) never fire
-    a network call at all.
-
-    The proxy is drop-in compatible with whatever the underlying
-    loader would have returned — str for ``format: text``, dict
-    or list for ``format: json``. Jinja2's template rendering
-    handles the transparency via ``__str__`` / ``__getitem__``
-    dispatch.
-    """
+    """Deferred-fetch proxy for ``type: http`` inputs. The network call
+    fires on first read (via ``__str__`` / ``__getitem__`` / attribute
+    access) and is cached; declared-but-never-referenced inputs never
+    hit the network."""
 
     __slots__ = ("_config", "_value", "_fetched", "_error")
 
@@ -256,11 +207,8 @@ class LazyHttpInput:
 
 
 class ConnectorInputLoader(InputLoader):
-    """type: connector inputs are a Platform-only feature.
-
-    The CLI has no connector registry / workspace-secrets / audit
-    infrastructure. Dispatch should have caught this at DAG-build time;
-    this stub is a safety net."""
+    """Stub for ``type: connector`` — a Platform-only feature. Dispatch
+    normally rejects this at DAG-build time; this is a safety net."""
 
     def load(self, config: dict) -> Any:
         raise RuntimeError(

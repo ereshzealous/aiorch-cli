@@ -24,9 +24,6 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
-# NOTE: load_dotenv() is NOT called here. CLI reads aiorch.yaml only.
-# Platform (aiorch serve) calls load_dotenv() explicitly before init.
-
 CONFIG_NAMES = ["aiorch.yaml", "aiorch.yml", ".aiorch.yaml"]
 
 _ENV_PATTERN = re.compile(r"\$\{(\w+)\}")
@@ -34,7 +31,7 @@ _ENV_PATTERN = re.compile(r"\$\{(\w+)\}")
 
 class LLMConfig(BaseModel):
     model: str = "gpt-4o-mini"
-    provider: str = "openai"  # "openai" (default) or "litellm" (optional)
+    provider: str = "openai"
     base_url: str | None = None
     api_key: str | None = None
     temperature: float | None = None
@@ -47,67 +44,13 @@ class DefaultsConfig(BaseModel):
 
 
 class ConnectorConfig(BaseModel):
-    """Universal connector config — works for any storage or sink backend.
-
-    Each backend reads only the fields it needs. Unknown fields are ignored.
-
-    Examples:
-        type: sqlite
-        path: ~/.aiorch/history.db
-
-        type: postgres
-        host: localhost
-        port: 5432
-        database: aiorch
-        username: ${DB_USER}
-        password: ${DB_PASSWORD}
-
-        type: s3
-        bucket: my-logs
-        region: us-east-1
-    """
-    type: str = "sqlite"
-
-    # Relational (postgres, mysql)
-    host: str | None = None
-    port: int | None = None
-    database: str | None = None
-    username: str | None = None
-    password: str | None = None
-    url: str | None = None          # shorthand — overrides host/port/etc
-
-    # File-based (sqlite, file sink)
+    """Config for a logging sink. Only ``type``, ``path``, and ``format`` are
+    read by the built-in file/stdout sinks; ``options`` is passed through
+    unchanged so custom sinks can consume whatever they need."""
+    type: str = "file"
     path: str | None = None
-
-    # Object store (s3)
-    bucket: str | None = None
-    region: str | None = None
-
-    # Stdout sink
     format: str | None = None
-
-    # Type-specific extras
     options: dict[str, Any] = Field(default_factory=dict)
-
-    def get_url(self) -> str:
-        """Build connection URL from fields. Returns url if set, else constructs it."""
-        if self.url:
-            return self.url
-        if self.type == "sqlite":
-            return self.path or "~/.aiorch/history.db"
-
-        auth = ""
-        if self.username:
-            auth = self.username
-            if self.password:
-                auth += f":{self.password}"
-            auth += "@"
-
-        host = self.host or "localhost"
-        port = f":{self.port}" if self.port else ""
-        db = f"/{self.database}" if self.database else ""
-
-        return f"{self.type}://{auth}{host}{port}{db}"
 
 
 class LoggingConfig(BaseModel):
@@ -115,47 +58,26 @@ class LoggingConfig(BaseModel):
     sink: str | ConnectorConfig | list[ConnectorConfig] = "file"
 
 
-class StorageConfig(BaseModel):
-    """Storage backend config — PostgreSQL via DATABASE_URL env var."""
-    type: str = "postgres"
-
-    # Connection fields (used when DATABASE_URL is not set)
-    host: str | None = None
-    port: int | None = None
-    database: str | None = None
-    username: str | None = None
-    password: str | None = None
-    url: str | None = None
-    options: dict[str, Any] = Field(default_factory=dict)
-    pool_size: int = 10
-
-
 class ServerConfig(BaseModel):
-    """Server configuration for aiorch serve."""
+    """Config for ``aiorch serve``. The CLI entrypoint sets
+    AIORCH_AUTH_ENABLED=false before importing the server, so single-user
+    local use doesn't need a key; keep auth on by default otherwise."""
     host: str = "127.0.0.1"
     port: int = 7842
     secret: str | None = None
     open_browser: bool = True
-    # Secure-by-default. The CLI entrypoint (aiorch run/validate/etc.)
-    # sets AIORCH_AUTH_ENABLED=false explicitly before importing the
-    # server module (see cli.py), so single-user CLI use keeps working.
-    # Server mode (aiorch serve / uvicorn app:create_app) inherits True
-    # unless an operator intentionally flips it — and even then the
-    # server-lifespan guard refuses to boot without AIORCH_DEV_MODE.
-    # See executor CRITICAL arc / the auth_enabled-footgun memo.
     auth_enabled: bool = True
-    secret_key: str | None = None  # For JWT signing + API key encryption
+    secret_key: str | None = None
 
 
 class Config(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     defaults: DefaultsConfig = Field(default_factory=DefaultsConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    storage: StorageConfig = Field(default_factory=StorageConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
-    env: dict[str, str] = Field(default_factory=dict)  # Injected into os.environ (webhook URLs, SMTP, etc.)
-    redaction: Any = Field(default=None)  # RedactionConfig, loaded lazily to avoid circular imports
-    policy: Any = Field(default=None)    # PolicyConfig, loaded lazily to avoid circular imports
+    env: dict[str, str] = Field(default_factory=dict)
+    redaction: Any = Field(default=None)
+    policy: Any = Field(default=None)
 
 
 def _resolve_env(value: Any) -> Any:
@@ -190,13 +112,8 @@ def find_config(start: Path | None = None) -> Path | None:
 def load_config(path: str | Path | None = None) -> Config:
     """Load config from a YAML file. Falls back to defaults if not found.
 
-    The env: block is injected into os.environ BEFORE ${VAR} resolution,
-    so aiorch.yaml can reference its own env values:
-        env:
-          OPENAI_API_KEY: sk-...
-        llm:
-          api_key: ${OPENAI_API_KEY}   # resolves from env: block above
-    """
+    The ``env:`` block is injected into os.environ *before* ``${VAR}``
+    resolution, so aiorch.yaml can reference its own env values."""
     if path is None:
         path = find_config()
 
@@ -211,19 +128,16 @@ def load_config(path: str | Path | None = None) -> Config:
     if not isinstance(raw, dict):
         return Config()
 
-    # Step 1: Inject env: block into os.environ BEFORE resolving ${}
     raw_env = raw.get("env", {})
     if isinstance(raw_env, dict):
         for key, value in raw_env.items():
             if key not in os.environ:
                 os.environ[key] = str(value)
 
-    # Step 2: Now resolve ${} references (env: values are available)
     resolved = _resolve_env_recursive(raw)
     return Config(**resolved)
 
 
-# Singleton — loaded once, used everywhere
 _config: Config | None = None
 
 

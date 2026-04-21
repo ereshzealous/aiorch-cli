@@ -12,55 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""HTTP surface hardening — validation helpers for outbound requests.
+"""Input-validation helpers for outbound HTTP actions.
 
-The audit identified three HTTP-side vectors in ``runtime/action.py``:
+``safe_http_url`` rejects non-http/https schemes and, by default,
+hostnames that resolve to private / loopback / link-local / reserved
+IP ranges. Set ``AIORCH_ALLOW_PRIVATE_HOSTS=1`` to opt out when you
+need to hit internal services. Note: the hostname is resolved once
+here, so DNS rebinding is not fully mitigated — good enough to block
+static attacker-supplied IPs and accidental internal URLs.
 
-  - Bug 6 (webhook action URL SSRF): the ``url`` field is a template-
-    rendered string that went straight to ``httpx.request()``. An
-    attacker-controlled value could target ``http://169.254.169.254``
-    (AWS IMDS) for cloud credential theft, ``http://localhost:6379``
-    to probe internal Redis, or ``file://`` / ``gopher://`` for
-    protocol smuggling.
+``safe_header_value`` rejects ASCII control characters (blocks CRLF
+injection / header smuggling).
 
-  - Bug 7 (webhook action CRLF header injection): header values are
-    also template-rendered. A value containing ``\\r\\n`` splits the
-    HTTP request and enables response splitting / request smuggling.
-
-  - Bug 10 (GitHub action URL interpolation): ``repo`` and ``pr``
-    values are f-stringed into the GitHub API URL. Without
-    validation, a malformed value could produce an unintended API
-    request path.
-
-All three are fixed by input-validation helpers in this module. No
-runtime I/O behaviour changes on the happy path — legitimate URLs,
-headers, and GitHub identifiers pass through unchanged. The helpers
-only raise on structurally unsafe input.
-
-Design notes
-------------
-
-- ``safe_http_url`` blocks non-http/https schemes unconditionally
-  and, by default, rejects hostnames that resolve to private /
-  loopback / link-local / reserved ranges. Operators who need to
-  call internal services from pipelines opt out via
-  ``AIORCH_ALLOW_PRIVATE_HOSTS=1`` — that's a workspace-wide
-  decision the operator accepts, not a per-request choice.
-
-- DNS-rebinding note: ``safe_http_url`` resolves the hostname once
-  at check time. An attacker who controls DNS can return a public
-  IP on the first lookup and a private IP on the actual connect.
-  Full mitigation requires pinning the resolved IP and rewriting
-  the Host header, which is a bigger refactor. This check still
-  catches static attacker-supplied IPs, accidental internal-URL
-  pipelines, and DNS records pointing at private space.
-
-- ``safe_header_value`` rejects any header value containing ASCII
-  control characters. That covers CR / LF (the smuggling vector)
-  and also null bytes (the truncation vector).
-
-- GitHub validators use conservative regexes matching GitHub's own
-  rules. Any deviation raises before the API URL is assembled.
+GitHub identifier validators use strict regexes so user-supplied
+``repo``/``pr`` values can't break out of the API URL path.
 """
 
 from __future__ import annotations

@@ -118,15 +118,11 @@ class LitellmClient:
     """
 
     def __init__(self, api_key: str | None = None, base_url: str | None = None,
-                 provider_type: str = "openai", default_model: str | None = None,
-                 provider_id: str | None = None,
-                 workspace_id: str | None = None):
+                 provider_type: str = "openai", default_model: str | None = None):
         self._api_key = api_key
         self._base_url = base_url
         self._provider_type = provider_type
         self._default_model = default_model
-        self._provider_id = provider_id
-        self._workspace_id = workspace_id
 
     async def complete(
         self,
@@ -146,12 +142,6 @@ class LitellmClient:
                 "or assign a provider with a default model to this pipeline."
             )
         resolved_model = self._resolve_model(effective_model)
-
-        if self._provider_id:
-            from aiorch.runtime._hooks import pre_call_hook
-            hook = pre_call_hook()
-            if hook is not None:
-                hook(self._provider_id, incoming_usd=0.0)
 
         kwargs: dict[str, Any] = {
             "model": resolved_model,
@@ -181,16 +171,6 @@ class LitellmClient:
             completion_tokens = getattr(response.usage, "completion_tokens", 0) or 0
 
         cost = self._get_cost(response, resolved_model, prompt_tokens, completion_tokens)
-
-        if self._provider_id and cost > 0:
-            from aiorch.runtime._hooks import post_call_hook
-            hook = post_call_hook()
-            if hook is not None:
-                hook(
-                    self._provider_id,
-                    cost,
-                    workspace_id=self._workspace_id,
-                )
 
         choice = response.choices[0]
         message = choice.message
@@ -348,249 +328,16 @@ class OpenAIClient:
         )
 
 
-# ---------------------------------------------------------------------------
-# Client factory
-# ---------------------------------------------------------------------------
-
 LLM_CLIENT_KEY = "__llm_client__"
-PROVIDER_ID_KEY = "__provider_id__"
-WORKSPACE_ID_KEY = "__workspace_id__"
-
-
-def _provider_cache_key(provider_id: str) -> str:
-    from aiorch.cache import build_key
-    return build_key("cache", "provider", provider_id)
-
-
-def _get_provider_row_cached(store, provider_id: str) -> dict | None:
-    """Fetch an active provider row with a 10-min Redis cache.
-
-    The provider row contains ``api_key_encrypted`` — the ciphertext is
-    safe in Redis because the decryption key lives in the app process
-    (AIORCH_SECRET_KEY), not in Redis. Redis sees only what Postgres
-    had anyway.
-
-    Falls through to a direct Postgres query when Redis is unavailable
-    or the cache layer errors out.
-    """
-    import json
-    from aiorch.cache import get_redis
-
-    client = get_redis()
-    cache_key = _provider_cache_key(provider_id)
-
-    if client is not None:
-        try:
-            cached = client.get(cache_key)
-            if cached is not None:
-                return json.loads(cached)
-        except Exception:
-            client = None  # fall through to DB
-
-    row = store.query_one(
-        "SELECT * FROM llm_providers WHERE id = ? AND is_active = TRUE",
-        (provider_id,),
-    )
-    if row and client is not None:
-        try:
-            client.set(cache_key, json.dumps(dict(row), default=str), ex=600)
-        except Exception:
-            pass
-    return row
-
-
-def invalidate_provider_cache(provider_id: str) -> None:
-    """Drop the cached provider row so other workers re-read from DB.
-
-    Called by provider create/edit/delete endpoints so changes are
-    immediately visible across API replicas (no 10-min stale window).
-    """
-    from aiorch.cache import get_redis
-    client = get_redis()
-    if client is None:
-        return
-    try:
-        client.delete(_provider_cache_key(provider_id))
-    except Exception:
-        pass
-
-
-def _resolve_managed_provider(
-    provider_id: str | None = None,
-    workspace_id: str | None = None,
-    org_id: str | None = None,
-) -> dict[str, Any] | None:
-    """Resolve an LLM provider from the database.
-
-    Resolution chain:
-        1. Explicit provider_id (scope-checked against caller's org/workspace)
-        2. Workspace default
-        3. Org default
-
-    Tenant isolation (Bugs #2/#3 in the security audit):
-      - Explicit provider_id: the returned row's scope is verified
-        against the caller's workspace/org. A workspace-scoped
-        provider must match the caller's workspace exactly; an org-
-        wide provider must match the caller's org. A workspace from
-        another tenant cannot "borrow" a foreign provider by UUID.
-
-      - Default resolution: workspace-default lookups include an
-        org_id filter, so an attacker who plants a row with
-        ``(attacker_org_id, victim_workspace_id, is_default=True)``
-        is not returned when the victim workspace runs.
-    """
-    try:
-        from aiorch.storage import get_store
-        store = get_store()
-    except Exception:
-        return None
-
-    resolved_org_id = org_id
-    if not resolved_org_id and workspace_id:
-        ws_row = store.query_one("SELECT org_id FROM workspaces WHERE id = ?", (workspace_id,))
-        if ws_row:
-            resolved_org_id = ws_row["org_id"]
-
-    if provider_id:
-        row = _get_provider_row_cached(store, provider_id)
-        if row:
-            row_ws = row.get("workspace_id")
-            row_org = row.get("org_id")
-            if row_ws:
-                if workspace_id and row_ws != workspace_id:
-                    logger.warning(
-                        "provider %s is workspace-scoped to %s, not %s — refusing",
-                        provider_id, row_ws, workspace_id,
-                    )
-                    return None
-            else:
-                if resolved_org_id and row_org != resolved_org_id:
-                    logger.warning(
-                        "provider %s is org-wide for %s, not %s — refusing",
-                        provider_id, row_org, resolved_org_id,
-                    )
-                    return None
-            return row
-
-    if not workspace_id and not resolved_org_id:
-        return None
-
-    if workspace_id:
-        if resolved_org_id:
-            row = store.query_one(
-                "SELECT * FROM llm_providers "
-                "WHERE workspace_id = ? AND org_id = ? "
-                "AND is_default = TRUE AND is_active = TRUE",
-                (workspace_id, resolved_org_id),
-            )
-        else:
-            row = store.query_one(
-                "SELECT * FROM llm_providers "
-                "WHERE workspace_id = ? AND is_default = TRUE AND is_active = TRUE",
-                (workspace_id,),
-            )
-        if row:
-            return row
-
-    if resolved_org_id:
-        row = store.query_one(
-            "SELECT * FROM llm_providers WHERE org_id = ? AND workspace_id IS NULL AND is_default = TRUE AND is_active = TRUE",
-            (resolved_org_id,),
-        )
-        if row:
-            return row
-
-    return None
-
-
-def _client_from_provider(provider: dict[str, Any]) -> LLMClient:
-    """Create an LLM client from a managed provider record.
-
-    Always uses LiteLLM for accurate cost tracking and 100+ provider support.
-    Falls back to OpenAI SDK only if litellm import fails.
-
-    SSRF gate (Round 2 #15 in the audit, defense-in-depth): the
-    base_url stored on the provider row is re-validated here before
-    the client uses it. The API boundary already validates on
-    create/update, but this catches rows that arrive via migration,
-    direct SQL, or any future code path that bypasses the route.
-    """
-    encrypted_key = provider.get("api_key_enc", "")
-    try:
-        from aiorch.runtime._hooks import provider_key_decryptor
-        decryptor = provider_key_decryptor()
-        if decryptor is not None and encrypted_key:
-            api_key = decryptor(encrypted_key)
-        else:
-            # CLI mode or no ciphertext: treat the stored value as
-            # already-plaintext (env-var-resolved or literal key).
-            api_key = encrypted_key
-    except Exception:
-        api_key = encrypted_key
-
-    base_url = provider.get("base_url")
-    if base_url:
-        from aiorch.core.http_safety import HttpSafetyError, safe_http_url
-        try:
-            base_url = safe_http_url(base_url, purpose="provider base_url (runtime)")
-        except HttpSafetyError as exc:
-            logger.warning(
-                "Refusing provider %s with unsafe base_url %r: %s",
-                provider.get("id"), base_url, exc,
-            )
-            raise
-
-    provider_type = provider.get("provider_type", "openai")
-
-    default_model = provider.get("default_model")
-    # Cost gates wiring (Phase A): the client needs to know which
-    # provider row it represents so the post-flight charge can hit
-    # the right llm_provider_spend row. Workspace is denormalized
-    # for filtering on the spend rollup endpoint.
-    provider_id = provider.get("id")
-    provider_workspace = provider.get("workspace_id")
-
-    try:
-        import litellm  # noqa: F401
-        return LitellmClient(
-            api_key=api_key, base_url=base_url,
-            provider_type=provider_type, default_model=default_model,
-            provider_id=provider_id, workspace_id=provider_workspace,
-        )
-    except ImportError:
-        return OpenAIClient(api_key=api_key, base_url=base_url)
-
-
 PROVIDER_NAME_KEY = "__provider_name__"
 
 
 def get_llm_client(context: dict[str, Any] | None = None) -> LLMClient:
-    """Get the LLM client with provider resolution.
-
-    Priority:
-        1. context[LLM_CLIENT_KEY] — injected client (tests)
-        2. Managed provider from DB (by provider_id, workspace, or org)
-        3. Config/env fallback (OPENAI_API_KEY)
-
-    Side effect: stores resolved provider name in context[PROVIDER_NAME_KEY]
-    so it can be captured in step metadata for cost tracking.
-    """
-    # Level 1: injected
+    """Get the LLM client. Returns the injected client if one was placed on
+    the context (tests); otherwise builds one from aiorch.yaml + env."""
     if context and LLM_CLIENT_KEY in context:
         return context[LLM_CLIENT_KEY]
 
-    # Level 2: managed provider from DB
-    if context:
-        provider = _resolve_managed_provider(
-            context.get(PROVIDER_ID_KEY),
-            context.get(WORKSPACE_ID_KEY),
-            context.get("__org_id__"),
-        )
-        if provider:
-            context[PROVIDER_NAME_KEY] = provider.get("name", provider.get("provider_type", "managed"))
-            return _client_from_provider(provider)
-
-    # Level 3: config/env fallback
     if context:
         context[PROVIDER_NAME_KEY] = "env"
 

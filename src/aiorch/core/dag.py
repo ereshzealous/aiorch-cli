@@ -147,11 +147,8 @@ async def execute(
     # Inject env vars first
     ctx.update(af.env)
 
-    # Pre-seed private scope keys (__org_id__, __workspace_id__, __run_id__,
-    # __user__, and the runtime meta dict) so that type: connector inputs
-    # and other scope-aware loaders can resolve before the normal input
-    # loop runs. Connector lookup walks org → workspace → pipeline, so
-    # the scope must be populated before we iterate af.input.
+    # Forward scope-related keys from the caller so scope-aware input
+    # loaders see them before we iterate af.input.
     from aiorch.constants import RUNTIME_META_KEY
     if context:
         for _k in (
@@ -161,32 +158,20 @@ async def execute(
             if _k in context:
                 ctx[_k] = context[_k]
 
-    # Inject top-level input defaults (typed input loading).
-    # Skip defaults for keys the caller overrode (context) so we don't
-    # eagerly load a declared fallback file that doesn't exist on disk —
-    # e.g., `type: file, path: document.txt` as the declared default
-    # when the user supplies a different path at run time. If the user
-    # did NOT override and the default file is missing, set the key to
-    # None rather than crashing the whole pipeline at context build time;
-    # downstream steps will fail with a clearer error if they actually
-    # need the value.
+    # Caller-supplied values win over declared defaults so we don't
+    # eagerly load a default file the user intended to override.
     overridden_keys = set(context.keys()) if context else set()
     if af.input:
         for k, v in af.input.items():
             if k in overridden_keys:
                 continue
 
-            # http inputs are resolved lazily — wrap in LazyHttpInput
-            # so the fetch only fires if a step actually references
-            # the value. Dead http inputs never touch the network.
+            # http inputs are wrapped lazily so dead references never
+            # touch the network.
             if isinstance(v, dict) and v.get("type") == "http":
                 ctx[k] = LazyHttpInput(v)
                 continue
 
-            # Connector inputs (Postgres / S3 / Kafka / SMTP / webhook)
-            # are a commercial aiorch Platform feature — they need the
-            # connector registry, workspace secrets, and audit logging
-            # that only Platform provides.
             if isinstance(v, dict) and v.get("type") == "connector":
                 raise RuntimeError(
                     f"Input '{k}' declares type: connector — connectors are "
@@ -223,45 +208,21 @@ async def execute(
                 ctx[k] = v
                 continue
 
-            # Artifact: caller can supply either a typed dict
-            # {type: artifact, artifact_id: "..."} OR just an
-            # artifact_id string. Either way we build the loader
-            # config from the schema's format field.
-            #
-            # IMPORTANT: the schema's `format:` is the source of
-            # truth and OVERRIDES any format the caller supplied.
-            # The CLI's parse_kv_inputs guesses format from file
-            # extension when uploading via @file syntax, but those
-            # guesses are inferences — the pipeline author's
-            # declared format is the authoritative answer. Without
-            # this override, a `format: binary` declaration was
-            # silently ignored when the CLI uploaded a .png as
-            # text (because parse_kv_inputs has no binary path),
-            # and the run failed at the python step with a confusing
-            # "expected bytes, got str" error.
             if declared_type == "artifact":
-                # Artifact-typed inputs (platform-managed content store)
-                # are a commercial aiorch Platform feature. CLI users
-                # should pass local files via `type: file` or pipe
-                # content via `type: stdin`.
                 raise RuntimeError(
                     f"Input '{k}' declares type: artifact — artifact storage "
                     "is available only in the commercial aiorch Platform. "
                     "Use `type: file` with a local path in the CLI."
                 )
 
-            # Connector-typed inputs are Platform-only — same as the
-            # untyped-connector branch above.
             if declared_type == "connector":
                 raise RuntimeError(
                     f"Input '{k}' declares type: connector — connectors are "
                     "available only in the commercial aiorch Platform."
                 )
 
-            # http: lazy fetch via LazyHttpInput. Defer the network
-            # call until a step actually references the value —
-            # dead http inputs never touch the network, and pipeline
-            # start isn't blocked on a slow remote API.
+            # http inputs are wrapped lazily so the network call fires
+            # only when a step references the value.
             if declared_type == "http":
                 # Merge runtime overrides (url, headers) with the
                 # schema declaration (method, body, format defaults).

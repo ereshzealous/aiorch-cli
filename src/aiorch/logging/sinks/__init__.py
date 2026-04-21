@@ -75,17 +75,11 @@ class QueryableLogSink(LogSink):
 
 
 class LogSinkConfig(BaseModel):
-    """Configuration for a single log sink. Uses same shape as ConnectorConfig."""
+    """Configuration for a single log sink. Built-in sinks read
+    ``type``, ``path`` (file), and ``format`` (stdout); ``options`` is
+    passed through unchanged."""
     type: str = "file"
     path: str | None = None
-    host: str | None = None
-    port: int | None = None
-    database: str | None = None
-    username: str | None = None
-    password: str | None = None
-    url: str | None = None
-    bucket: str | None = None
-    region: str | None = None
     format: str | None = None
     options: dict = Field(default_factory=dict)
 
